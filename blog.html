@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Blog - Shravan Kumar Sheri</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+	<style>
+		body {
+			font-family: "Times New Roman", Times, serif;
+			background-color: #f5f5f5;
+			margin: 0;
+			padding: 0;
+			background-image: url('brandi-redd-aJTiW00qqtI-unsplash.jpg');
+			background-size: cover;
+			background-position: center center;
+			background-repeat: no-repeat;
+			background-attachment: fixed;
+		}
+
+		.navbar {
+			background-color: rgba(0, 123, 255, 0.95) !important;
+		}
+
+		.navbar-brand, .nav-link {
+			color: #fff !important;
+			font-size: 18px;
+		}
+
+		.nav-link:hover {
+			color: #d4e5ff !important;
+		}
+
+		.container {
+			max-width: 900px;
+			margin: 0 auto;
+			padding: 50px 15px;
+		}
+
+		h1, h2, h3 {
+			color: #007bff;
+			margin-top: 0;
+			margin-bottom: 30px;
+		}
+
+		h2 {
+			font-size: 28px;
+		}
+
+		h3 {
+			font-size: 24px;
+		}
+
+		p {
+			font-size: 18px;
+			line-height: 1.5;
+			margin-bottom: 20px;
+		}
+
+		.blog-card {
+			box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+			transition: 0.3s;
+			margin-bottom: 30px;
+			background: #fff;
+			border-radius: 8px;
+			overflow: hidden;
+		}
+
+		.blog-card:hover {
+			box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
+			transform: translateY(-2px);
+		}
+
+		.blog-card-body {
+			padding: 25px;
+		}
+
+		.blog-title {
+			font-size: 24px;
+			font-weight: bold;
+			margin-bottom: 10px;
+			color: #333;
+		}
+
+		.blog-meta {
+			color: #666;
+			font-size: 14px;
+			margin-bottom: 15px;
+		}
+
+		.blog-excerpt {
+			font-size: 16px;
+			line-height: 1.6;
+			color: #555;
+			margin-bottom: 15px;
+		}
+
+		.blog-tags {
+			margin-bottom: 15px;
+		}
+
+		.blog-tag {
+			display: inline-block;
+			background-color: #e9ecef;
+			color: #495057;
+			padding: 4px 10px;
+			border-radius: 15px;
+			font-size: 12px;
+			margin-right: 5px;
+			margin-bottom: 5px;
+		}
+
+		.btn {
+			background-color: #007bff;
+			color: #fff;
+			padding: 10px 20px;
+			border-radius: 5px;
+			border: none;
+			text-decoration: none;
+		}
+
+		.btn:hover {
+			background-color: #0056b3;
+			color: #fff;
+			text-decoration: none;
+		}
+
+		.page-header {
+			background: rgba(255, 255, 255, 0.95);
+			padding: 30px;
+			border-radius: 8px;
+			margin-bottom: 30px;
+			box-shadow: 0 4px 8px 0 rgba(0,0,0,0.1);
+		}
+
+		.page-header h1 {
+			margin-bottom: 10px;
+		}
+
+		.page-header p {
+			margin-bottom: 0;
+			color: #666;
+		}
+
+		.footer {
+			background-color: #007bff;
+			color: #fff;
+			padding: 20px 0;
+			text-align: center;
+		}
+
+		.footer a {
+			color: #fff;
+		}
+	</style>
+</head>
+<body>
+	<!-- Navigation Bar -->
+	<nav class="navbar navbar-expand-lg navbar-dark">
+		<div class="container">
+			<a class="navbar-brand" href="index.html">Shravan Kumar Sheri</a>
+			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+				<span class="navbar-toggler-icon"></span>
+			</button>
+			<div class="collapse navbar-collapse" id="navbarNav">
+				<ul class="navbar-nav ml-auto">
+					<li class="nav-item">
+						<a class="nav-link" href="index.html">Home</a>
+					</li>
+					<li class="nav-item active">
+						<a class="nav-link" href="blog.html">Blog</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+
+	<div class="container">
+		<!-- Page Header -->
+		<div class="page-header">
+			<h1>Blog</h1>
+			<p>Thoughts, tutorials, and insights on cybersecurity, hacking, and technology.</p>
+		</div>
+
+		<!-- ============================================
+		     HOW TO ADD A NEW BLOG POST:
+
+		     Copy the template below and paste it after this comment.
+		     Fill in your blog details:
+		     - Update the title in <h3 class="blog-title">
+		     - Update the date and read time in <div class="blog-meta">
+		     - Write your excerpt/summary in <p class="blog-excerpt">
+		     - Add relevant tags in <div class="blog-tags">
+		     - Update the "Read More" link if you have a full article
+
+		     TEMPLATE:
+
+		     <div class="blog-card">
+		         <div class="blog-card-body">
+		             <h3 class="blog-title">Your Blog Title Here</h3>
+		             <div class="blog-meta">
+		                 <span>Published: Month Day, Year</span> | <span>5 min read</span>
+		             </div>
+		             <p class="blog-excerpt">
+		                 Write a brief summary of your blog post here. This should be
+		                 2-3 sentences that give readers an idea of what the article covers.
+		             </p>
+		             <div class="blog-tags">
+		                 <span class="blog-tag">Tag1</span>
+		                 <span class="blog-tag">Tag2</span>
+		             </div>
+		             <a href="#" class="btn">Read More</a>
+		         </div>
+		     </div>
+
+		============================================ -->
+
+		<!-- Blog Post 1 -->
+		<div class="blog-card">
+			<div class="blog-card-body">
+				<h3 class="blog-title">Getting Started with Security Operations</h3>
+				<div class="blog-meta">
+					<span>Published: November 30, 2024</span> | <span>8 min read</span>
+				</div>
+				<p class="blog-excerpt">
+					An introduction to working in a Security Operations Center (SOC). Learn about the essential
+					tools, methodologies, and skills needed to detect and respond to security threats effectively.
+				</p>
+				<div class="blog-tags">
+					<span class="blog-tag">SOC</span>
+					<span class="blog-tag">Security</span>
+					<span class="blog-tag">Career</span>
+				</div>
+				<a href="#" class="btn">Read More</a>
+			</div>
+		</div>
+
+		<!-- Blog Post 2 -->
+		<div class="blog-card">
+			<div class="blog-card-body">
+				<h3 class="blog-title">Understanding Buffer Overflow Attacks</h3>
+				<div class="blog-meta">
+					<span>Published: November 15, 2024</span> | <span>12 min read</span>
+				</div>
+				<p class="blog-excerpt">
+					A deep dive into stack-based buffer overflow vulnerabilities. This post covers the theory
+					behind buffer overflows, how to identify them, and techniques for exploitation and prevention.
+				</p>
+				<div class="blog-tags">
+					<span class="blog-tag">Exploitation</span>
+					<span class="blog-tag">Buffer Overflow</span>
+					<span class="blog-tag">Security Research</span>
+				</div>
+				<a href="#" class="btn">Read More</a>
+			</div>
+		</div>
+
+		<!-- Blog Post 3 -->
+		<div class="blog-card">
+			<div class="blog-card-body">
+				<h3 class="blog-title">Automating Security Tasks with Python</h3>
+				<div class="blog-meta">
+					<span>Published: November 1, 2024</span> | <span>10 min read</span>
+				</div>
+				<p class="blog-excerpt">
+					Learn how to use Python for automating common security tasks. From log analysis to
+					threat hunting, discover practical scripts that can enhance your security workflow.
+				</p>
+				<div class="blog-tags">
+					<span class="blog-tag">Python</span>
+					<span class="blog-tag">Automation</span>
+					<span class="blog-tag">Scripting</span>
+				</div>
+				<a href="#" class="btn">Read More</a>
+			</div>
+		</div>
+
+		<!-- ADD NEW BLOG POSTS ABOVE THIS LINE -->
+
+	</div>
+
+	<footer class="bg-dark text-light py-3">
+		<div class="container">
+			<div class="row">
+				<div class="col-md-12">
+					<p class="text-center">&copy; 2024 Shravan Kumar Sheri - All Rights Reserved</p>
+				</div>
+			</div>
+		</div>
+	</footer>
+</body>
+</html>
