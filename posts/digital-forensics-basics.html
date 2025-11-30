@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Digital Forensics Fundamentals - Shravan Kumar Sheri</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="An introduction to digital forensics investigation. Learn about evidence collection, analysis tools, and forensic methodology.">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+	<style>
+		* { box-sizing: border-box; }
+		body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; margin: 0; padding: 0; line-height: 1.8; color: #333; }
+		.progress-bar-container { position: fixed; top: 0; left: 0; width: 100%; height: 4px; background: #e9ecef; z-index: 1001; }
+		.progress-bar-fill { height: 100%; background: linear-gradient(90deg, #8e2de2, #4a00e0); width: 0%; transition: width 0.1s; }
+		.navbar { background-color: #1a1a2e !important; padding: 15px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+		.navbar-brand { color: #fff !important; font-size: 22px; font-weight: 600; }
+		.nav-link { color: rgba(255,255,255,0.9) !important; font-size: 16px; margin-left: 20px; transition: color 0.3s; }
+		.nav-link:hover { color: #4a9eff !important; }
+		.article-header { background: linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%); color: #fff; padding: 80px 0; }
+		.article-header .container { max-width: 800px; }
+		.back-link { color: rgba(255,255,255,0.9); text-decoration: none; display: inline-flex; align-items: center; margin-bottom: 30px; font-size: 14px; }
+		.back-link:hover { color: #fff; text-decoration: none; }
+		.back-link i { margin-right: 8px; }
+		.article-category { display: inline-block; padding: 6px 16px; background: rgba(255,255,255,0.2); border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; margin-bottom: 20px; }
+		.article-title { font-size: 42px; font-weight: 700; margin-bottom: 20px; line-height: 1.2; }
+		.article-meta { display: flex; flex-wrap: wrap; gap: 20px; font-size: 14px; opacity: 0.9; }
+		.article-meta span { display: flex; align-items: center; }
+		.article-meta i { margin-right: 8px; }
+		.article-content { max-width: 800px; margin: 0 auto; padding: 60px 20px; }
+		.article-body { background: #fff; padding: 50px; border-radius: 12px; box-shadow: 0 5px 30px rgba(0,0,0,0.08); }
+		.article-body h2 { font-size: 28px; font-weight: 700; color: #1a1a2e; margin-top: 40px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef; }
+		.article-body h2:first-child { margin-top: 0; }
+		.article-body h3 { font-size: 22px; font-weight: 600; color: #333; margin-top: 30px; margin-bottom: 15px; }
+		.article-body p { font-size: 18px; line-height: 1.8; margin-bottom: 20px; color: #444; }
+		.article-body ul, .article-body ol { margin-bottom: 20px; padding-left: 30px; }
+		.article-body li { font-size: 18px; line-height: 1.8; margin-bottom: 10px; color: #444; }
+		.article-body code { background: #f4f4f4; padding: 3px 8px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 16px; color: #d63384; }
+		.article-body pre { background: #1a1a2e; color: #fff; padding: 25px; border-radius: 8px; overflow-x: auto; margin: 25px 0; }
+		.article-body pre code { background: none; color: #fff; padding: 0; }
+		.article-body blockquote { border-left: 4px solid #8e2de2; padding: 20px 25px; margin: 25px 0; background: #f8f9fa; border-radius: 0 8px 8px 0; }
+		.article-body blockquote p { margin: 0; font-style: italic; color: #555; }
+		.toc { background: #f8f9fa; padding: 25px 30px; border-radius: 8px; margin-bottom: 40px; }
+		.toc h4 { font-size: 16px; font-weight: 700; color: #1a1a2e; margin-bottom: 15px; text-transform: uppercase; }
+		.toc ul { list-style: none; padding: 0; margin: 0; }
+		.toc li { margin-bottom: 10px; }
+		.toc a { color: #555; text-decoration: none; font-size: 15px; }
+		.toc a:hover { color: #8e2de2; }
+		.share-section { margin-top: 50px; padding-top: 30px; border-top: 1px solid #e9ecef; }
+		.share-section h4 { font-size: 16px; font-weight: 600; color: #666; margin-bottom: 15px; }
+		.share-buttons { display: flex; gap: 10px; }
+		.share-btn { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; text-decoration: none; transition: transform 0.3s; }
+		.share-btn:hover { transform: scale(1.1); color: #fff; }
+		.share-btn.twitter { background: #1da1f2; }
+		.share-btn.linkedin { background: #0077b5; }
+		.share-btn.copy { background: #6c757d; cursor: pointer; }
+		.author-box { display: flex; align-items: center; gap: 20px; background: #f8f9fa; padding: 25px; border-radius: 12px; margin-top: 40px; }
+		.author-avatar { width: 80px; height: 80px; background: linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 32px; font-weight: 700; flex-shrink: 0; }
+		.author-info h4 { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 5px; }
+		.author-info p { font-size: 14px; color: #666; margin: 0; }
+		.tags { margin-top: 30px; }
+		.tag { display: inline-block; padding: 6px 14px; background: #e9ecef; color: #495057; border-radius: 20px; font-size: 13px; margin-right: 8px; margin-bottom: 8px; text-decoration: none; }
+		.tag:hover { background: #dee2e6; color: #333; }
+		.info-box { background: #e3f2fd; border-left: 4px solid #2196f3; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0; }
+		.info-box p { margin: 0; color: #1565c0; }
+		footer { background: #1a1a2e; color: #fff; padding: 30px 0; text-align: center; margin-top: 60px; }
+		footer p { margin: 0; opacity: 0.8; }
+		@media (max-width: 768px) {
+			.article-title { font-size: 28px; }
+			.article-body { padding: 30px 20px; }
+			.author-box { flex-direction: column; text-align: center; }
+		}
+	</style>
+</head>
+<body>
+	<div class="progress-bar-container"><div class="progress-bar-fill" id="progressBar"></div></div>
+
+	<nav class="navbar navbar-expand-lg navbar-dark">
+		<div class="container">
+			<a class="navbar-brand" href="../index.html">Shravan Kumar Sheri</a>
+			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"><span class="navbar-toggler-icon"></span></button>
+			<div class="collapse navbar-collapse" id="navbarNav">
+				<ul class="navbar-nav ml-auto">
+					<li class="nav-item"><a class="nav-link" href="../index.html">Home</a></li>
+					<li class="nav-item active"><a class="nav-link" href="../blog.html">Blog</a></li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+
+	<header class="article-header">
+		<div class="container">
+			<a href="../blog.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to Blog</a>
+			<span class="article-category">Forensics</span>
+			<h1 class="article-title">Digital Forensics Fundamentals</h1>
+			<div class="article-meta">
+				<span><i class="far fa-calendar"></i> October 20, 2024</span>
+				<span><i class="far fa-clock"></i> 15 min read</span>
+				<span><i class="far fa-user"></i> Shravan Kumar Sheri</span>
+			</div>
+		</div>
+	</header>
+
+	<article class="article-content">
+		<div class="article-body">
+			<div class="toc">
+				<h4>Table of Contents</h4>
+				<ul>
+					<li><a href="#introduction">What is Digital Forensics?</a></li>
+					<li><a href="#methodology">Forensic Methodology</a></li>
+					<li><a href="#evidence">Evidence Collection</a></li>
+					<li><a href="#tools">Essential Tools</a></li>
+					<li><a href="#analysis">Analysis Techniques</a></li>
+					<li><a href="#reporting">Documentation and Reporting</a></li>
+				</ul>
+			</div>
+
+			<h2 id="introduction">What is Digital Forensics?</h2>
+			<p>
+				Digital forensics is the process of identifying, preserving, analyzing, and presenting digital evidence in a manner that is legally admissible. It plays a crucial role in investigating cybercrimes, data breaches, insider threats, and various other security incidents.
+			</p>
+
+			<div class="info-box">
+				<p><strong>Key Principle:</strong> The primary goal of digital forensics is to extract data from electronic evidence, process it into actionable intelligence, and present findings in a way that supports or refutes a hypothesis in a legal proceeding.</p>
+			</div>
+
+			<h3>Types of Digital Forensics</h3>
+			<ul>
+				<li><strong>Computer Forensics:</strong> Analysis of computers, laptops, and storage devices</li>
+				<li><strong>Network Forensics:</strong> Investigation of network traffic and logs</li>
+				<li><strong>Mobile Forensics:</strong> Examination of smartphones and tablets</li>
+				<li><strong>Memory Forensics:</strong> Analysis of volatile memory (RAM)</li>
+				<li><strong>Cloud Forensics:</strong> Investigation of cloud-based services and infrastructure</li>
+			</ul>
+
+			<h2 id="methodology">Forensic Methodology</h2>
+			<p>
+				A structured forensic methodology ensures that evidence is handled properly and findings are defensible. The standard process includes:
+			</p>
+
+			<ol>
+				<li><strong>Identification:</strong> Recognize and identify potential sources of evidence</li>
+				<li><strong>Preservation:</strong> Protect evidence from alteration or destruction</li>
+				<li><strong>Collection:</strong> Gather evidence using forensically sound methods</li>
+				<li><strong>Examination:</strong> Extract and analyze relevant data</li>
+				<li><strong>Analysis:</strong> Interpret findings and draw conclusions</li>
+				<li><strong>Presentation:</strong> Document and present findings clearly</li>
+			</ol>
+
+			<blockquote>
+				<p>"Digital evidence must be handled with the same rigor as physical evidence. Proper chain of custody documentation is essential for maintaining the integrity and admissibility of evidence."</p>
+			</blockquote>
+
+			<h2 id="evidence">Evidence Collection</h2>
+			<p>
+				Proper evidence collection is critical for maintaining the integrity of a forensic investigation. The key principle is to minimize changes to the original evidence.
+			</p>
+
+			<h3>Order of Volatility</h3>
+			<p>
+				Evidence should be collected in order of volatility, from most volatile to least:
+			</p>
+			<ol>
+				<li>CPU registers and cache</li>
+				<li>Memory (RAM)</li>
+				<li>Network state and connections</li>
+				<li>Running processes</li>
+				<li>Disk storage</li>
+				<li>Remote logging and monitoring data</li>
+				<li>Physical configuration and network topology</li>
+				<li>Archival media (backups, printouts)</li>
+			</ol>
+
+			<h3>Creating Forensic Images</h3>
+			<p>
+				Always work with forensic copies, never the original evidence:
+			</p>
+
+			<pre><code># Using dd for disk imaging
+sudo dd if=/dev/sda of=/path/to/image.dd bs=4M status=progress
+
+# Using dc3dd (enhanced version with hashing)
+sudo dc3dd if=/dev/sda of=/path/to/image.dd hash=sha256 log=imaging.log
+
+# Verify image integrity
+sha256sum /dev/sda
+sha256sum /path/to/image.dd</code></pre>
+
+			<h2 id="tools">Essential Tools</h2>
+			<p>
+				A forensic analyst needs a variety of tools for different aspects of investigation:
+			</p>
+
+			<h3>Disk and File Analysis</h3>
+			<ul>
+				<li><strong>Autopsy:</strong> Open-source digital forensics platform</li>
+				<li><strong>FTK Imager:</strong> Free tool for creating forensic images</li>
+				<li><strong>Sleuth Kit:</strong> Command-line tools for file system analysis</li>
+				<li><strong>EnCase:</strong> Commercial forensic investigation software</li>
+			</ul>
+
+			<h3>Memory Analysis</h3>
+			<ul>
+				<li><strong>Volatility:</strong> Advanced memory forensics framework</li>
+				<li><strong>Rekall:</strong> Memory analysis framework</li>
+			</ul>
+
+			<pre><code># Volatility commands for memory analysis
+
+# Identify the memory profile
+volatility -f memory.dump imageinfo
+
+# List running processes
+volatility -f memory.dump --profile=Win10x64 pslist
+
+# Network connections
+volatility -f memory.dump --profile=Win10x64 netscan
+
+# Extract command history
+volatility -f memory.dump --profile=Win10x64 cmdscan</code></pre>
+
+			<h3>Network Analysis</h3>
+			<ul>
+				<li><strong>Wireshark:</strong> Network protocol analyzer</li>
+				<li><strong>NetworkMiner:</strong> Network forensic analysis tool</li>
+				<li><strong>Zeek (Bro):</strong> Network security monitoring</li>
+			</ul>
+
+			<h2 id="analysis">Analysis Techniques</h2>
+
+			<h3>Timeline Analysis</h3>
+			<p>
+				Creating a timeline of events helps understand the sequence of actions:
+			</p>
+
+			<pre><code># Create a timeline using Plaso
+log2timeline.py timeline.plaso /path/to/image.dd
+
+# Process timeline to CSV
+psort.py -o l2tcsv timeline.plaso -w timeline.csv
+
+# Filter timeline for specific date range
+psort.py timeline.plaso "date > '2024-01-01' AND date < '2024-01-31'"</code></pre>
+
+			<h3>Artifact Analysis</h3>
+			<p>
+				Key artifacts to examine during Windows forensics:
+			</p>
+			<ul>
+				<li><strong>Registry:</strong> User activities, installed software, USB history</li>
+				<li><strong>Event Logs:</strong> Security events, logon/logoff, system changes</li>
+				<li><strong>Prefetch:</strong> Evidence of program execution</li>
+				<li><strong>Browser History:</strong> Web activity and downloads</li>
+				<li><strong>$MFT:</strong> File system metadata including deleted files</li>
+				<li><strong>USN Journal:</strong> File system change journal</li>
+			</ul>
+
+			<h2 id="reporting">Documentation and Reporting</h2>
+			<p>
+				Proper documentation is essential for the credibility of your findings:
+			</p>
+
+			<h3>Report Structure</h3>
+			<ol>
+				<li><strong>Executive Summary:</strong> High-level overview for non-technical readers</li>
+				<li><strong>Scope and Objectives:</strong> What was investigated and why</li>
+				<li><strong>Evidence Summary:</strong> List of all evidence examined</li>
+				<li><strong>Methodology:</strong> Tools and techniques used</li>
+				<li><strong>Findings:</strong> Detailed technical analysis</li>
+				<li><strong>Timeline:</strong> Chronological sequence of events</li>
+				<li><strong>Conclusions:</strong> Summary of what the evidence shows</li>
+				<li><strong>Appendices:</strong> Supporting data, hash values, chain of custody</li>
+			</ol>
+
+			<blockquote>
+				<p>A forensic report should tell a clear story supported by evidence. Every claim should be backed by specific artifacts and documented procedures.</p>
+			</blockquote>
+
+			<div class="tags">
+				<a href="#" class="tag">Forensics</a>
+				<a href="#" class="tag">Incident Response</a>
+				<a href="#" class="tag">Evidence Analysis</a>
+				<a href="#" class="tag">DFIR</a>
+			</div>
+
+			<div class="share-section">
+				<h4>Share this article</h4>
+				<div class="share-buttons">
+					<a href="#" class="share-btn twitter" onclick="shareTwitter()"><i class="fab fa-twitter"></i></a>
+					<a href="#" class="share-btn linkedin" onclick="shareLinkedIn()"><i class="fab fa-linkedin-in"></i></a>
+					<div class="share-btn copy" onclick="copyLink()"><i class="fas fa-link"></i></div>
+				</div>
+			</div>
+
+			<div class="author-box">
+				<div class="author-avatar">SK</div>
+				<div class="author-info">
+					<h4>Shravan Kumar Sheri</h4>
+					<p>Cyber Security Professional with experience in digital forensics and incident response investigations.</p>
+				</div>
+			</div>
+		</div>
+	</article>
+
+	<footer><div class="container"><p>&copy; 2024 Shravan Kumar Sheri - All Rights Reserved</p></div></footer>
+
+	<script>
+		window.addEventListener('scroll', () => {
+			const progress = (document.documentElement.scrollTop / (document.documentElement.scrollHeight - document.documentElement.clientHeight)) * 100;
+			document.getElementById('progressBar').style.width = progress + '%';
+		});
+		function shareTwitter() { window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(document.title)}`, '_blank'); }
+		function shareLinkedIn() { window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}`, '_blank'); }
+		function copyLink() { navigator.clipboard.writeText(window.location.href).then(() => alert('Link copied!')); }
+		document.querySelectorAll('.toc a').forEach(link => {
+			link.addEventListener('click', function(e) {
+				e.preventDefault();
+				document.getElementById(this.getAttribute('href').slice(1))?.scrollIntoView({ behavior: 'smooth' });
+			});
+		});
+	</script>
+</body>
+</html>

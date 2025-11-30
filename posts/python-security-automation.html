@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Automating Security Tasks with Python - Shravan Kumar Sheri</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="Learn how to use Python for automating common security tasks. From log analysis to threat hunting with practical scripts.">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+	<style>
+		* { box-sizing: border-box; }
+		body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; margin: 0; padding: 0; line-height: 1.8; color: #333; }
+		.progress-bar-container { position: fixed; top: 0; left: 0; width: 100%; height: 4px; background: #e9ecef; z-index: 1001; }
+		.progress-bar-fill { height: 100%; background: linear-gradient(90deg, #4a9eff, #00d2ff); width: 0%; transition: width 0.1s; }
+		.navbar { background-color: #1a1a2e !important; padding: 15px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+		.navbar-brand { color: #fff !important; font-size: 22px; font-weight: 600; }
+		.nav-link { color: rgba(255,255,255,0.9) !important; font-size: 16px; margin-left: 20px; transition: color 0.3s; }
+		.nav-link:hover { color: #4a9eff !important; }
+		.article-header { background: linear-gradient(135deg, #4a9eff 0%, #00d2ff 100%); color: #fff; padding: 80px 0; }
+		.article-header .container { max-width: 800px; }
+		.back-link { color: rgba(255,255,255,0.9); text-decoration: none; display: inline-flex; align-items: center; margin-bottom: 30px; font-size: 14px; }
+		.back-link:hover { color: #fff; text-decoration: none; }
+		.back-link i { margin-right: 8px; }
+		.article-category { display: inline-block; padding: 6px 16px; background: rgba(255,255,255,0.2); border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; margin-bottom: 20px; }
+		.article-title { font-size: 42px; font-weight: 700; margin-bottom: 20px; line-height: 1.2; }
+		.article-meta { display: flex; flex-wrap: wrap; gap: 20px; font-size: 14px; opacity: 0.9; }
+		.article-meta span { display: flex; align-items: center; }
+		.article-meta i { margin-right: 8px; }
+		.article-content { max-width: 800px; margin: 0 auto; padding: 60px 20px; }
+		.article-body { background: #fff; padding: 50px; border-radius: 12px; box-shadow: 0 5px 30px rgba(0,0,0,0.08); }
+		.article-body h2 { font-size: 28px; font-weight: 700; color: #1a1a2e; margin-top: 40px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef; }
+		.article-body h2:first-child { margin-top: 0; }
+		.article-body h3 { font-size: 22px; font-weight: 600; color: #333; margin-top: 30px; margin-bottom: 15px; }
+		.article-body p { font-size: 18px; line-height: 1.8; margin-bottom: 20px; color: #444; }
+		.article-body ul, .article-body ol { margin-bottom: 20px; padding-left: 30px; }
+		.article-body li { font-size: 18px; line-height: 1.8; margin-bottom: 10px; color: #444; }
+		.article-body code { background: #f4f4f4; padding: 3px 8px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 16px; color: #d63384; }
+		.article-body pre { background: #1a1a2e; color: #fff; padding: 25px; border-radius: 8px; overflow-x: auto; margin: 25px 0; }
+		.article-body pre code { background: none; color: #fff; padding: 0; }
+		.article-body blockquote { border-left: 4px solid #4a9eff; padding: 20px 25px; margin: 25px 0; background: #f8f9fa; border-radius: 0 8px 8px 0; }
+		.article-body blockquote p { margin: 0; font-style: italic; color: #555; }
+		.toc { background: #f8f9fa; padding: 25px 30px; border-radius: 8px; margin-bottom: 40px; }
+		.toc h4 { font-size: 16px; font-weight: 700; color: #1a1a2e; margin-bottom: 15px; text-transform: uppercase; }
+		.toc ul { list-style: none; padding: 0; margin: 0; }
+		.toc li { margin-bottom: 10px; }
+		.toc a { color: #555; text-decoration: none; font-size: 15px; }
+		.toc a:hover { color: #4a9eff; }
+		.share-section { margin-top: 50px; padding-top: 30px; border-top: 1px solid #e9ecef; }
+		.share-section h4 { font-size: 16px; font-weight: 600; color: #666; margin-bottom: 15px; }
+		.share-buttons { display: flex; gap: 10px; }
+		.share-btn { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; text-decoration: none; transition: transform 0.3s; }
+		.share-btn:hover { transform: scale(1.1); color: #fff; }
+		.share-btn.twitter { background: #1da1f2; }
+		.share-btn.linkedin { background: #0077b5; }
+		.share-btn.copy { background: #6c757d; cursor: pointer; }
+		.author-box { display: flex; align-items: center; gap: 20px; background: #f8f9fa; padding: 25px; border-radius: 12px; margin-top: 40px; }
+		.author-avatar { width: 80px; height: 80px; background: linear-gradient(135deg, #4a9eff 0%, #00d2ff 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 32px; font-weight: 700; flex-shrink: 0; }
+		.author-info h4 { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 5px; }
+		.author-info p { font-size: 14px; color: #666; margin: 0; }
+		.tags { margin-top: 30px; }
+		.tag { display: inline-block; padding: 6px 14px; background: #e9ecef; color: #495057; border-radius: 20px; font-size: 13px; margin-right: 8px; margin-bottom: 8px; text-decoration: none; }
+		.tag:hover { background: #dee2e6; color: #333; }
+		footer { background: #1a1a2e; color: #fff; padding: 30px 0; text-align: center; margin-top: 60px; }
+		footer p { margin: 0; opacity: 0.8; }
+		@media (max-width: 768px) {
+			.article-title { font-size: 28px; }
+			.article-body { padding: 30px 20px; }
+			.author-box { flex-direction: column; text-align: center; }
+		}
+	</style>
+</head>
+<body>
+	<div class="progress-bar-container"><div class="progress-bar-fill" id="progressBar"></div></div>
+
+	<nav class="navbar navbar-expand-lg navbar-dark">
+		<div class="container">
+			<a class="navbar-brand" href="../index.html">Shravan Kumar Sheri</a>
+			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"><span class="navbar-toggler-icon"></span></button>
+			<div class="collapse navbar-collapse" id="navbarNav">
+				<ul class="navbar-nav ml-auto">
+					<li class="nav-item"><a class="nav-link" href="../index.html">Home</a></li>
+					<li class="nav-item active"><a class="nav-link" href="../blog.html">Blog</a></li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+
+	<header class="article-header">
+		<div class="container">
+			<a href="../blog.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to Blog</a>
+			<span class="article-category">Automation</span>
+			<h1 class="article-title">Automating Security Tasks with Python</h1>
+			<div class="article-meta">
+				<span><i class="far fa-calendar"></i> November 1, 2024</span>
+				<span><i class="far fa-clock"></i> 10 min read</span>
+				<span><i class="far fa-user"></i> Shravan Kumar Sheri</span>
+			</div>
+		</div>
+	</header>
+
+	<article class="article-content">
+		<div class="article-body">
+			<div class="toc">
+				<h4>Table of Contents</h4>
+				<ul>
+					<li><a href="#introduction">Why Python for Security?</a></li>
+					<li><a href="#log-analysis">Log Analysis Automation</a></li>
+					<li><a href="#network-scanning">Network Scanning Scripts</a></li>
+					<li><a href="#threat-intel">Threat Intelligence Automation</a></li>
+					<li><a href="#incident-response">Incident Response Helpers</a></li>
+				</ul>
+			</div>
+
+			<h2 id="introduction">Why Python for Security?</h2>
+			<p>
+				Python has become the de facto language for security automation due to its simplicity, extensive library ecosystem, and cross-platform compatibility. Whether you're analyzing logs, automating threat hunting, or building incident response tools, Python provides the flexibility and power needed for security tasks.
+			</p>
+
+			<h3>Key Libraries for Security</h3>
+			<ul>
+				<li><code>requests</code> - HTTP requests and API interactions</li>
+				<li><code>scapy</code> - Packet manipulation and network analysis</li>
+				<li><code>pandas</code> - Data analysis and log processing</li>
+				<li><code>yara-python</code> - Malware detection rules</li>
+				<li><code>python-nmap</code> - Network scanning automation</li>
+			</ul>
+
+			<h2 id="log-analysis">Log Analysis Automation</h2>
+			<p>
+				One of the most common security tasks is analyzing logs for suspicious activity. Here's a script that parses Windows Security logs for failed login attempts:
+			</p>
+
+			<pre><code>import re
+from collections import Counter
+from datetime import datetime
+
+def analyze_failed_logins(log_file):
+    """Analyze failed login attempts from log file"""
+    failed_logins = []
+    pattern = r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}).*Failed login.*user: (\w+).*IP: (\d+\.\d+\.\d+\.\d+)'
+
+    with open(log_file, 'r') as f:
+        for line in f:
+            match = re.search(pattern, line)
+            if match:
+                timestamp, user, ip = match.groups()
+                failed_logins.append({
+                    'timestamp': timestamp,
+                    'user': user,
+                    'ip': ip
+                })
+
+    # Find top offending IPs
+    ip_counts = Counter(login['ip'] for login in failed_logins)
+
+    print("Top 10 IPs with failed logins:")
+    for ip, count in ip_counts.most_common(10):
+        print(f"  {ip}: {count} attempts")
+
+    # Find potential brute force (>5 attempts in 5 minutes)
+    return detect_brute_force(failed_logins)
+
+def detect_brute_force(logins, threshold=5, window_minutes=5):
+    """Detect potential brute force attacks"""
+    alerts = []
+    # Group by IP and check time windows
+    # ... implementation
+    return alerts
+
+if __name__ == "__main__":
+    analyze_failed_logins("/var/log/auth.log")</code></pre>
+
+			<h2 id="network-scanning">Network Scanning Scripts</h2>
+			<p>
+				Automating network reconnaissance helps security teams maintain visibility into their environment:
+			</p>
+
+			<pre><code>import nmap
+import json
+from datetime import datetime
+
+def scan_network(target_range):
+    """Perform network scan and identify services"""
+    nm = nmap.PortScanner()
+
+    print(f"Scanning {target_range}...")
+    nm.scan(hosts=target_range, arguments='-sV -sC -O')
+
+    results = []
+    for host in nm.all_hosts():
+        host_info = {
+            'ip': host,
+            'hostname': nm[host].hostname(),
+            'state': nm[host].state(),
+            'os': nm[host].get('osmatch', []),
+            'ports': []
+        }
+
+        for proto in nm[host].all_protocols():
+            ports = nm[host][proto].keys()
+            for port in ports:
+                port_info = nm[host][proto][port]
+                host_info['ports'].append({
+                    'port': port,
+                    'state': port_info['state'],
+                    'service': port_info['name'],
+                    'version': port_info.get('version', '')
+                })
+
+        results.append(host_info)
+
+    return results
+
+def find_vulnerable_services(scan_results):
+    """Check for known vulnerable service versions"""
+    vulnerable = []
+    # Add vulnerability checks here
+    return vulnerable</code></pre>
+
+			<h2 id="threat-intel">Threat Intelligence Automation</h2>
+			<p>
+				Automate threat intelligence lookups to enrich security alerts:
+			</p>
+
+			<pre><code>import requests
+import hashlib
+
+class ThreatIntelLookup:
+    def __init__(self, vt_api_key):
+        self.vt_api_key = vt_api_key
+        self.vt_base = "https://www.virustotal.com/api/v3"
+
+    def check_ip(self, ip_address):
+        """Check IP reputation on VirusTotal"""
+        headers = {"x-apikey": self.vt_api_key}
+        response = requests.get(
+            f"{self.vt_base}/ip_addresses/{ip_address}",
+            headers=headers
+        )
+
+        if response.status_code == 200:
+            data = response.json()
+            stats = data['data']['attributes']['last_analysis_stats']
+            return {
+                'ip': ip_address,
+                'malicious': stats.get('malicious', 0),
+                'suspicious': stats.get('suspicious', 0),
+                'harmless': stats.get('harmless', 0)
+            }
+        return None
+
+    def check_hash(self, file_hash):
+        """Check file hash on VirusTotal"""
+        headers = {"x-apikey": self.vt_api_key}
+        response = requests.get(
+            f"{self.vt_base}/files/{file_hash}",
+            headers=headers
+        )
+
+        if response.status_code == 200:
+            data = response.json()
+            return data['data']['attributes']
+        return None</code></pre>
+
+			<h2 id="incident-response">Incident Response Helpers</h2>
+			<p>
+				Build tools that assist during incident response:
+			</p>
+
+			<pre><code>import subprocess
+import platform
+import json
+from datetime import datetime
+
+class IncidentResponse:
+    def __init__(self, case_id):
+        self.case_id = case_id
+        self.artifacts = []
+        self.timeline = []
+
+    def collect_system_info(self):
+        """Collect basic system information"""
+        info = {
+            'timestamp': datetime.now().isoformat(),
+            'hostname': platform.node(),
+            'os': platform.platform(),
+            'processor': platform.processor()
+        }
+        self.artifacts.append(('system_info', info))
+        return info
+
+    def get_network_connections(self):
+        """Get current network connections"""
+        if platform.system() == 'Windows':
+            cmd = ['netstat', '-ano']
+        else:
+            cmd = ['netstat', '-tunapl']
+
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        connections = self.parse_netstat(result.stdout)
+        self.artifacts.append(('network_connections', connections))
+        return connections
+
+    def get_running_processes(self):
+        """Get list of running processes"""
+        if platform.system() == 'Windows':
+            cmd = ['tasklist', '/v']
+        else:
+            cmd = ['ps', 'aux']
+
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        self.artifacts.append(('processes', result.stdout))
+        return result.stdout
+
+    def generate_report(self):
+        """Generate incident response report"""
+        report = {
+            'case_id': self.case_id,
+            'generated': datetime.now().isoformat(),
+            'artifacts': self.artifacts,
+            'timeline': self.timeline
+        }
+
+        filename = f"ir_report_{self.case_id}.json"
+        with open(filename, 'w') as f:
+            json.dump(report, f, indent=2)
+
+        return filename</code></pre>
+
+			<blockquote>
+				<p>Automation isn't about replacing security analysts—it's about freeing them to focus on complex problems that require human judgment.</p>
+			</blockquote>
+
+			<div class="tags">
+				<a href="#" class="tag">Python</a>
+				<a href="#" class="tag">Automation</a>
+				<a href="#" class="tag">Scripting</a>
+				<a href="#" class="tag">Security Tools</a>
+			</div>
+
+			<div class="share-section">
+				<h4>Share this article</h4>
+				<div class="share-buttons">
+					<a href="#" class="share-btn twitter" onclick="shareTwitter()"><i class="fab fa-twitter"></i></a>
+					<a href="#" class="share-btn linkedin" onclick="shareLinkedIn()"><i class="fab fa-linkedin-in"></i></a>
+					<div class="share-btn copy" onclick="copyLink()"><i class="fas fa-link"></i></div>
+				</div>
+			</div>
+
+			<div class="author-box">
+				<div class="author-avatar">SK</div>
+				<div class="author-info">
+					<h4>Shravan Kumar Sheri</h4>
+					<p>Cyber Security Professional specializing in security automation and tool development.</p>
+				</div>
+			</div>
+		</div>
+	</article>
+
+	<footer><div class="container"><p>&copy; 2024 Shravan Kumar Sheri - All Rights Reserved</p></div></footer>
+
+	<script>
+		window.addEventListener('scroll', () => {
+			const progress = (document.documentElement.scrollTop / (document.documentElement.scrollHeight - document.documentElement.clientHeight)) * 100;
+			document.getElementById('progressBar').style.width = progress + '%';
+		});
+		function shareTwitter() { window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(document.title)}`, '_blank'); }
+		function shareLinkedIn() { window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}`, '_blank'); }
+		function copyLink() { navigator.clipboard.writeText(window.location.href).then(() => alert('Link copied!')); }
+		document.querySelectorAll('.toc a').forEach(link => {
+			link.addEventListener('click', function(e) {
+				e.preventDefault();
+				document.getElementById(this.getAttribute('href').slice(1))?.scrollIntoView({ behavior: 'smooth' });
+			});
+		});
+	</script>
+</body>
+</html>
