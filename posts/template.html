@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<!--
+	=====================================================
+	BLOG POST TEMPLATE
+	=====================================================
+
+	HOW TO CREATE A NEW BLOG POST:
+
+	1. Copy this file and rename it (e.g., my-new-post.html)
+	2. Update the following:
+	   - <title> tag with your post title
+	   - meta description
+	   - article-category class and text
+	   - article-title
+	   - article-meta (date, read time)
+	   - gradient color in article-header (see color options below)
+	   - progress-bar-fill gradient color
+	   - Table of contents links
+	   - Article content
+	   - Tags
+
+	3. Add a card to blog.html pointing to your new post
+
+	COLOR OPTIONS:
+	- Security (green):    #11998e -> #38ef7d
+	- Exploitation (red):  #eb3349 -> #f45c43
+	- Automation (blue):   #4a9eff -> #00d2ff
+	- Forensics (purple):  #8e2de2 -> #4a00e0
+
+	ICONS (FontAwesome):
+	- Security:     fa-shield-alt
+	- Exploitation: fa-bug
+	- Automation:   fa-code
+	- Forensics:    fa-search
+	- Network:      fa-network-wired
+	- Cloud:        fa-cloud
+	- General:      fa-lock
+	=====================================================
+	-->
+
+	<title>YOUR POST TITLE HERE - Shravan Kumar Sheri</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="YOUR POST DESCRIPTION HERE - Keep it under 160 characters for SEO">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+	<style>
+		* { box-sizing: border-box; }
+		body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; margin: 0; padding: 0; line-height: 1.8; color: #333; }
+
+		/* Reading Progress Bar - CHANGE GRADIENT COLOR TO MATCH CATEGORY */
+		.progress-bar-container { position: fixed; top: 0; left: 0; width: 100%; height: 4px; background: #e9ecef; z-index: 1001; }
+		.progress-bar-fill { height: 100%; background: linear-gradient(90deg, #11998e, #38ef7d); width: 0%; transition: width 0.1s; }
+
+		.navbar { background-color: #1a1a2e !important; padding: 15px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+		.navbar-brand { color: #fff !important; font-size: 22px; font-weight: 600; }
+		.nav-link { color: rgba(255,255,255,0.9) !important; font-size: 16px; margin-left: 20px; transition: color 0.3s; }
+		.nav-link:hover { color: #4a9eff !important; }
+
+		/* Article Header - CHANGE GRADIENT COLOR TO MATCH CATEGORY */
+		.article-header { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: #fff; padding: 80px 0; }
+		.article-header .container { max-width: 800px; }
+		.back-link { color: rgba(255,255,255,0.9); text-decoration: none; display: inline-flex; align-items: center; margin-bottom: 30px; font-size: 14px; transition: color 0.3s; }
+		.back-link:hover { color: #fff; text-decoration: none; }
+		.back-link i { margin-right: 8px; }
+		.article-category { display: inline-block; padding: 6px 16px; background: rgba(255,255,255,0.2); border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; margin-bottom: 20px; }
+		.article-title { font-size: 42px; font-weight: 700; margin-bottom: 20px; line-height: 1.2; }
+		.article-meta { display: flex; flex-wrap: wrap; gap: 20px; font-size: 14px; opacity: 0.9; }
+		.article-meta span { display: flex; align-items: center; }
+		.article-meta i { margin-right: 8px; }
+
+		/* Article Content */
+		.article-content { max-width: 800px; margin: 0 auto; padding: 60px 20px; }
+		.article-body { background: #fff; padding: 50px; border-radius: 12px; box-shadow: 0 5px 30px rgba(0,0,0,0.08); }
+		.article-body h2 { font-size: 28px; font-weight: 700; color: #1a1a2e; margin-top: 40px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef; }
+		.article-body h2:first-child { margin-top: 0; }
+		.article-body h3 { font-size: 22px; font-weight: 600; color: #333; margin-top: 30px; margin-bottom: 15px; }
+		.article-body p { font-size: 18px; line-height: 1.8; margin-bottom: 20px; color: #444; }
+		.article-body ul, .article-body ol { margin-bottom: 20px; padding-left: 30px; }
+		.article-body li { font-size: 18px; line-height: 1.8; margin-bottom: 10px; color: #444; }
+		.article-body code { background: #f4f4f4; padding: 3px 8px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 16px; color: #d63384; }
+		.article-body pre { background: #1a1a2e; color: #fff; padding: 25px; border-radius: 8px; overflow-x: auto; margin: 25px 0; }
+		.article-body pre code { background: none; color: #fff; padding: 0; }
+
+		/* Blockquote - CHANGE BORDER COLOR TO MATCH CATEGORY */
+		.article-body blockquote { border-left: 4px solid #11998e; padding: 20px 25px; margin: 25px 0; background: #f8f9fa; border-radius: 0 8px 8px 0; }
+		.article-body blockquote p { margin: 0; font-style: italic; color: #555; }
+
+		/* Table of Contents */
+		.toc { background: #f8f9fa; padding: 25px 30px; border-radius: 8px; margin-bottom: 40px; }
+		.toc h4 { font-size: 16px; font-weight: 700; color: #1a1a2e; margin-bottom: 15px; text-transform: uppercase; }
+		.toc ul { list-style: none; padding: 0; margin: 0; }
+		.toc li { margin-bottom: 10px; }
+		/* TOC Link Hover - CHANGE COLOR TO MATCH CATEGORY */
+		.toc a { color: #555; text-decoration: none; font-size: 15px; transition: color 0.3s; }
+		.toc a:hover { color: #11998e; }
+
+		/* Share Section */
+		.share-section { margin-top: 50px; padding-top: 30px; border-top: 1px solid #e9ecef; }
+		.share-section h4 { font-size: 16px; font-weight: 600; color: #666; margin-bottom: 15px; }
+		.share-buttons { display: flex; gap: 10px; }
+		.share-btn { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; text-decoration: none; transition: transform 0.3s, opacity 0.3s; }
+		.share-btn:hover { transform: scale(1.1); color: #fff; text-decoration: none; }
+		.share-btn.twitter { background: #1da1f2; }
+		.share-btn.linkedin { background: #0077b5; }
+		.share-btn.copy { background: #6c757d; cursor: pointer; }
+
+		/* Author Box - CHANGE GRADIENT TO MATCH CATEGORY */
+		.author-box { display: flex; align-items: center; gap: 20px; background: #f8f9fa; padding: 25px; border-radius: 12px; margin-top: 40px; }
+		.author-avatar { width: 80px; height: 80px; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 32px; font-weight: 700; flex-shrink: 0; }
+		.author-info h4 { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 5px; }
+		.author-info p { font-size: 14px; color: #666; margin: 0; }
+
+		/* Tags */
+		.tags { margin-top: 30px; }
+		.tag { display: inline-block; padding: 6px 14px; background: #e9ecef; color: #495057; border-radius: 20px; font-size: 13px; margin-right: 8px; margin-bottom: 8px; text-decoration: none; transition: background 0.3s; }
+		.tag:hover { background: #dee2e6; text-decoration: none; color: #333; }
+
+		/* Special Boxes */
+		.warning-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0; }
+		.warning-box p { margin: 0; color: #856404; }
+		.info-box { background: #e3f2fd; border-left: 4px solid #2196f3; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0; }
+		.info-box p { margin: 0; color: #1565c0; }
+		.success-box { background: #d4edda; border-left: 4px solid #28a745; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0; }
+		.success-box p { margin: 0; color: #155724; }
+
+		footer { background: #1a1a2e; color: #fff; padding: 30px 0; text-align: center; margin-top: 60px; }
+		footer p { margin: 0; opacity: 0.8; }
+
+		@media (max-width: 768px) {
+			.article-title { font-size: 28px; }
+			.article-body { padding: 30px 20px; }
+			.article-meta { flex-direction: column; gap: 10px; }
+			.author-box { flex-direction: column; text-align: center; }
+		}
+	</style>
+</head>
+<body>
+	<!-- Reading Progress Bar -->
+	<div class="progress-bar-container">
+		<div class="progress-bar-fill" id="progressBar"></div>
+	</div>
+
+	<!-- Navigation Bar -->
+	<nav class="navbar navbar-expand-lg navbar-dark">
+		<div class="container">
+			<a class="navbar-brand" href="../index.html">Shravan Kumar Sheri</a>
+			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+				<span class="navbar-toggler-icon"></span>
+			</button>
+			<div class="collapse navbar-collapse" id="navbarNav">
+				<ul class="navbar-nav ml-auto">
+					<li class="nav-item">
+						<a class="nav-link" href="../index.html">Home</a>
+					</li>
+					<li class="nav-item active">
+						<a class="nav-link" href="../blog.html">Blog</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+
+	<!-- Article Header -->
+	<header class="article-header">
+		<div class="container">
+			<a href="../blog.html" class="back-link">
+				<i class="fas fa-arrow-left"></i> Back to Blog
+			</a>
+			<!-- UPDATE CATEGORY TEXT -->
+			<span class="article-category">Security</span>
+			<!-- UPDATE TITLE -->
+			<h1 class="article-title">Your Blog Post Title Here</h1>
+			<div class="article-meta">
+				<!-- UPDATE DATE -->
+				<span><i class="far fa-calendar"></i> December 1, 2024</span>
+				<!-- UPDATE READ TIME -->
+				<span><i class="far fa-clock"></i> X min read</span>
+				<span><i class="far fa-user"></i> Shravan Kumar Sheri</span>
+			</div>
+		</div>
+	</header>
+
+	<!-- Article Content -->
+	<article class="article-content">
+		<div class="article-body">
+			<!-- Table of Contents - UPDATE LINKS -->
+			<div class="toc">
+				<h4>Table of Contents</h4>
+				<ul>
+					<li><a href="#section1">Section 1</a></li>
+					<li><a href="#section2">Section 2</a></li>
+					<li><a href="#section3">Section 3</a></li>
+					<li><a href="#conclusion">Conclusion</a></li>
+				</ul>
+			</div>
+
+			<!-- ARTICLE CONTENT STARTS HERE -->
+
+			<h2 id="section1">Section 1 Title</h2>
+			<p>
+				Your content here. This is the first paragraph of your section. Write engaging content that provides value to your readers.
+			</p>
+
+			<p>
+				You can use various formatting options like <strong>bold text</strong>, <em>italic text</em>, and <code>inline code</code>.
+			</p>
+
+			<!-- Example: Bulleted List -->
+			<h3>Subsection with List</h3>
+			<ul>
+				<li><strong>Point 1:</strong> Description of point 1</li>
+				<li><strong>Point 2:</strong> Description of point 2</li>
+				<li><strong>Point 3:</strong> Description of point 3</li>
+			</ul>
+
+			<!-- Example: Code Block -->
+			<h2 id="section2">Section 2 Title</h2>
+			<p>
+				Here's an example of a code block:
+			</p>
+
+			<pre><code># Example Python code
+def hello_world():
+    print("Hello, World!")
+
+if __name__ == "__main__":
+    hello_world()</code></pre>
+
+			<!-- Example: Blockquote -->
+			<blockquote>
+				<p>This is an important quote or key takeaway that you want to highlight for your readers.</p>
+			</blockquote>
+
+			<!-- Example: Numbered List -->
+			<h2 id="section3">Section 3 Title</h2>
+			<ol>
+				<li>First step in the process</li>
+				<li>Second step in the process</li>
+				<li>Third step in the process</li>
+			</ol>
+
+			<!-- Example: Info Box -->
+			<div class="info-box">
+				<p><strong>Pro Tip:</strong> Use info boxes to highlight important information or tips.</p>
+			</div>
+
+			<!-- Example: Warning Box -->
+			<div class="warning-box">
+				<p><strong>Warning:</strong> Use warning boxes for cautionary information.</p>
+			</div>
+
+			<h2 id="conclusion">Conclusion</h2>
+			<p>
+				Summarize your key points here. End with a call to action or final thoughts for your readers.
+			</p>
+
+			<!-- ARTICLE CONTENT ENDS HERE -->
+
+			<!-- Tags - UPDATE WITH RELEVANT TAGS -->
+			<div class="tags">
+				<a href="#" class="tag">Tag1</a>
+				<a href="#" class="tag">Tag2</a>
+				<a href="#" class="tag">Tag3</a>
+			</div>
+
+			<!-- Share Section -->
+			<div class="share-section">
+				<h4>Share this article</h4>
+				<div class="share-buttons">
+					<a href="#" class="share-btn twitter" onclick="shareTwitter()" title="Share on Twitter">
+						<i class="fab fa-twitter"></i>
+					</a>
+					<a href="#" class="share-btn linkedin" onclick="shareLinkedIn()" title="Share on LinkedIn">
+						<i class="fab fa-linkedin-in"></i>
+					</a>
+					<div class="share-btn copy" onclick="copyLink()" title="Copy link">
+						<i class="fas fa-link"></i>
+					</div>
+				</div>
+			</div>
+
+			<!-- Author Box -->
+			<div class="author-box">
+				<div class="author-avatar">SK</div>
+				<div class="author-info">
+					<h4>Shravan Kumar Sheri</h4>
+					<p>Cyber Security Professional with expertise in SOC operations, incident response, and security automation.</p>
+				</div>
+			</div>
+		</div>
+	</article>
+
+	<footer>
+		<div class="container">
+			<p>&copy; 2024 Shravan Kumar Sheri - All Rights Reserved</p>
+		</div>
+	</footer>
+
+	<script>
+		// Reading Progress Bar
+		window.addEventListener('scroll', () => {
+			const scrollTop = document.documentElement.scrollTop;
+			const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+			const progress = (scrollTop / scrollHeight) * 100;
+			document.getElementById('progressBar').style.width = progress + '%';
+		});
+
+		// Share Functions
+		function shareTwitter() {
+			const url = encodeURIComponent(window.location.href);
+			const text = encodeURIComponent(document.title);
+			window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
+		}
+
+		function shareLinkedIn() {
+			const url = encodeURIComponent(window.location.href);
+			window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank');
+		}
+
+		function copyLink() {
+			navigator.clipboard.writeText(window.location.href).then(() => {
+				alert('Link copied to clipboard!');
+			});
+		}
+
+		// Smooth scroll for TOC links
+		document.querySelectorAll('.toc a').forEach(link => {
+			link.addEventListener('click', function(e) {
+				e.preventDefault();
+				const targetId = this.getAttribute('href').slice(1);
+				const target = document.getElementById(targetId);
+				if (target) {
+					target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				}
+			});
+		});
+	</script>
+</body>
+</html>

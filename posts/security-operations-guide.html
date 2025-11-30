@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Getting Started with Security Operations - Shravan Kumar Sheri</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="A comprehensive guide to working in a Security Operations Center. Learn about essential tools, methodologies, and skills for threat detection.">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+	<style>
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			background-color: #f8f9fa;
+			margin: 0;
+			padding: 0;
+			line-height: 1.8;
+			color: #333;
+		}
+
+		/* Reading Progress Bar */
+		.progress-bar-container {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 4px;
+			background: #e9ecef;
+			z-index: 1001;
+		}
+
+		.progress-bar-fill {
+			height: 100%;
+			background: linear-gradient(90deg, #11998e, #38ef7d);
+			width: 0%;
+			transition: width 0.1s;
+		}
+
+		.navbar {
+			background-color: #1a1a2e !important;
+			padding: 15px 0;
+			box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+			position: sticky;
+			top: 0;
+			z-index: 1000;
+		}
+
+		.navbar-brand {
+			color: #fff !important;
+			font-size: 22px;
+			font-weight: 600;
+		}
+
+		.nav-link {
+			color: rgba(255,255,255,0.9) !important;
+			font-size: 16px;
+			margin-left: 20px;
+			transition: color 0.3s;
+		}
+
+		.nav-link:hover {
+			color: #4a9eff !important;
+		}
+
+		/* Article Header */
+		.article-header {
+			background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+			color: #fff;
+			padding: 80px 0;
+		}
+
+		.article-header .container {
+			max-width: 800px;
+		}
+
+		.back-link {
+			color: rgba(255,255,255,0.9);
+			text-decoration: none;
+			display: inline-flex;
+			align-items: center;
+			margin-bottom: 30px;
+			font-size: 14px;
+			transition: color 0.3s;
+		}
+
+		.back-link:hover {
+			color: #fff;
+			text-decoration: none;
+		}
+
+		.back-link i {
+			margin-right: 8px;
+		}
+
+		.article-category {
+			display: inline-block;
+			padding: 6px 16px;
+			background: rgba(255,255,255,0.2);
+			border-radius: 20px;
+			font-size: 12px;
+			font-weight: 600;
+			text-transform: uppercase;
+			margin-bottom: 20px;
+		}
+
+		.article-title {
+			font-size: 42px;
+			font-weight: 700;
+			margin-bottom: 20px;
+			line-height: 1.2;
+		}
+
+		.article-meta {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 20px;
+			font-size: 14px;
+			opacity: 0.9;
+		}
+
+		.article-meta span {
+			display: flex;
+			align-items: center;
+		}
+
+		.article-meta i {
+			margin-right: 8px;
+		}
+
+		/* Main Content */
+		.article-content {
+			max-width: 800px;
+			margin: 0 auto;
+			padding: 60px 20px;
+		}
+
+		.article-body {
+			background: #fff;
+			padding: 50px;
+			border-radius: 12px;
+			box-shadow: 0 5px 30px rgba(0,0,0,0.08);
+		}
+
+		.article-body h2 {
+			font-size: 28px;
+			font-weight: 700;
+			color: #1a1a2e;
+			margin-top: 40px;
+			margin-bottom: 20px;
+			padding-bottom: 10px;
+			border-bottom: 2px solid #e9ecef;
+		}
+
+		.article-body h2:first-child {
+			margin-top: 0;
+		}
+
+		.article-body h3 {
+			font-size: 22px;
+			font-weight: 600;
+			color: #333;
+			margin-top: 30px;
+			margin-bottom: 15px;
+		}
+
+		.article-body p {
+			font-size: 18px;
+			line-height: 1.8;
+			margin-bottom: 20px;
+			color: #444;
+		}
+
+		.article-body ul, .article-body ol {
+			margin-bottom: 20px;
+			padding-left: 30px;
+		}
+
+		.article-body li {
+			font-size: 18px;
+			line-height: 1.8;
+			margin-bottom: 10px;
+			color: #444;
+		}
+
+		.article-body code {
+			background: #f4f4f4;
+			padding: 3px 8px;
+			border-radius: 4px;
+			font-family: 'Courier New', monospace;
+			font-size: 16px;
+			color: #d63384;
+		}
+
+		.article-body pre {
+			background: #1a1a2e;
+			color: #fff;
+			padding: 25px;
+			border-radius: 8px;
+			overflow-x: auto;
+			margin: 25px 0;
+		}
+
+		.article-body pre code {
+			background: none;
+			color: #fff;
+			padding: 0;
+		}
+
+		.article-body blockquote {
+			border-left: 4px solid #11998e;
+			padding: 20px 25px;
+			margin: 25px 0;
+			background: #f8f9fa;
+			border-radius: 0 8px 8px 0;
+		}
+
+		.article-body blockquote p {
+			margin: 0;
+			font-style: italic;
+			color: #555;
+		}
+
+		/* Table of Contents */
+		.toc {
+			background: #f8f9fa;
+			padding: 25px 30px;
+			border-radius: 8px;
+			margin-bottom: 40px;
+		}
+
+		.toc h4 {
+			font-size: 16px;
+			font-weight: 700;
+			color: #1a1a2e;
+			margin-bottom: 15px;
+			text-transform: uppercase;
+		}
+
+		.toc ul {
+			list-style: none;
+			padding: 0;
+			margin: 0;
+		}
+
+		.toc li {
+			margin-bottom: 10px;
+		}
+
+		.toc a {
+			color: #555;
+			text-decoration: none;
+			font-size: 15px;
+			transition: color 0.3s;
+		}
+
+		.toc a:hover {
+			color: #11998e;
+		}
+
+		/* Share Buttons */
+		.share-section {
+			margin-top: 50px;
+			padding-top: 30px;
+			border-top: 1px solid #e9ecef;
+		}
+
+		.share-section h4 {
+			font-size: 16px;
+			font-weight: 600;
+			color: #666;
+			margin-bottom: 15px;
+		}
+
+		.share-buttons {
+			display: flex;
+			gap: 10px;
+		}
+
+		.share-btn {
+			width: 45px;
+			height: 45px;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: #fff;
+			text-decoration: none;
+			transition: transform 0.3s, opacity 0.3s;
+		}
+
+		.share-btn:hover {
+			transform: scale(1.1);
+			color: #fff;
+			text-decoration: none;
+		}
+
+		.share-btn.twitter { background: #1da1f2; }
+		.share-btn.linkedin { background: #0077b5; }
+		.share-btn.facebook { background: #1877f2; }
+		.share-btn.copy { background: #6c757d; cursor: pointer; }
+
+		/* Author Box */
+		.author-box {
+			display: flex;
+			align-items: center;
+			gap: 20px;
+			background: #f8f9fa;
+			padding: 25px;
+			border-radius: 12px;
+			margin-top: 40px;
+		}
+
+		.author-avatar {
+			width: 80px;
+			height: 80px;
+			background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: #fff;
+			font-size: 32px;
+			font-weight: 700;
+			flex-shrink: 0;
+		}
+
+		.author-info h4 {
+			font-size: 18px;
+			font-weight: 700;
+			color: #1a1a2e;
+			margin-bottom: 5px;
+		}
+
+		.author-info p {
+			font-size: 14px;
+			color: #666;
+			margin: 0;
+		}
+
+		/* Tags */
+		.tags {
+			margin-top: 30px;
+		}
+
+		.tag {
+			display: inline-block;
+			padding: 6px 14px;
+			background: #e9ecef;
+			color: #495057;
+			border-radius: 20px;
+			font-size: 13px;
+			margin-right: 8px;
+			margin-bottom: 8px;
+			text-decoration: none;
+			transition: background 0.3s;
+		}
+
+		.tag:hover {
+			background: #dee2e6;
+			text-decoration: none;
+			color: #333;
+		}
+
+		footer {
+			background: #1a1a2e;
+			color: #fff;
+			padding: 30px 0;
+			text-align: center;
+			margin-top: 60px;
+		}
+
+		footer p {
+			margin: 0;
+			opacity: 0.8;
+		}
+
+		@media (max-width: 768px) {
+			.article-title {
+				font-size: 28px;
+			}
+
+			.article-body {
+				padding: 30px 20px;
+			}
+
+			.article-meta {
+				flex-direction: column;
+				gap: 10px;
+			}
+
+			.author-box {
+				flex-direction: column;
+				text-align: center;
+			}
+		}
+	</style>
+</head>
+<body>
+	<!-- Reading Progress Bar -->
+	<div class="progress-bar-container">
+		<div class="progress-bar-fill" id="progressBar"></div>
+	</div>
+
+	<!-- Navigation Bar -->
+	<nav class="navbar navbar-expand-lg navbar-dark">
+		<div class="container">
+			<a class="navbar-brand" href="../index.html">Shravan Kumar Sheri</a>
+			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+				<span class="navbar-toggler-icon"></span>
+			</button>
+			<div class="collapse navbar-collapse" id="navbarNav">
+				<ul class="navbar-nav ml-auto">
+					<li class="nav-item">
+						<a class="nav-link" href="../index.html">Home</a>
+					</li>
+					<li class="nav-item active">
+						<a class="nav-link" href="../blog.html">Blog</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+
+	<!-- Article Header -->
+	<header class="article-header">
+		<div class="container">
+			<a href="../blog.html" class="back-link">
+				<i class="fas fa-arrow-left"></i> Back to Blog
+			</a>
+			<span class="article-category">Security</span>
+			<h1 class="article-title">Getting Started with Security Operations</h1>
+			<div class="article-meta">
+				<span><i class="far fa-calendar"></i> November 30, 2024</span>
+				<span><i class="far fa-clock"></i> 8 min read</span>
+				<span><i class="far fa-user"></i> Shravan Kumar Sheri</span>
+			</div>
+		</div>
+	</header>
+
+	<!-- Article Content -->
+	<article class="article-content">
+		<div class="article-body">
+			<!-- Table of Contents -->
+			<div class="toc">
+				<h4>Table of Contents</h4>
+				<ul>
+					<li><a href="#introduction">Introduction</a></li>
+					<li><a href="#what-is-soc">What is a Security Operations Center?</a></li>
+					<li><a href="#essential-tools">Essential Tools for SOC Analysts</a></li>
+					<li><a href="#key-skills">Key Skills to Develop</a></li>
+					<li><a href="#career-path">Career Path and Progression</a></li>
+					<li><a href="#conclusion">Conclusion</a></li>
+				</ul>
+			</div>
+
+			<h2 id="introduction">Introduction</h2>
+			<p>
+				Security Operations Centers (SOCs) are the frontline defense against cyber threats for organizations of all sizes. As cyber attacks become more sophisticated and frequent, the demand for skilled SOC analysts continues to grow. This guide will walk you through everything you need to know to start your career in security operations.
+			</p>
+
+			<blockquote>
+				<p>"The best security teams don't just respond to threats—they anticipate them."</p>
+			</blockquote>
+
+			<h2 id="what-is-soc">What is a Security Operations Center?</h2>
+			<p>
+				A Security Operations Center is a centralized unit that deals with security issues on an organizational and technical level. The primary function of a SOC is to monitor, detect, analyze, and respond to cybersecurity incidents using a combination of technology solutions and a strong set of processes.
+			</p>
+
+			<h3>Core Functions of a SOC</h3>
+			<ul>
+				<li><strong>Continuous Monitoring:</strong> 24/7 surveillance of networks, servers, endpoints, and applications</li>
+				<li><strong>Incident Detection:</strong> Identifying potential security threats through various detection mechanisms</li>
+				<li><strong>Incident Response:</strong> Taking appropriate actions to contain and remediate security incidents</li>
+				<li><strong>Threat Intelligence:</strong> Gathering and analyzing information about emerging threats</li>
+				<li><strong>Compliance Management:</strong> Ensuring the organization meets regulatory requirements</li>
+			</ul>
+
+			<h2 id="essential-tools">Essential Tools for SOC Analysts</h2>
+			<p>
+				Working in a SOC requires familiarity with various security tools. Here are some of the most important ones:
+			</p>
+
+			<h3>SIEM (Security Information and Event Management)</h3>
+			<p>
+				SIEM tools like Splunk, Microsoft Sentinel, and IBM QRadar are essential for collecting, analyzing, and correlating security events from across your environment.
+			</p>
+
+			<pre><code># Example Splunk query for failed login attempts
+index=security sourcetype=WinEventLog:Security EventCode=4625
+| stats count by src_ip, user
+| where count > 5
+| sort -count</code></pre>
+
+			<h3>SOAR (Security Orchestration, Automation, and Response)</h3>
+			<p>
+				SOAR platforms like Palo Alto XSOAR, Splunk SOAR, and IBM Resilient help automate repetitive tasks and streamline incident response workflows.
+			</p>
+
+			<h3>Endpoint Detection and Response (EDR)</h3>
+			<p>
+				EDR solutions provide visibility into endpoint activities and enable rapid response to threats. Popular options include CrowdStrike Falcon, Microsoft Defender ATP, and Carbon Black.
+			</p>
+
+			<h2 id="key-skills">Key Skills to Develop</h2>
+			<p>
+				To succeed in security operations, you'll need to develop both technical and soft skills:
+			</p>
+
+			<h3>Technical Skills</h3>
+			<ol>
+				<li><strong>Network Fundamentals:</strong> Understanding TCP/IP, DNS, HTTP, and common protocols</li>
+				<li><strong>Operating Systems:</strong> Proficiency in Windows and Linux administration</li>
+				<li><strong>Scripting:</strong> Python, PowerShell, and Bash for automation</li>
+				<li><strong>Log Analysis:</strong> Ability to parse and analyze various log formats</li>
+				<li><strong>Malware Analysis:</strong> Basic understanding of malware behavior and analysis techniques</li>
+			</ol>
+
+			<h3>Soft Skills</h3>
+			<ul>
+				<li>Critical thinking and analytical problem-solving</li>
+				<li>Clear communication (written and verbal)</li>
+				<li>Attention to detail</li>
+				<li>Ability to work under pressure</li>
+				<li>Continuous learning mindset</li>
+			</ul>
+
+			<h2 id="career-path">Career Path and Progression</h2>
+			<p>
+				The typical career progression in security operations looks like this:
+			</p>
+
+			<ol>
+				<li><strong>SOC Analyst Tier 1:</strong> Entry-level position focused on alert triage and initial investigation</li>
+				<li><strong>SOC Analyst Tier 2:</strong> More complex investigations and incident handling</li>
+				<li><strong>SOC Analyst Tier 3:</strong> Advanced threat hunting and malware analysis</li>
+				<li><strong>SOC Team Lead:</strong> Managing a team of analysts and coordinating response efforts</li>
+				<li><strong>SOC Manager:</strong> Strategic oversight of security operations</li>
+			</ol>
+
+			<h2 id="conclusion">Conclusion</h2>
+			<p>
+				Starting a career in security operations is both challenging and rewarding. The field offers excellent growth opportunities, competitive salaries, and the satisfaction of protecting organizations from cyber threats. Focus on building your foundational skills, get hands-on experience through labs and CTFs, and never stop learning.
+			</p>
+
+			<p>
+				Remember: every expert was once a beginner. Start with the basics, practice consistently, and you'll be well on your way to becoming a skilled security professional.
+			</p>
+
+			<!-- Tags -->
+			<div class="tags">
+				<a href="#" class="tag">SOC</a>
+				<a href="#" class="tag">Security Operations</a>
+				<a href="#" class="tag">Career</a>
+				<a href="#" class="tag">SIEM</a>
+				<a href="#" class="tag">Cybersecurity</a>
+			</div>
+
+			<!-- Share Section -->
+			<div class="share-section">
+				<h4>Share this article</h4>
+				<div class="share-buttons">
+					<a href="#" class="share-btn twitter" onclick="shareTwitter()" title="Share on Twitter">
+						<i class="fab fa-twitter"></i>
+					</a>
+					<a href="#" class="share-btn linkedin" onclick="shareLinkedIn()" title="Share on LinkedIn">
+						<i class="fab fa-linkedin-in"></i>
+					</a>
+					<a href="#" class="share-btn facebook" onclick="shareFacebook()" title="Share on Facebook">
+						<i class="fab fa-facebook-f"></i>
+					</a>
+					<div class="share-btn copy" onclick="copyLink()" title="Copy link">
+						<i class="fas fa-link"></i>
+					</div>
+				</div>
+			</div>
+
+			<!-- Author Box -->
+			<div class="author-box">
+				<div class="author-avatar">SK</div>
+				<div class="author-info">
+					<h4>Shravan Kumar Sheri</h4>
+					<p>Cyber Security Professional with expertise in SOC operations, incident response, and security automation. Passionate about sharing knowledge and helping others grow in the cybersecurity field.</p>
+				</div>
+			</div>
+		</div>
+	</article>
+
+	<footer>
+		<div class="container">
+			<p>&copy; 2024 Shravan Kumar Sheri - All Rights Reserved</p>
+		</div>
+	</footer>
+
+	<script>
+		// Reading Progress Bar
+		window.addEventListener('scroll', () => {
+			const scrollTop = document.documentElement.scrollTop;
+			const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+			const progress = (scrollTop / scrollHeight) * 100;
+			document.getElementById('progressBar').style.width = progress + '%';
+		});
+
+		// Share Functions
+		function shareTwitter() {
+			const url = encodeURIComponent(window.location.href);
+			const text = encodeURIComponent(document.title);
+			window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
+		}
+
+		function shareLinkedIn() {
+			const url = encodeURIComponent(window.location.href);
+			window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank');
+		}
+
+		function shareFacebook() {
+			const url = encodeURIComponent(window.location.href);
+			window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank');
+		}
+
+		function copyLink() {
+			navigator.clipboard.writeText(window.location.href).then(() => {
+				alert('Link copied to clipboard!');
+			});
+		}
+
+		// Smooth scroll for TOC links
+		document.querySelectorAll('.toc a').forEach(link => {
+			link.addEventListener('click', function(e) {
+				e.preventDefault();
+				const targetId = this.getAttribute('href').slice(1);
+				const target = document.getElementById(targetId);
+				if (target) {
+					target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				}
+			});
+		});
+	</script>
+</body>
+</html>
