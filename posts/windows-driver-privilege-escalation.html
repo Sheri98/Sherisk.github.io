@@ -86,6 +86,9 @@
 		.success-box { background: #d4edda; border-left: 4px solid #28a745; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0; }
 		.success-box p { margin: 0; color: #155724; }
 
+		.article-body img { max-width: 100%; height: auto; border-radius: 8px; margin: 20px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+		.image-caption { text-align: center; font-size: 14px; color: #666; margin-top: -10px; margin-bottom: 20px; font-style: italic; }
+
 		footer { background: #1a1a2e; color: #fff; padding: 30px 0; text-align: center; margin-top: 60px; }
 		footer p { margin: 0; opacity: 0.8; }
 
@@ -252,6 +255,9 @@ start drivers.txt</code></pre>
 				From the output, we identify a vulnerable driver <strong>GIO.sys</strong> as a candidate for exploitation.
 			</p>
 
+			<img src="../iamges/abusingwindowsdrivers/0cf66a11-35c2-4b31-9b62-c0cf2329153e.png" alt="KernelHuntFramework enumerating drivers">
+			<p class="image-caption">KernelHuntFramework enumerating installed drivers and finding GIO.sys</p>
+
 			<h2 id="step2">Step 2: Reversing and Analyzing the Driver</h2>
 			<p>
 				Next, we reverse and analyze the target driver. The manual approach would be:
@@ -271,6 +277,9 @@ start drivers.txt</code></pre>
 				<li>Generates an HTML report describing potentially dangerous functions and IOCTLs based on their capabilities and severity</li>
 			</ul>
 
+			<img src="../iamges/abusingwindowsdrivers/db7b0aa3-813b-45a9-823a-7dbf7ff18b4d.png" alt="KernelHuntFramework analyzing GIO.sys with Ghidra">
+			<p class="image-caption">KernelHuntFramework running Ghidra decompilation on GIO.sys</p>
+
 			<p>
 				From the HTML report, we see that this driver exposes multiple functions that can be abused. The framework flagged several dangerous primitives, including:
 			</p>
@@ -279,6 +288,9 @@ start drivers.txt</code></pre>
 				<li><strong>ZwUnmapViewOfSection</strong> – Unmap previously mapped memory</li>
 				<li><strong>Additional abusable functions</strong> – The report identified other potentially dangerous IOCTLs that could be chained or used for alternative exploitation paths (for example, primitives that allow physical memory access, MSR read/write, or I/O port access, depending on what the driver exposes)</li>
 			</ul>
+
+			<img src="../iamges/abusingwindowsdrivers/6729417b-3d56-45a6-93d8-0b74fd76e5a2.png" alt="Dangerous Functions Detected in GIO.sys">
+			<p class="image-caption">HTML report showing critical dangerous functions detected in GIO.sys driver</p>
 
 			<p>
 				For this blog, we focus on <code>ZwMapViewOfSection</code> as our primary primitive.
@@ -327,6 +339,10 @@ start drivers.txt</code></pre>
 			<p>
 				Before exploitation, we verify that we are indeed running as a low-privileged user. At this point, we should see that the current context is a regular user account, not SYSTEM.
 			</p>
+
+			<img src="../iamges/abusingwindowsdrivers/4e1b2f69-bca0-4d43-96b4-187553919c9c.png" alt="whoami showing low privilege user">
+			<p class="image-caption">Verifying current user privileges before exploitation - running as regular user</p>
+
 			<p>
 				This confirms that any later escalation is the result of abusing the vulnerable driver, not prior privileges.
 			</p>
@@ -384,6 +400,9 @@ start drivers.txt</code></pre>
 			<p>
 				Once the exploit runs successfully, we obtain a shell with <code>NT AUTHORITY\SYSTEM</code> privileges.
 			</p>
+
+			<img src="../iamges/abusingwindowsdrivers/c4101d01-cbd8-46c1-9bed-a69bedfa114d.png" alt="Token swapped to SYSTEM">
+			<p class="image-caption">Successful privilege escalation - Token swapped with SYSTEM token, now running as NT AUTHORITY\SYSTEM</p>
 
 			<h2 id="post-exploitation">Post-Exploitation and EDR Bypass</h2>
 			<p>

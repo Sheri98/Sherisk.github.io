@@ -78,6 +78,9 @@
 		.info-box { background: #e3f2fd; border-left: 4px solid #2196f3; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0; }
 		.info-box p { margin: 0; color: #1565c0; }
 
+		.article-body img { max-width: 100%; height: auto; border-radius: 8px; margin: 20px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+		.image-caption { text-align: center; font-size: 14px; color: #666; margin-top: -10px; margin-bottom: 20px; font-style: italic; }
+
 		footer { background: #1a1a2e; color: #fff; padding: 30px 0; text-align: center; margin-top: 60px; }
 		footer p { margin: 0; opacity: 0.8; }
 
@@ -150,6 +153,9 @@
 				In simple sense, we can't directly dump them using Process Hacker as it will show "Unable to open the process: Access is denied."
 			</p>
 
+			<img src="../iamges/PPL/03908d69-4e72-4cc3-ae1d-1cb04b63eeef.png" alt="Process Hacker showing Access Denied for LSASS">
+			<p class="image-caption">Process Hacker unable to access LSASS due to PPL protection</p>
+
 			<div class="warning-box">
 				<p><strong>Disclaimer:</strong> This article is intended for educational purposes and authorized security testing only. Unauthorized access to systems or credential theft is illegal.</p>
 			</div>
@@ -166,6 +172,9 @@
 			</p>
 
 			<pre><code>'A' = 0x41 = Type=1 (PPL), Signer=4 (LSA)</code></pre>
+
+			<img src="../iamges/PPL/cecdb1f0-3152-462e-b891-5fd57de29443.png" alt="WinDbg showing LSASS protection level 0x41">
+			<p class="image-caption">WinDbg showing LSASS process with Protection Level 0x41 'A' (PPL enabled)</p>
 
 			<h2 id="bypass-method">The Bypass Method</h2>
 			<p>
@@ -234,10 +243,19 @@ lkd> dt nt!_EPROCESS ffffa38a8b9cd080 Protection.
       +0x000 Audit    : 0y0
       +0x000 Signer   : 0y0000</code></pre>
 
+			<img src="../iamges/PPL/904d2874-8101-4cd7-9e7d-bcba237a4c99.png" alt="WinDbg showing protection cleared to 0">
+			<p class="image-caption">WinDbg showing LSASS protection cleared to 0 (unprotected)</p>
+
 			<h2 id="dumping-lsass">Dumping LSASS Memory</h2>
 			<p>
 				Once the protection level has been successfully modified, we can proceed to dump the <code>lsass.exe</code> memory as <code>lsass.dmp</code>. You can now use Process Hacker or other tools to create a memory dump.
 			</p>
+
+			<img src="../iamges/PPL/778e8602-c226-4c8f-aa39-60577fb36107.png" alt="Creating LSASS dump file">
+			<p class="image-caption">Process Hacker creating the LSASS dump file</p>
+
+			<img src="../iamges/PPL/b5a64561-28b9-4afc-bc4e-4262e6767741.png" alt="LSASS dump file created">
+			<p class="image-caption">Successfully created lsass.exe.dmp file</p>
 
 			<div class="info-box">
 				<p><strong>Note:</strong> Windows Defender may flag this action as a potential Trojan or suspicious activity. However, this alert can be bypassed by adjusting the Defender settings or modifying file permissions. In most cases, simply marking the file as safe or excluding the path from scans is sufficient.</p>
