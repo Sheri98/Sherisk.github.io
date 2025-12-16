@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Abusing Windows Drivers For Privilege Escalation - Shravan Kumar Sheri</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="A theoretical and practical walkthrough of exploiting vulnerable kernel drivers for privilege escalation and EDR bypass on Windows using BYOVD techniques.">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+	<style>
+		* { box-sizing: border-box; }
+		body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; margin: 0; padding: 0; line-height: 1.8; color: #333; }
+
+		.progress-bar-container { position: fixed; top: 0; left: 0; width: 100%; height: 4px; background: #e9ecef; z-index: 1001; }
+		.progress-bar-fill { height: 100%; background: linear-gradient(90deg, #eb3349, #f45c43); width: 0%; transition: width 0.1s; }
+
+		.navbar { background-color: #1a1a2e !important; padding: 15px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+		.navbar-brand { color: #fff !important; font-size: 22px; font-weight: 600; }
+		.nav-link { color: rgba(255,255,255,0.9) !important; font-size: 16px; margin-left: 20px; transition: color 0.3s; }
+		.nav-link:hover { color: #4a9eff !important; }
+
+		.article-header { background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); color: #fff; padding: 80px 0; }
+		.article-header .container { max-width: 800px; }
+		.back-link { color: rgba(255,255,255,0.9); text-decoration: none; display: inline-flex; align-items: center; margin-bottom: 30px; font-size: 14px; transition: color 0.3s; }
+		.back-link:hover { color: #fff; text-decoration: none; }
+		.back-link i { margin-right: 8px; }
+		.article-category { display: inline-block; padding: 6px 16px; background: rgba(255,255,255,0.2); border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; margin-bottom: 20px; }
+		.article-title { font-size: 42px; font-weight: 700; margin-bottom: 20px; line-height: 1.2; }
+		.article-meta { display: flex; flex-wrap: wrap; gap: 20px; font-size: 14px; opacity: 0.9; }
+		.article-meta span { display: flex; align-items: center; }
+		.article-meta i { margin-right: 8px; }
+
+		.article-content { max-width: 800px; margin: 0 auto; padding: 60px 20px; }
+		.article-body { background: #fff; padding: 50px; border-radius: 12px; box-shadow: 0 5px 30px rgba(0,0,0,0.08); }
+		.article-body h2 { font-size: 28px; font-weight: 700; color: #1a1a2e; margin-top: 40px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef; }
+		.article-body h2:first-child { margin-top: 0; }
+		.article-body h3 { font-size: 22px; font-weight: 600; color: #333; margin-top: 30px; margin-bottom: 15px; }
+		.article-body h4 { font-size: 18px; font-weight: 600; color: #555; margin-top: 25px; margin-bottom: 12px; }
+		.article-body p { font-size: 18px; line-height: 1.8; margin-bottom: 20px; color: #444; }
+		.article-body ul, .article-body ol { margin-bottom: 20px; padding-left: 30px; }
+		.article-body li { font-size: 18px; line-height: 1.8; margin-bottom: 10px; color: #444; }
+		.article-body code { background: #f4f4f4; padding: 3px 8px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 16px; color: #d63384; }
+		.article-body pre { background: #1a1a2e; color: #fff; padding: 25px; border-radius: 8px; overflow-x: auto; margin: 25px 0; }
+		.article-body pre code { background: none; color: #fff; padding: 0; }
+
+		.article-body blockquote { border-left: 4px solid #eb3349; padding: 20px 25px; margin: 25px 0; background: #f8f9fa; border-radius: 0 8px 8px 0; }
+		.article-body blockquote p { margin: 0; font-style: italic; color: #555; }
+
+		.article-body table { width: 100%; border-collapse: collapse; margin: 25px 0; }
+		.article-body th, .article-body td { padding: 12px 15px; text-align: left; border: 1px solid #e9ecef; }
+		.article-body th { background: #f8f9fa; font-weight: 600; color: #1a1a2e; }
+		.article-body tr:hover { background: #f8f9fa; }
+
+		.toc { background: #f8f9fa; padding: 25px 30px; border-radius: 8px; margin-bottom: 40px; }
+		.toc h4 { font-size: 16px; font-weight: 700; color: #1a1a2e; margin-bottom: 15px; text-transform: uppercase; }
+		.toc ul { list-style: none; padding: 0; margin: 0; }
+		.toc li { margin-bottom: 10px; }
+		.toc a { color: #555; text-decoration: none; font-size: 15px; transition: color 0.3s; }
+		.toc a:hover { color: #eb3349; }
+
+		.share-section { margin-top: 50px; padding-top: 30px; border-top: 1px solid #e9ecef; }
+		.share-section h4 { font-size: 16px; font-weight: 600; color: #666; margin-bottom: 15px; }
+		.share-buttons { display: flex; gap: 10px; }
+		.share-btn { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; text-decoration: none; transition: transform 0.3s, opacity 0.3s; }
+		.share-btn:hover { transform: scale(1.1); color: #fff; text-decoration: none; }
+		.share-btn.twitter { background: #1da1f2; }
+		.share-btn.linkedin { background: #0077b5; }
+		.share-btn.copy { background: #6c757d; cursor: pointer; }
+
+		.author-box { display: flex; align-items: center; gap: 20px; background: #f8f9fa; padding: 25px; border-radius: 12px; margin-top: 40px; }
+		.author-avatar { width: 80px; height: 80px; background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 32px; font-weight: 700; flex-shrink: 0; }
+		.author-info h4 { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 5px; }
+		.author-info p { font-size: 14px; color: #666; margin: 0; }
+
+		.tags { margin-top: 30px; }
+		.tag { display: inline-block; padding: 6px 14px; background: #e9ecef; color: #495057; border-radius: 20px; font-size: 13px; margin-right: 8px; margin-bottom: 8px; text-decoration: none; transition: background 0.3s; }
+		.tag:hover { background: #dee2e6; text-decoration: none; color: #333; }
+
+		.warning-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0; }
+		.warning-box p { margin: 0; color: #856404; }
+		.info-box { background: #e3f2fd; border-left: 4px solid #2196f3; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0; }
+		.info-box p { margin: 0; color: #1565c0; }
+		.success-box { background: #d4edda; border-left: 4px solid #28a745; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0; }
+		.success-box p { margin: 0; color: #155724; }
+
+		footer { background: #1a1a2e; color: #fff; padding: 30px 0; text-align: center; margin-top: 60px; }
+		footer p { margin: 0; opacity: 0.8; }
+
+		@media (max-width: 768px) {
+			.article-title { font-size: 28px; }
+			.article-body { padding: 30px 20px; }
+			.article-meta { flex-direction: column; gap: 10px; }
+			.author-box { flex-direction: column; text-align: center; }
+		}
+	</style>
+</head>
+<body>
+	<div class="progress-bar-container">
+		<div class="progress-bar-fill" id="progressBar"></div>
+	</div>
+
+	<nav class="navbar navbar-expand-lg navbar-dark">
+		<div class="container">
+			<a class="navbar-brand" href="../index.html">Shravan Kumar Sheri</a>
+			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+				<span class="navbar-toggler-icon"></span>
+			</button>
+			<div class="collapse navbar-collapse" id="navbarNav">
+				<ul class="navbar-nav ml-auto">
+					<li class="nav-item">
+						<a class="nav-link" href="../index.html">Home</a>
+					</li>
+					<li class="nav-item active">
+						<a class="nav-link" href="../blog.html">Blog</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+
+	<header class="article-header">
+		<div class="container">
+			<a href="../blog.html" class="back-link">
+				<i class="fas fa-arrow-left"></i> Back to Blog
+			</a>
+			<span class="article-category">Exploitation</span>
+			<h1 class="article-title">Abusing Windows Drivers For Privilege Escalation</h1>
+			<div class="article-meta">
+				<span><i class="far fa-calendar"></i> December 16, 2024</span>
+				<span><i class="far fa-clock"></i> 20 min read</span>
+				<span><i class="far fa-user"></i> Shravan Kumar Sheri</span>
+			</div>
+		</div>
+	</header>
+
+	<article class="article-content">
+		<div class="article-body">
+			<div class="toc">
+				<h4>Table of Contents</h4>
+				<ul>
+					<li><a href="#introduction">Introduction</a></li>
+					<li><a href="#byovd-stats">BYOVD Discovery Statistics</a></li>
+					<li><a href="#how-it-works">How Driver Abuse Works</a></li>
+					<li><a href="#step1">Step 1: Driver Enumeration</a></li>
+					<li><a href="#step2">Step 2: Reversing and Analyzing the Driver</a></li>
+					<li><a href="#step3">Step 3: Identifying the Correct IOCTLs</a></li>
+					<li><a href="#step4">Step 4: Exploit Development</a></li>
+					<li><a href="#post-exploitation">Post-Exploitation and EDR Bypass</a></li>
+					<li><a href="#os-notes">OS Version Notes</a></li>
+					<li><a href="#links">Links and Resources</a></li>
+				</ul>
+			</div>
+
+			<h2 id="introduction">Introduction</h2>
+			<p>
+				Hello everyone,
+			</p>
+			<p>
+				This post is a theoretical and practical walkthrough of one of the most abused vectors for privilege escalation and EDR bypass on Windows: <strong>vulnerable kernel drivers</strong>. This technique is widely used by APT groups and security researchers. Let's see some statistics to make it more interesting.
+			</p>
+
+			<div class="warning-box">
+				<p><strong>Disclaimer:</strong> This article is intended for educational purposes and authorized security testing only. Always obtain proper authorization before testing these techniques.</p>
+			</div>
+
+			<h2 id="byovd-stats">BYOVD Discovery Statistics</h2>
+
+			<h3>Known Vulnerable Drivers</h3>
+			<ul>
+				<li><strong>700+</strong> in LOLDrivers project</li>
+				<li><strong>924</strong> known vulnerable 64-bit signed drivers (Check Point, June 2024)</li>
+				<li><strong>90%</strong> accessible by non-privileged users</li>
+			</ul>
+
+			<h3>The Unknown</h3>
+			<ul>
+				<li><strong>5,589</strong> potentially vulnerable drivers found via dangerous API import analysis (EURECOM)</li>
+				<li><strong>22,500</strong> at-risk drivers flagged in 1-year VirusTotal retrohunt (Check Point)</li>
+				<li><strong>7 new</strong> weaponizable drivers discovered through automated analysis - none were on any blocklist (NDSS 2026)</li>
+			</ul>
+
+			<h3>Blocklist Lag</h3>
+			<ul>
+				<li>Average <strong>6+ months</strong> from public disclosure to Microsoft blocklist update</li>
+				<li>Many drivers <strong>never get added</strong></li>
+			</ul>
+
+			<h2 id="how-it-works">How Driver Abuse Works</h2>
+			<p>
+				A driver is a piece of software that runs in kernel mode and performs specific low-level tasks. Because drivers execute with kernel-level privileges, a vulnerable driver can often be abused to gain arbitrary kernel read/write or other powerful primitives.
+			</p>
+			<p>
+				Once we find an abusable driver that is accessible from a low-privileged user, we can often:
+			</p>
+			<ul>
+				<li>Escalate privileges to <code>NT AUTHORITY\SYSTEM</code></li>
+				<li>Bypass EDR or security controls that rely on kernel integrity</li>
+				<li>Manipulate kernel memory, process tokens, or critical structures</li>
+			</ul>
+			<p>
+				The first step is to find such a driver that:
+			</p>
+			<ol>
+				<li>Is installed on the target system</li>
+				<li>Is accessible by a regular (non-admin) user</li>
+				<li>Exposes dangerous functionality through IOCTL handlers</li>
+			</ol>
+			<p>
+				Accordingly, I divided the blog into four steps:
+			</p>
+			<ol>
+				<li>Driver Enumeration</li>
+				<li>Reversing and Analyzing the Driver</li>
+				<li>Identifying the Correct IOCTLs</li>
+				<li>Exploit Writing</li>
+			</ol>
+
+			<h2 id="step1">Step 1: Driver Enumeration</h2>
+			<p>
+				We start from a regular user context and look for user-accessible drivers. You can do this manually with built-in commands:
+			</p>
+			<pre><code>sc query type= kernel > drivers.txt
+start drivers.txt</code></pre>
+			<p>
+				From there, you would manually inspect:
+			</p>
+			<ul>
+				<li>Driver paths</li>
+				<li>Signatures</li>
+				<li>Vendors</li>
+			</ul>
+			<p>
+				The goal is to find Microsoft-trusted third-party drivers from vendors like <strong>ASUS, NVIDIA, Dell</strong>, and similar, where vulnerabilities are commonly found and sometimes persist for a long time.
+			</p>
+			<p>
+				To increase efficiency, we can automate this with tooling. For example, using the enumeration feature in <strong>KernelHuntFramework</strong> will:
+			</p>
+			<ul>
+				<li>Enumerate installed kernel drivers</li>
+				<li>Identify drivers that are user-accessible</li>
+				<li>Produce a JSON file for further analysis</li>
+			</ul>
+
+			<div class="info-box">
+				<p><strong>Note:</strong> KernelHuntFramework should be run on Windows 10, not Windows 11, due to <code>EnumDeviceDrivers</code> / <code>NtQuerySystemInformation</code> restrictions in newer builds. See OS Version Notes for details.</p>
+			</div>
+
+			<p>
+				From the output, we identify a vulnerable driver <strong>GIO.sys</strong> as a candidate for exploitation.
+			</p>
+
+			<h2 id="step2">Step 2: Reversing and Analyzing the Driver</h2>
+			<p>
+				Next, we reverse and analyze the target driver. The manual approach would be:
+			</p>
+			<ol>
+				<li>Identify the <code>DriverEntry</code> function</li>
+				<li>Locate the <code>DriverObject-&gt;MajorFunction</code> (dispatcher) table</li>
+				<li>Enumerate and analyze each IOCTL handler</li>
+				<li>Understand what each IOCTL does and whether it can be abused</li>
+			</ol>
+			<p>
+				This is time-consuming, so we use <strong>KernelHuntFramework.exe</strong> to automate a large part of this analysis. The tool:
+			</p>
+			<ul>
+				<li>Decompiles the driver using Ghidra's headless analyzer</li>
+				<li>Produces a dump of relevant functions</li>
+				<li>Generates an HTML report describing potentially dangerous functions and IOCTLs based on their capabilities and severity</li>
+			</ul>
+
+			<p>
+				From the HTML report, we see that this driver exposes multiple functions that can be abused. The framework flagged several dangerous primitives, including:
+			</p>
+			<ul>
+				<li><strong>ZwMapViewOfSection</strong> – Map kernel memory into user space</li>
+				<li><strong>ZwUnmapViewOfSection</strong> – Unmap previously mapped memory</li>
+				<li><strong>Additional abusable functions</strong> – The report identified other potentially dangerous IOCTLs that could be chained or used for alternative exploitation paths (for example, primitives that allow physical memory access, MSR read/write, or I/O port access, depending on what the driver exposes)</li>
+			</ul>
+
+			<p>
+				For this blog, we focus on <code>ZwMapViewOfSection</code> as our primary primitive.
+			</p>
+
+			<p>
+				<code>ZwMapViewOfSection</code> can be abused to:
+			</p>
+			<ul>
+				<li>Map kernel memory into user space</li>
+				<li>Leak sensitive information such as the System process token</li>
+				<li>Use our kernel-level primitive to swap the current process token with the System token</li>
+			</ul>
+			<p>
+				This forms the core of the privilege escalation path.
+			</p>
+
+			<h2 id="step3">Step 3: Identifying the Correct IOCTLs</h2>
+			<p>
+				The next step is to identify the exact IOCTL codes that trigger the dangerous behavior. We can do this in two ways:
+			</p>
+			<ul>
+				<li>Directly from the HTML report generated by KernelHuntFramework (IOCTL codes section)</li>
+				<li>Manually in IDA or another disassembler</li>
+			</ul>
+			<p>
+				Since we already know which function is interesting (<code>ZwMapViewOfSection</code>) and its location from the report, we can:
+			</p>
+			<ol>
+				<li>Load the driver into IDA</li>
+				<li>Navigate to the function that corresponds to the IOCTL handler (for example, a function whose name or suffix matches what is reported, such as one ending with <code>f0</code>)</li>
+				<li>Synchronize the pseudocode view with the graph view</li>
+				<li>Cross-reference the function to find where it is used in the dispatch routine</li>
+			</ol>
+
+			<p>From this, we determine:</p>
+			<ul>
+				<li>The IOCTL for <code>ZwMapViewOfSection</code> is: <code>0xC3502004</code></li>
+				<li>The IOCTL for <code>ZwUnmapViewOfSection</code> is: <code>0xC3502008</code></li>
+			</ul>
+			<p>
+				These codes are what we will use in our exploit to map and unmap kernel memory from a user process.
+			</p>
+
+			<h3>Verifying Our Current Privileges</h3>
+			<p>
+				Before exploitation, we verify that we are indeed running as a low-privileged user. At this point, we should see that the current context is a regular user account, not SYSTEM.
+			</p>
+			<p>
+				This confirms that any later escalation is the result of abusing the vulnerable driver, not prior privileges.
+			</p>
+
+			<h2 id="step4">Step 4: Exploit Development</h2>
+			<p>
+				Writing a full exploit from scratch is out of scope for this blog. Instead, the approach taken here is:
+			</p>
+			<ul>
+				<li>Reuse an existing Windows kernel exploit template (based on physmem)</li>
+				<li>Adapt it to this specific driver and its IOCTLs</li>
+				<li>Update structures, IOCTL codes, and offsets where necessary</li>
+			</ul>
+
+			<h3>Exploit Strategy</h3>
+			<p>
+				This exploit uses a <strong>syscall hooking technique</strong> rather than manual EPROCESS traversal. The driver's physical memory map/unmap primitives allow us to:
+			</p>
+			<ol>
+				<li><strong>Establish physical memory read/write</strong> using the vulnerable IOCTLs (<code>0xC3502004</code> for map, <code>0xC3502008</code> for unmap)</li>
+				<li><strong>Locate a syscall in physical memory</strong> by scanning physical memory ranges for the byte signature of an infrequently used syscall (<code>NtShutdownSystem</code>)</li>
+				<li><strong>Patch the syscall</strong> with a JMP instruction pointing to our target kernel function, call it from usermode, then restore the original bytes - effectively giving us the ability to invoke any exported kernel API</li>
+				<li><strong>Steal the SYSTEM token</strong> by calling kernel APIs directly:
+					<ul>
+						<li><code>PsGetCurrentProcess</code> → get our process's EPROCESS</li>
+						<li><code>PsLookupProcessByProcessId(4)</code> → get SYSTEM's EPROCESS</li>
+						<li><code>PsReferencePrimaryToken</code> → get SYSTEM token</li>
+						<li>Write SYSTEM token to our process's Token field</li>
+					</ul>
+				</li>
+				<li><strong>Spawn elevated shell</strong> and restore the original token on exit for clean operation</li>
+			</ol>
+
+			<h3>Why Syscall Hooking?</h3>
+			<table>
+				<tr>
+					<th>Approach</th>
+					<th>Description</th>
+				</tr>
+				<tr>
+					<td><strong>Manual EPROCESS walk</strong></td>
+					<td>Data-only, but requires leaking addresses and traversing kernel structures yourself</td>
+				</tr>
+				<tr>
+					<td><strong>Syscall hook</strong></td>
+					<td>More flexible - call any kernel API (<code>ZwTerminateProcess</code>, <code>ZwOpenProcess</code>, etc.) directly from usermode</td>
+				</tr>
+			</table>
+
+			<h3>Build-Specific Considerations</h3>
+			<p>
+				The <code>Token</code> offset within EPROCESS varies by Windows build. For Windows 10/11 builds 19041-22631, the offset is typically <code>0x4b8</code>. Verify using WinDbg:
+			</p>
+			<pre><code>dt nt!_EPROCESS Token</code></pre>
+			<p>
+				Once the exploit runs successfully, we obtain a shell with <code>NT AUTHORITY\SYSTEM</code> privileges.
+			</p>
+
+			<h2 id="post-exploitation">Post-Exploitation and EDR Bypass</h2>
+			<p>
+				Once the exploit runs successfully:
+			</p>
+			<ul>
+				<li>We obtain a shell or process with <code>NT AUTHORITY\SYSTEM</code> privileges</li>
+				<li>Any EDR or security mechanism that relies on trusting kernel-mode operations can now be bypassed or tampered with, depending on what the driver allows</li>
+			</ul>
+
+			<p>
+				Examples of what may be possible, depending on the additional functions the driver exposes:
+			</p>
+			<ul>
+				<li>Disabling or patching kernel callbacks used by EDR</li>
+				<li>Manipulating process protections or handle tables</li>
+				<li>Reading or tampering with other protected kernel data structures</li>
+			</ul>
+
+			<p>
+				This is where the other abusable functions identified in the HTML report come into play. Even if <code>ZwMapViewOfSection</code> is your primary primitive for token stealing, primitives such as:
+			</p>
+			<ul>
+				<li>Physical memory read/write</li>
+				<li>MSR read/write</li>
+				<li>I/O port access</li>
+			</ul>
+			<p>
+				can enable alternative exploitation chains or more powerful post-exploitation actions (for example, tampering with hypervisor-related state or low-level platform configuration).
+			</p>
+
+			<h2 id="os-notes">OS Version Notes and Framework Usage</h2>
+
+			<blockquote>
+				<p><strong>Note:</strong> Finding previously unknown vulnerable drivers remains the most effective BYOVD approach, as no blocklist can protect against what isn't documented yet.</p>
+			</blockquote>
+
+			<h3>Framework Setup</h3>
+			<p>
+				Run KernelHuntFramework with Ghidra which should be present in the path specified below:
+			</p>
+			<pre><code>C:\ghidra_11.0_PUBLIC</code></pre>
+
+			<h3>Windows 10</h3>
+			<p>
+				This exploit chain (used in the demonstration) is reliable on Windows 10, where VBS/HVCI is disabled by default. Traditional token-stealing shellcode works without issue.
+			</p>
+
+			<h3>Windows 11</h3>
+			<p>
+				Windows 11 enables VBS/HVCI by default, which introduces several complications:
+			</p>
+
+			<table>
+				<tr>
+					<th>Change</th>
+					<th>Impact</th>
+				</tr>
+				<tr>
+					<td>HVCI enabled by default</td>
+					<td>Blocks unsigned shellcode execution in kernel</td>
+				</tr>
+				<tr>
+					<td>MBEC (Mode-Based Execution Control)</td>
+					<td>Prevents U/S PTE bit flip bypass</td>
+				</tr>
+				<tr>
+					<td>kCFG (Kernel Control Flow Guard)</td>
+					<td>Makes ROP gadget chaining harder</td>
+				</tr>
+				<tr>
+					<td>Stricter API access</td>
+					<td><code>EnumDeviceDrivers</code> / <code>NtQuerySystemInformation</code> leaks patched in some builds</td>
+				</tr>
+				<tr>
+					<td>EPROCESS offsets changed</td>
+					<td><code>Token</code>, <code>ActiveProcessLinks</code>, <code>UniqueProcessId</code> offsets vary per build</td>
+				</tr>
+			</table>
+
+			<h3>Check if VBS/HVCI is active</h3>
+			<pre><code>Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard | Select-Object VirtualizationBasedSecurityStatus, SecurityServicesRunning</code></pre>
+			<ul>
+				<li><code>VirtualizationBasedSecurityStatus = 2</code> → VBS running</li>
+				<li><code>SecurityServicesRunning contains 2</code> → HVCI active</li>
+			</ul>
+
+			<h3>On the Vulnerable Driver Blocklist</h3>
+			<p>
+				Microsoft maintains a blocklist of known vulnerable drivers integrated with HVCI. However, this only blocks known drivers. Discovering new vulnerable drivers bypasses this protection entirely - the driver is legitimately signed and not yet blocklisted.
+			</p>
+
+			<h2 id="links">Links and Resources</h2>
+			<ul>
+				<li><a href="https://loldrivers.io" target="_blank">LOLDrivers</a></li>
+				<li><a href="https://learn.microsoft.com/en-us/windows/security/threat-protection/windows-defender-application-control/microsoft-recommended-driver-block-rules" target="_blank">Microsoft Vulnerable Driver Blocklist</a></li>
+				<li><a href="https://learn.microsoft.com/en-us/windows/security/hardware-security/enable-virtualization-based-protection-of-code-integrity" target="_blank">HVCI Documentation</a></li>
+				<li>Kernel Hunt Framework</li>
+				<li>physmem.exe</li>
+			</ul>
+
+			<div class="tags">
+				<a href="#" class="tag">Windows</a>
+				<a href="#" class="tag">Privilege Escalation</a>
+				<a href="#" class="tag">Kernel Exploitation</a>
+				<a href="#" class="tag">BYOVD</a>
+				<a href="#" class="tag">Red Team</a>
+				<a href="#" class="tag">Drivers</a>
+				<a href="#" class="tag">EDR Bypass</a>
+			</div>
+
+			<div class="share-section">
+				<h4>Share this article</h4>
+				<div class="share-buttons">
+					<a href="#" class="share-btn twitter" onclick="shareTwitter()" title="Share on Twitter">
+						<i class="fab fa-twitter"></i>
+					</a>
+					<a href="#" class="share-btn linkedin" onclick="shareLinkedIn()" title="Share on LinkedIn">
+						<i class="fab fa-linkedin-in"></i>
+					</a>
+					<div class="share-btn copy" onclick="copyLink()" title="Copy link">
+						<i class="fas fa-link"></i>
+					</div>
+				</div>
+			</div>
+
+			<div class="author-box">
+				<div class="author-avatar">SK</div>
+				<div class="author-info">
+					<h4>Shravan Kumar Sheri</h4>
+					<p>Security Engineer & Researcher specializing in offensive security, red teaming, and exploit development.</p>
+				</div>
+			</div>
+		</div>
+	</article>
+
+	<footer>
+		<div class="container">
+			<p>&copy; 2025 Shravan Kumar Sheri - All Rights Reserved</p>
+		</div>
+	</footer>
+
+	<script>
+		window.addEventListener('scroll', () => {
+			const scrollTop = document.documentElement.scrollTop;
+			const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+			const progress = (scrollTop / scrollHeight) * 100;
+			document.getElementById('progressBar').style.width = progress + '%';
+		});
+
+		function shareTwitter() {
+			const url = encodeURIComponent(window.location.href);
+			const text = encodeURIComponent(document.title);
+			window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
+		}
+
+		function shareLinkedIn() {
+			const url = encodeURIComponent(window.location.href);
+			window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank');
+		}
+
+		function copyLink() {
+			navigator.clipboard.writeText(window.location.href).then(() => {
+				alert('Link copied to clipboard!');
+			});
+		}
+
+		document.querySelectorAll('.toc a').forEach(link => {
+			link.addEventListener('click', function(e) {
+				e.preventDefault();
+				const targetId = this.getAttribute('href').slice(1);
+				const target = document.getElementById(targetId);
+				if (target) {
+					target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				}
+			});
+		});
+	</script>
+</body>
+</html>

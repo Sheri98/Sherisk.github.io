@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Virtualization-Based Security (VBS) in Windows - Shravan Kumar Sheri</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="Understanding Virtualization-Based Security (VBS) in Windows, Virtual Trust Levels, Credential Guard, HVCI, and security implications.">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+	<style>
+		* { box-sizing: border-box; }
+		body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; margin: 0; padding: 0; line-height: 1.8; color: #333; }
+
+		.progress-bar-container { position: fixed; top: 0; left: 0; width: 100%; height: 4px; background: #e9ecef; z-index: 1001; }
+		.progress-bar-fill { height: 100%; background: linear-gradient(90deg, #11998e, #38ef7d); width: 0%; transition: width 0.1s; }
+
+		.navbar { background-color: #1a1a2e !important; padding: 15px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+		.navbar-brand { color: #fff !important; font-size: 22px; font-weight: 600; }
+		.nav-link { color: rgba(255,255,255,0.9) !important; font-size: 16px; margin-left: 20px; transition: color 0.3s; }
+		.nav-link:hover { color: #4a9eff !important; }
+
+		.article-header { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: #fff; padding: 80px 0; }
+		.article-header .container { max-width: 800px; }
+		.back-link { color: rgba(255,255,255,0.9); text-decoration: none; display: inline-flex; align-items: center; margin-bottom: 30px; font-size: 14px; transition: color 0.3s; }
+		.back-link:hover { color: #fff; text-decoration: none; }
+		.back-link i { margin-right: 8px; }
+		.article-category { display: inline-block; padding: 6px 16px; background: rgba(255,255,255,0.2); border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; margin-bottom: 20px; }
+		.article-title { font-size: 42px; font-weight: 700; margin-bottom: 20px; line-height: 1.2; }
+		.article-meta { display: flex; flex-wrap: wrap; gap: 20px; font-size: 14px; opacity: 0.9; }
+		.article-meta span { display: flex; align-items: center; }
+		.article-meta i { margin-right: 8px; }
+
+		.article-content { max-width: 800px; margin: 0 auto; padding: 60px 20px; }
+		.article-body { background: #fff; padding: 50px; border-radius: 12px; box-shadow: 0 5px 30px rgba(0,0,0,0.08); }
+		.article-body h2 { font-size: 28px; font-weight: 700; color: #1a1a2e; margin-top: 40px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef; }
+		.article-body h2:first-child { margin-top: 0; }
+		.article-body h3 { font-size: 22px; font-weight: 600; color: #333; margin-top: 30px; margin-bottom: 15px; }
+		.article-body p { font-size: 18px; line-height: 1.8; margin-bottom: 20px; color: #444; }
+		.article-body ul, .article-body ol { margin-bottom: 20px; padding-left: 30px; }
+		.article-body li { font-size: 18px; line-height: 1.8; margin-bottom: 10px; color: #444; }
+		.article-body code { background: #f4f4f4; padding: 3px 8px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 16px; color: #d63384; }
+		.article-body pre { background: #1a1a2e; color: #fff; padding: 25px; border-radius: 8px; overflow-x: auto; margin: 25px 0; }
+		.article-body pre code { background: none; color: #fff; padding: 0; }
+
+		.article-body blockquote { border-left: 4px solid #11998e; padding: 20px 25px; margin: 25px 0; background: #f8f9fa; border-radius: 0 8px 8px 0; }
+		.article-body blockquote p { margin: 0; font-style: italic; color: #555; }
+
+		.toc { background: #f8f9fa; padding: 25px 30px; border-radius: 8px; margin-bottom: 40px; }
+		.toc h4 { font-size: 16px; font-weight: 700; color: #1a1a2e; margin-bottom: 15px; text-transform: uppercase; }
+		.toc ul { list-style: none; padding: 0; margin: 0; }
+		.toc li { margin-bottom: 10px; }
+		.toc a { color: #555; text-decoration: none; font-size: 15px; transition: color 0.3s; }
+		.toc a:hover { color: #11998e; }
+
+		.share-section { margin-top: 50px; padding-top: 30px; border-top: 1px solid #e9ecef; }
+		.share-section h4 { font-size: 16px; font-weight: 600; color: #666; margin-bottom: 15px; }
+		.share-buttons { display: flex; gap: 10px; }
+		.share-btn { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; text-decoration: none; transition: transform 0.3s, opacity 0.3s; }
+		.share-btn:hover { transform: scale(1.1); color: #fff; text-decoration: none; }
+		.share-btn.twitter { background: #1da1f2; }
+		.share-btn.linkedin { background: #0077b5; }
+		.share-btn.copy { background: #6c757d; cursor: pointer; }
+
+		.author-box { display: flex; align-items: center; gap: 20px; background: #f8f9fa; padding: 25px; border-radius: 12px; margin-top: 40px; }
+		.author-avatar { width: 80px; height: 80px; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 32px; font-weight: 700; flex-shrink: 0; }
+		.author-info h4 { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 5px; }
+		.author-info p { font-size: 14px; color: #666; margin: 0; }
+
+		.tags { margin-top: 30px; }
+		.tag { display: inline-block; padding: 6px 14px; background: #e9ecef; color: #495057; border-radius: 20px; font-size: 13px; margin-right: 8px; margin-bottom: 8px; text-decoration: none; transition: background 0.3s; }
+		.tag:hover { background: #dee2e6; text-decoration: none; color: #333; }
+
+		.warning-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0; }
+		.warning-box p { margin: 0; color: #856404; }
+		.info-box { background: #e3f2fd; border-left: 4px solid #2196f3; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0; }
+		.info-box p { margin: 0; color: #1565c0; }
+		.success-box { background: #d4edda; border-left: 4px solid #28a745; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0; }
+		.success-box p { margin: 0; color: #155724; }
+
+		footer { background: #1a1a2e; color: #fff; padding: 30px 0; text-align: center; margin-top: 60px; }
+		footer p { margin: 0; opacity: 0.8; }
+
+		@media (max-width: 768px) {
+			.article-title { font-size: 28px; }
+			.article-body { padding: 30px 20px; }
+			.article-meta { flex-direction: column; gap: 10px; }
+			.author-box { flex-direction: column; text-align: center; }
+		}
+	</style>
+</head>
+<body>
+	<div class="progress-bar-container">
+		<div class="progress-bar-fill" id="progressBar"></div>
+	</div>
+
+	<nav class="navbar navbar-expand-lg navbar-dark">
+		<div class="container">
+			<a class="navbar-brand" href="../index.html">Shravan Kumar Sheri</a>
+			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+				<span class="navbar-toggler-icon"></span>
+			</button>
+			<div class="collapse navbar-collapse" id="navbarNav">
+				<ul class="navbar-nav ml-auto">
+					<li class="nav-item">
+						<a class="nav-link" href="../index.html">Home</a>
+					</li>
+					<li class="nav-item active">
+						<a class="nav-link" href="../blog.html">Blog</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+
+	<header class="article-header">
+		<div class="container">
+			<a href="../blog.html" class="back-link">
+				<i class="fas fa-arrow-left"></i> Back to Blog
+			</a>
+			<span class="article-category">Security</span>
+			<h1 class="article-title">Virtualization-Based Security (VBS) in Windows</h1>
+			<div class="article-meta">
+				<span><i class="far fa-calendar"></i> December 16, 2024</span>
+				<span><i class="far fa-clock"></i> 10 min read</span>
+				<span><i class="far fa-user"></i> Shravan Kumar Sheri</span>
+			</div>
+		</div>
+	</header>
+
+	<article class="article-content">
+		<div class="article-body">
+			<div class="toc">
+				<h4>Table of Contents</h4>
+				<ul>
+					<li><a href="#introduction">Introduction</a></li>
+					<li><a href="#architecture">VBS Architecture</a></li>
+					<li><a href="#vtl">Virtual Trust Levels (VTLs)</a></li>
+					<li><a href="#memory-isolation">Memory Isolation</a></li>
+					<li><a href="#credential-guard">Credential Guard</a></li>
+					<li><a href="#hvci">Hypervisor-Protected Code Integrity (HVCI)</a></li>
+					<li><a href="#kdp">Kernel Data Protection (KDP)</a></li>
+					<li><a href="#wdag">Windows Defender Application Guard</a></li>
+					<li><a href="#security-implications">Security Implications</a></li>
+					<li><a href="#references">References</a></li>
+				</ul>
+			</div>
+
+			<h2 id="introduction">Introduction</h2>
+			<p>
+				Virtualization-Based Security (VBS) is a fundamental security feature in modern Windows operating systems that uses hardware virtualization to create an isolated, secure region of memory separate from the normal operating system. This technology provides a strong security boundary that even kernel-level malware cannot breach.
+			</p>
+
+			<p>
+				VBS was introduced in Windows 10 and Windows Server 2016, leveraging the same hypervisor technology used for Hyper-V virtual machines. By running security-sensitive operations in a separate virtual trust level, VBS protects critical assets like credentials and code integrity verification from sophisticated attacks.
+			</p>
+
+			<div class="info-box">
+				<p><strong>Requirements:</strong> VBS requires compatible CPU (Intel VT-x or AMD-V), UEFI firmware, Secure Boot, and TPM (recommended). Windows 11 enables VBS by default on compatible hardware.</p>
+			</div>
+
+			<h2 id="architecture">VBS Architecture</h2>
+			<p>
+				VBS creates a virtualized environment using the Windows Hypervisor, which runs at a level below both the kernel and user mode. This architecture fundamentally changes the traditional Windows security model.
+			</p>
+
+			<h3>Traditional vs VBS Architecture</h3>
+			<p>
+				In traditional Windows architecture, the kernel has complete access to all system memory and resources. Any code running in kernel mode (Ring 0) can access any memory location, modify critical data structures, and execute arbitrary code.
+			</p>
+
+			<pre><code>Traditional Architecture:
+┌─────────────────────────────────────┐
+│         User Mode (Ring 3)          │
+│    Applications, Services, etc.     │
+├─────────────────────────────────────┤
+│        Kernel Mode (Ring 0)         │
+│  Kernel, Drivers - Full Access      │
+├─────────────────────────────────────┤
+│            Hardware                 │
+└─────────────────────────────────────┘
+
+VBS Architecture:
+┌─────────────────┬─────────────────┐
+│     VTL 0       │      VTL 1      │
+│  Normal World   │  Secure World   │
+├─────────────────┼─────────────────┤
+│   User Mode     │   User Mode     │
+│ (Applications)  │ (Trustlets)     │
+├─────────────────┼─────────────────┤
+│  Kernel Mode    │  Secure Kernel  │
+│   (NT Kernel)   │   (SK.exe)      │
+├─────────────────┴─────────────────┤
+│     Windows Hypervisor (Ring -1)   │
+├───────────────────────────────────┤
+│            Hardware               │
+└───────────────────────────────────┘</code></pre>
+
+			<h3>Key Components</h3>
+			<ul>
+				<li><strong>Windows Hypervisor:</strong> Runs at the highest privilege level, managing VTLs</li>
+				<li><strong>Secure Kernel (SK.exe):</strong> A minimal kernel running in VTL 1</li>
+				<li><strong>Isolated User Mode (IUM):</strong> Secure user-mode environment for trustlets</li>
+				<li><strong>Trustlets:</strong> Secure processes running in VTL 1 (e.g., LsaIso.exe)</li>
+			</ul>
+
+			<h2 id="vtl">Virtual Trust Levels (VTLs)</h2>
+			<p>
+				VBS implements Virtual Trust Levels (VTLs) to create isolation boundaries. Currently, Windows uses two VTLs:
+			</p>
+
+			<h3>VTL 0 - Normal World</h3>
+			<ul>
+				<li>Contains the standard Windows kernel (ntoskrnl.exe)</li>
+				<li>All normal applications and services run here</li>
+				<li>Third-party drivers execute in this environment</li>
+				<li>Can be compromised by kernel-level malware</li>
+			</ul>
+
+			<h3>VTL 1 - Secure World</h3>
+			<ul>
+				<li>Contains the Secure Kernel (securekernel.exe)</li>
+				<li>Hosts security-critical trustlets</li>
+				<li>Protected from VTL 0, even if kernel is compromised</li>
+				<li>Manages secrets like Credential Guard credentials</li>
+			</ul>
+
+			<pre><code>// VTL transition is managed by hypervisor
+// VTL 0 cannot directly access VTL 1 memory
+// Communication happens through secure channels
+
+// Example: Credential Guard architecture
+VTL 0:                          VTL 1:
+┌──────────────┐               ┌──────────────┐
+│   LSASS.exe  │ ──Request──>  │  LsaIso.exe  │
+│              │ <──Response── │  (Trustlet)  │
+└──────────────┘               └──────────────┘
+│                              │
+│ Stores: Ticket handles       │ Stores: Actual secrets
+│ Limited functionality        │ NTLM hashes, Kerberos keys</code></pre>
+
+			<h2 id="memory-isolation">Memory Isolation</h2>
+			<p>
+				VBS implements strict memory isolation between VTLs using Second Level Address Translation (SLAT), also known as Extended Page Tables (EPT) on Intel or Nested Page Tables (NPT) on AMD.
+			</p>
+
+			<h3>How Memory Protection Works</h3>
+			<pre><code>// The hypervisor maintains separate page tables for each VTL
+// VTL 1 memory is marked as inaccessible from VTL 0
+
+Memory Access Permissions:
+┌─────────────────────────────────────────────┐
+│                  VTL 1 Memory               │
+│  - Accessible: VTL 1 code only             │
+│  - Inaccessible: VTL 0 (kernel/user)       │
+│  - Contains: Secrets, secure code          │
+├─────────────────────────────────────────────┤
+│                  VTL 0 Memory               │
+│  - Accessible: VTL 0 and VTL 1             │
+│  - Contains: Normal OS, applications       │
+└─────────────────────────────────────────────┘
+
+// Even with kernel read/write primitives in VTL 0,
+// attackers cannot access VTL 1 memory regions</code></pre>
+
+			<h3>SLAT Protection</h3>
+			<p>
+				The hypervisor uses SLAT to enforce memory access permissions:
+			</p>
+			<ul>
+				<li>Each VTL has its own view of physical memory</li>
+				<li>VTL 1 pages are marked as not-present in VTL 0's EPT/NPT</li>
+				<li>Access violations trigger VM exits handled by hypervisor</li>
+				<li>This protection is enforced at hardware level</li>
+			</ul>
+
+			<h2 id="credential-guard">Credential Guard</h2>
+			<p>
+				Credential Guard is the most well-known VBS feature. It isolates and protects NTLM hashes, Kerberos tickets, and other credentials from theft.
+			</p>
+
+			<h3>Architecture</h3>
+			<pre><code>Traditional LSASS (without Credential Guard):
+┌─────────────────────────────────┐
+│           LSASS.exe             │
+│  - NTLM password hashes         │
+│  - Kerberos tickets/keys        │
+│  - Domain credentials           │
+│  - Accessible via memory dump   │
+└─────────────────────────────────┘
+
+Credential Guard Enabled:
+VTL 0:                        VTL 1:
+┌─────────────────┐          ┌─────────────────┐
+│    LSASS.exe    │          │   LsaIso.exe    │
+│ - Ticket handles│   RPC    │ - NTLM hashes   │
+│ - Auth requests │ <──────> │ - Kerberos keys │
+│ - No secrets!   │          │ - Protected!    │
+└─────────────────┘          └─────────────────┘</code></pre>
+
+			<h3>What Credential Guard Protects</h3>
+			<ul>
+				<li><strong>NTLM:</strong> Password hashes stored in VTL 1</li>
+				<li><strong>Kerberos:</strong> TGT and service ticket keys in VTL 1</li>
+				<li><strong>Credential Manager:</strong> Domain credentials isolated</li>
+			</ul>
+
+			<h3>Enabling Credential Guard</h3>
+			<pre><code># Check VBS/Credential Guard status
+Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard
+
+# Enable via Group Policy:
+# Computer Configuration > Administrative Templates > System > Device Guard
+# "Turn On Virtualization Based Security" = Enabled
+# "Credential Guard Configuration" = Enabled with UEFI lock
+
+# Enable via Registry (requires reboot):
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard" /v EnableVirtualizationBasedSecurity /t REG_DWORD /d 1 /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v LsaCfgFlags /t REG_DWORD /d 1 /f</code></pre>
+
+			<div class="warning-box">
+				<p><strong>Important:</strong> "Enabled with UEFI lock" prevents Credential Guard from being disabled without physical access to the machine and UEFI settings modification.</p>
+			</div>
+
+			<h2 id="hvci">Hypervisor-Protected Code Integrity (HVCI)</h2>
+			<p>
+				HVCI, also known as Memory Integrity, uses VBS to protect the kernel code integrity verification process from tampering.
+			</p>
+
+			<h3>How HVCI Works</h3>
+			<pre><code>Without HVCI:
+- Code integrity checks run in VTL 0
+- Kernel exploits can disable CI or load unsigned code
+- Attackers with kernel access bypass all protections
+
+With HVCI:
+- Code integrity verification runs in VTL 1
+- Kernel memory pages marked as non-executable until verified
+- Even compromised VTL 0 kernel cannot execute unsigned code
+
+Memory Protection:
+┌────────────────────────────────────────┐
+│  VTL 1 (Secure Kernel)                 │
+│  - Verifies code signatures            │
+│  - Controls executable permissions     │
+│  - Marks verified pages as executable  │
+├────────────────────────────────────────┤
+│  VTL 0 (Normal Kernel)                 │
+│  - Cannot modify page permissions      │
+│  - Cannot execute unverified code      │
+│  - Requests verification from VTL 1    │
+└────────────────────────────────────────┘</code></pre>
+
+			<h3>HVCI Benefits</h3>
+			<ul>
+				<li><strong>Prevents unsigned drivers:</strong> Blocks vulnerable or malicious driver loading</li>
+				<li><strong>Stops kernel exploits:</strong> Code execution in kernel requires valid signature</li>
+				<li><strong>Blocks BYOVD:</strong> Many vulnerable drivers fail HVCI requirements</li>
+				<li><strong>Protects CFG:</strong> Control Flow Guard enforcement in secure environment</li>
+			</ul>
+
+			<h3>Enabling HVCI</h3>
+			<pre><code># Check HVCI status
+Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard | Select-Object -ExpandProperty SecurityServicesRunning
+# 1 = Credential Guard, 2 = HVCI
+
+# Enable via Settings:
+# Windows Security > Device Security > Core Isolation > Memory Integrity
+
+# Enable via Registry:
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v Enabled /t REG_DWORD /d 1 /f</code></pre>
+
+			<h2 id="kdp">Kernel Data Protection (KDP)</h2>
+			<p>
+				Kernel Data Protection (KDP) is a VBS feature that protects parts of the Windows kernel and drivers by marking them as read-only. Once protected, the data cannot be modified even by kernel-level attackers.
+			</p>
+
+			<h3>How KDP Works</h3>
+			<pre><code>KDP Protection Mechanism:
+┌─────────────────────────────────────────────────┐
+│  VTL 1 (Secure Kernel)                          │
+│  - Controls memory page permissions             │
+│  - Marks protected pages as read-only           │
+│  - Enforces immutability via hypervisor         │
+├─────────────────────────────────────────────────┤
+│  VTL 0 (Normal Kernel)                          │
+│  - Cannot modify KDP-protected memory           │
+│  - System data structures remain tamper-proof   │
+│  - Drivers can opt-in to KDP protection         │
+└─────────────────────────────────────────────────┘
+
+Protected Data Examples:
+- Critical system configuration data
+- Security-sensitive kernel structures
+- Driver data that should never change after init</code></pre>
+
+			<h3>KDP Benefits</h3>
+			<ul>
+				<li><strong>Data Integrity:</strong> Prevents modification of critical kernel data</li>
+				<li><strong>Rootkit Prevention:</strong> Blocks attempts to patch kernel structures</li>
+				<li><strong>Driver Protection:</strong> Drivers can protect their security-critical data</li>
+				<li><strong>Attack Surface Reduction:</strong> Limits what attackers can modify even with kernel access</li>
+			</ul>
+
+			<h2 id="wdag">Windows Defender Application Guard (WDAG)</h2>
+			<p>
+				Windows Defender Application Guard uses VBS and Hyper-V isolation to run Microsoft Edge (and other applications) in a separate, isolated container. This protects the host system from browser-based attacks.
+			</p>
+
+			<h3>WDAG Architecture</h3>
+			<pre><code>WDAG Isolation:
+┌─────────────────────────────────────────────────┐
+│            Host OS (VTL 0)                      │
+│  ┌──────────────────────────────────────────┐   │
+│  │  Normal Applications                      │   │
+│  │  - Desktop apps, productivity software   │   │
+│  │  - Protected from container compromise   │   │
+│  └──────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────┤
+│            Isolated Container                   │
+│  ┌──────────────────────────────────────────┐   │
+│  │  Edge Browser (WDAG mode)                 │   │
+│  │  - Untrusted websites                     │   │
+│  │  - Downloaded files                       │   │
+│  │  - Completely isolated from host          │   │
+│  └──────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────┤
+│           Hyper-V / VBS Hypervisor              │
+└─────────────────────────────────────────────────┘
+
+If browser is compromised:
+- Malware trapped in container
+- No access to host file system
+- No access to host network (separate virtual switch)
+- Container destroyed on close</code></pre>
+
+			<h3>WDAG Use Cases</h3>
+			<ul>
+				<li><strong>Untrusted Browsing:</strong> Safely browse potentially malicious websites</li>
+				<li><strong>Document Viewing:</strong> Open untrusted Office documents in isolation</li>
+				<li><strong>Malware Analysis:</strong> Analyze suspicious URLs without risking host</li>
+				<li><strong>Sensitive Operations:</strong> Isolate high-risk web activities from main OS</li>
+			</ul>
+
+			<h2 id="security-implications">Security Implications</h2>
+			<p>
+				VBS significantly raises the bar for attackers, but understanding its limitations is equally important.
+			</p>
+
+			<h3>What VBS Protects Against</h3>
+			<ul>
+				<li><strong>Credential theft:</strong> Mimikatz-style attacks cannot dump VTL 1 secrets</li>
+				<li><strong>Kernel rootkits:</strong> Cannot load unsigned code with HVCI</li>
+				<li><strong>Token manipulation:</strong> Some token operations require VTL 1 approval</li>
+				<li><strong>Boot attacks:</strong> Secure Boot chain integrity protected</li>
+			</ul>
+
+			<h3>VBS Limitations</h3>
+			<ul>
+				<li><strong>Pass-the-Hash still possible:</strong> Captured hashes from network can be reused</li>
+				<li><strong>Kerberos relay:</strong> Ticket delegation attacks still work</li>
+				<li><strong>VTL 1 vulnerabilities:</strong> Bugs in Secure Kernel could be exploited</li>
+				<li><strong>Physical attacks:</strong> Cold boot, DMA attacks may succeed</li>
+				<li><strong>Pre-boot attacks:</strong> Compromise before VBS initialization</li>
+			</ul>
+
+			<h3>Offensive Considerations</h3>
+			<pre><code># Check if VBS is enabled
+systeminfo | findstr /i "Virtualization"
+# or
+Get-ComputerInfo | Select-Object -Property "DeviceGuard*"
+
+# If Credential Guard enabled, traditional credential dumping fails:
+mimikatz # sekurlsa::logonpasswords
+# Returns handles, not actual hashes
+
+# Alternative approaches when VBS is enabled:
+# 1. Target credentials before they enter VTL 1 (keylogging)
+# 2. Network-based attacks (relay, coercion)
+# 3. Application-level credential theft
+# 4. Token impersonation (still works for VTL 0 tokens)</code></pre>
+
+			<h2 id="references">References</h2>
+			<p>
+				For more detailed information about VBS and related technologies, refer to the official Microsoft documentation:
+			</p>
+
+			<ul>
+				<li><a href="https://learn.microsoft.com/en-us/windows-hardware/design/device-experiences/oem-vbs" target="_blank">Virtualization-Based Security (VBS) - Microsoft Learn</a></li>
+				<li><a href="https://learn.microsoft.com/en-us/windows/security/identity-protection/credential-guard/" target="_blank">Credential Guard Overview - Microsoft Learn</a></li>
+				<li><a href="https://learn.microsoft.com/en-us/windows/security/hardware-security/enable-virtualization-based-protection-of-code-integrity" target="_blank">Enable HVCI - Microsoft Learn</a></li>
+				<li><a href="https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-defender-application-guard/wd-app-guard-overview" target="_blank">Windows Defender Application Guard - Microsoft Learn</a></li>
+				<li><a href="https://learn.microsoft.com/en-us/windows-hardware/drivers/bringup/device-guard-and-credential-guard" target="_blank">Device Guard and Credential Guard - Microsoft Learn</a></li>
+			</ul>
+
+			<blockquote>
+				<p>VBS doesn't make systems impenetrable, but it significantly raises the cost and complexity of attacks targeting credentials and kernel integrity.</p>
+			</blockquote>
+
+			<h3>Key Takeaways</h3>
+			<ul>
+				<li>VBS uses hypervisor to create isolated Virtual Trust Levels</li>
+				<li>VTL 1 (Secure World) is protected from VTL 0 (Normal World) compromise</li>
+				<li>Credential Guard stores secrets in VTL 1, protecting from memory dumps</li>
+				<li>HVCI prevents unsigned kernel code execution</li>
+				<li>KDP protects kernel data structures from modification</li>
+				<li>WDAG provides isolated browsing environments</li>
+				<li>VBS is enabled by default on Windows 11 compatible hardware</li>
+				<li>Attackers must adapt strategies when VBS is present</li>
+			</ul>
+
+			<div class="tags">
+				<a href="#" class="tag">Windows</a>
+				<a href="#" class="tag">VBS</a>
+				<a href="#" class="tag">Virtualization</a>
+				<a href="#" class="tag">Credential Guard</a>
+				<a href="#" class="tag">HVCI</a>
+				<a href="#" class="tag">Security</a>
+			</div>
+
+			<div class="share-section">
+				<h4>Share this article</h4>
+				<div class="share-buttons">
+					<a href="#" class="share-btn twitter" onclick="shareTwitter()" title="Share on Twitter">
+						<i class="fab fa-twitter"></i>
+					</a>
+					<a href="#" class="share-btn linkedin" onclick="shareLinkedIn()" title="Share on LinkedIn">
+						<i class="fab fa-linkedin-in"></i>
+					</a>
+					<div class="share-btn copy" onclick="copyLink()" title="Copy link">
+						<i class="fas fa-link"></i>
+					</div>
+				</div>
+			</div>
+
+			<div class="author-box">
+				<div class="author-avatar">SK</div>
+				<div class="author-info">
+					<h4>Shravan Kumar Sheri</h4>
+					<p>Security Engineer & Researcher specializing in offensive security, red teaming, and exploit development.</p>
+				</div>
+			</div>
+		</div>
+	</article>
+
+	<footer>
+		<div class="container">
+			<p>&copy; 2025 Shravan Kumar Sheri - All Rights Reserved</p>
+		</div>
+	</footer>
+
+	<script>
+		window.addEventListener('scroll', () => {
+			const scrollTop = document.documentElement.scrollTop;
+			const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+			const progress = (scrollTop / scrollHeight) * 100;
+			document.getElementById('progressBar').style.width = progress + '%';
+		});
+
+		function shareTwitter() {
+			const url = encodeURIComponent(window.location.href);
+			const text = encodeURIComponent(document.title);
+			window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
+		}
+
+		function shareLinkedIn() {
+			const url = encodeURIComponent(window.location.href);
+			window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank');
+		}
+
+		function copyLink() {
+			navigator.clipboard.writeText(window.location.href).then(() => {
+				alert('Link copied to clipboard!');
+			});
+		}
+
+		document.querySelectorAll('.toc a').forEach(link => {
+			link.addEventListener('click', function(e) {
+				e.preventDefault();
+				const targetId = this.getAttribute('href').slice(1);
+				const target = document.getElementById(targetId);
+				if (target) {
+					target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				}
+			});
+		});
+	</script>
+</body>
+</html>
