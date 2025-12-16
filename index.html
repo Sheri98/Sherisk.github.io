@@ -1,145 +1,277 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Shravan Kumar Sheri - Cyber Security Professional</title>
+	<title>Shravan Kumar Sheri - Security Engineer & Researcher</title>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 	<style>
-		body {
-			font-family:  "Times New Roman", Times, serif;
-			background-color: #f5f5f5;
-			margin: 0;
-			padding: 0;
+		* {
+			box-sizing: border-box;
 		}
-		
-
 
 		body {
-    background-image: url('brandi-redd-aJTiW00qqtI-unsplash.jpg');
-    background-size: cover;
-    background-position: center center;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
-}
-
-
-		.container {
-			max-width: 800px;
-			margin: 0 auto;
-			padding: 50px 0;
-		}
-
-		h1, h2, h3 {
-			color: #007bff;
-			margin-top: 0;
-			margin-bottom: 30px;
-		}
-
-		h2 {
-			font-size: 28px;
-		}
-
-		h3 {
-			font-size: 24px;
-		}
-
-		p {
-			font-size: 18px;
-			line-height: 1.5;
-			margin-bottom: 30px;
-		}
-
-		ul {
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			background-color: #f8f9fa;
 			margin: 0;
 			padding: 0;
-			list-style: none;
-		}
-
-		li {
-			margin-bottom: 10px;
-		}
-
-		.card {
-			box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
-			transition: 0.3s;
-			margin-bottom: 30px;
-		}
-
-		.card:hover {
-			box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
-		}
-
-		.card-body {
-			padding: 20px;
-		}
-
-		.card-title {
-			font-size: 24px;
-			font-weight: bold;
-			margin-bottom: 20px;
-		}
-
-		.card-text {
-			font-size: 18px;
-			line-height: 1.5;
-			margin-bottom: 20px;
-		}
-
-		.btn {
-			background-color: #007bff;
-			color: #fff;
-			padding: 10px 20px;
-			border-radius: 0;
-			border: none;
-		}
-
-		.btn:hover {
-			background-color: #0056b3;
-			color: #fff;
-		}
-
-		.contact {
-			margin-top: 30px;
-		}
-
-		.contact h3 {
-			margin-bottom: 20px;
-		}
-
-		.contact p {
-			margin-bottom: 20px;
-		}
-
-		.contact ul li {
-			margin-bottom: 10px;
-		}
-
-		.footer {
-			background-color: #007bff;
-			color: #fff;
-			padding: 20px 0;
-			text-align: center;
-		}
-
-		.footer a {
-			color: #fff;
+			line-height: 1.6;
 		}
 
 		.navbar {
-			background-color: rgba(0, 123, 255, 0.95) !important;
+			background-color: #1a1a2e !important;
+			padding: 15px 0;
+			box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 		}
 
-		.navbar-brand, .nav-link {
+		.navbar-brand {
 			color: #fff !important;
-			font-size: 18px;
+			font-size: 22px;
+			font-weight: 600;
+		}
+
+		.nav-link {
+			color: rgba(255,255,255,0.9) !important;
+			font-size: 16px;
+			margin-left: 20px;
+			transition: color 0.3s;
 		}
 
 		.nav-link:hover {
-			color: #d4e5ff !important;
+			color: #4a9eff !important;
+		}
+
+		.hero-section {
+			background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+			color: #fff;
+			padding: 80px 0;
+			text-align: center;
+		}
+
+		.hero-section h1 {
+			font-size: 48px;
+			font-weight: 700;
+			margin-bottom: 10px;
+		}
+
+		.hero-section h2 {
+			font-size: 24px;
+			font-weight: 400;
+			opacity: 0.9;
+			margin-bottom: 20px;
+		}
+
+		.hero-section p {
+			font-size: 18px;
+			opacity: 0.85;
+			max-width: 700px;
+			margin: 0 auto;
+		}
+
+		.main-content {
+			padding: 60px 0;
+		}
+
+		.section-title {
+			font-size: 32px;
+			font-weight: 700;
+			color: #1a1a2e;
+			margin-bottom: 30px;
+			position: relative;
+			padding-bottom: 15px;
+		}
+
+		.section-title::after {
+			content: '';
+			position: absolute;
+			left: 0;
+			bottom: 0;
+			width: 60px;
+			height: 4px;
+			background: linear-gradient(135deg, #4a9eff 0%, #00d2ff 100%);
+			border-radius: 2px;
+		}
+
+		.card {
+			background: #fff;
+			border-radius: 12px;
+			overflow: hidden;
+			box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+			transition: transform 0.3s, box-shadow 0.3s;
+			border: none;
+			margin-bottom: 25px;
+		}
+
+		.card:hover {
+			transform: translateY(-5px);
+			box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+		}
+
+		.card-body {
+			padding: 25px;
+		}
+
+		.card-title {
+			font-size: 20px;
+			font-weight: 700;
+			color: #1a1a2e;
+			margin-bottom: 8px;
+		}
+
+		.card-subtitle {
+			font-size: 16px;
+			color: #4a9eff;
+			font-weight: 500;
+			margin-bottom: 8px;
+		}
+
+		.card-text {
+			color: #6c757d;
+			font-size: 14px;
+			margin-bottom: 15px;
+		}
+
+		.card ul {
+			margin: 0;
+			padding-left: 20px;
+		}
+
+		.card li {
+			margin-bottom: 10px;
+			color: #495057;
+			font-size: 15px;
+		}
+
+		.experience-card {
+			border-left: 4px solid #4a9eff;
+		}
+
+		.skill-tag {
+			display: inline-block;
+			padding: 6px 14px;
+			background: #e3f2fd;
+			color: #1976d2;
+			border-radius: 20px;
+			font-size: 13px;
+			font-weight: 500;
+			margin: 4px;
+		}
+
+		.skill-category {
+			font-weight: 600;
+			color: #1a1a2e;
+			margin-bottom: 10px;
+			font-size: 16px;
+		}
+
+		.cert-item {
+			display: flex;
+			align-items: center;
+			padding: 10px 0;
+			border-bottom: 1px solid #e9ecef;
+		}
+
+		.cert-item:last-child {
+			border-bottom: none;
+		}
+
+		.cert-item i {
+			color: #4a9eff;
+			margin-right: 12px;
+			font-size: 18px;
+		}
+
+		.publication-card {
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			color: #fff;
+		}
+
+		.publication-card .card-title {
+			color: #fff;
+		}
+
+		.publication-card .card-text {
+			color: rgba(255,255,255,0.9);
+		}
+
+		.publication-card .card-link {
+			color: #fff;
+			font-weight: 600;
+			text-decoration: underline;
+		}
+
+		.publication-card .card-link:hover {
+			color: #e3f2fd;
+		}
+
+		.education-card {
+			background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+			color: #fff;
+		}
+
+		.education-card .card-title,
+		.education-card .card-subtitle,
+		.education-card .card-text {
+			color: #fff;
+		}
+
+		.connect-section {
+			background: #fff;
+			padding: 60px 0;
+		}
+
+		.connect-item {
+			display: flex;
+			align-items: center;
+			padding: 15px 0;
+		}
+
+		.connect-item i {
+			font-size: 24px;
+			color: #4a9eff;
+			margin-right: 15px;
+			width: 30px;
+		}
+
+		.connect-item a {
+			color: #1a1a2e;
+			text-decoration: none;
+			font-weight: 500;
+			transition: color 0.3s;
+		}
+
+		.connect-item a:hover {
+			color: #4a9eff;
+		}
+
+		footer {
+			background: #1a1a2e;
+			color: #fff;
+			padding: 30px 0;
+			text-align: center;
+		}
+
+		footer p {
+			margin: 0;
+			opacity: 0.8;
+		}
+
+		@media (max-width: 768px) {
+			.hero-section h1 {
+				font-size: 32px;
+			}
+
+			.hero-section h2 {
+				font-size: 20px;
+			}
+
+			.section-title {
+				font-size: 26px;
+			}
 		}
 	</style>
 </head>
@@ -164,218 +296,252 @@
 		</div>
 	</nav>
 
-	<div class="container">
-		<div class="row">
-			<div class="col-md-12">
-				<h1>Shravan Kumar Sheri</h1>
-				<h2>Security Engineer & Researcher</h2>
-<p>Security Engineer & Researcher with 3+ years of experience in Application Security, Penetration Testing, and Red Teaming. Skilled in designing and executing advanced offensive assessments, developing custom security tools, and conducting research on Windows internals and drivers.</p>
-</div>
-</div>
-<div class="row">
-<div class="col-md-12">
-<h3>Professional Experience</h3>
-</div>
-<div class="col-md-6">
-<div class="card">
-<div class="card-body">
-<h4 class="card-title">Security Engineer</h4>
-<h5 class="card-subtitle">Bureau Veritas, Remote, Seattle</h5>
-<p class="card-text">May 2024 – Present</p>
-<ul>
-<li><strong>Research & Tooling:</strong> Researched Windows Internals to engineer a "Driver Hunting Framework," automating the analysis and detection of malicious/vulnerable kernel drivers.</li>
-<li>Performed 40+ penetration tests for web and AWS applications, identifying critical vulnerabilities including PII theft vectors for major financial sector clients and prompt injection for LLM models.</li>
-<li>Developed custom automation tools for complex authorization testing, assessing 100+ web APIs for flaws such as authZ bypass, SSRF, and XSS.</li>
-<li>Built and delivered a reverse proxy phishing lab training environment and conducted internal red teaming workshops on malware development.</li>
-<li>Performed in-depth source code analysis using semgrep, threat modeling, and third-party package reviews on fully developed web applications.</li>
-</ul>
-</div>
-</div>
-</div>
-<div class="col-md-6">
-<div class="card">
-<div class="card-body">
-<h4 class="card-title">Offensive Security Engineer</h4>
-<h5 class="card-subtitle">FICO, Remote, USA</h5>
-<p class="card-text">May 2023 – Jan 2024</p>
-<ul>
-<li><strong>High-Impact Discovery:</strong> Discovered a CVSS 9.0 vulnerability in a production AWS environment as part of emulating adversary tactics.</li>
-<li>Conducted adversarial machine learning research with practical business applications and developed custom detection rules.</li>
-<li>Conducted penetration testing across 100+ APIs as part of continuous security assessments, identifying and mitigating critical flaws.</li>
-<li>Delivered team-wide training sessions on binary exploitation and malware analysis to enhance offensive security capabilities.</li>
-</ul>
-</div>
-</div>
-</div>
-<div class="col-md-6">
-<div class="card">
-<div class="card-body">
-<h4 class="card-title">Cyber Security Engineer</h4>
-<h5 class="card-subtitle">FICO, India</h5>
-<p class="card-text">Jan 2021 – Aug 2022</p>
-<ul>
-<li>Spearheaded XSOAR administration to streamline incident response workflows, boosting operational efficiency by 50% through automation.</li>
-<li>Deployed malware and forensic sandbox environments on AWS, improving team training effectiveness by 70%.</li>
-<li>Led threat hunting initiatives using Microsoft ATP, creating detection rules that improved visibility and response across enterprise infrastructure.</li>
-<li>Investigated and mitigated 15+ suspicious files monthly using AV and EDR tools, significantly reducing endpoint threat exposure.</li>
-</ul>
-</div>
-</div>
-</div>
-</div>
-<div class="row">
-  <div class="col-md-12">
-    <h3>Projects</h3>
-  </div>
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-body">
-        <h4 class="card-title">Forensics Script</h4>
-        <p class="card-text">Developed a Forensics script by checking all the possible forensics points of detections using PowerShell. Company Independent Project, Dec 2021.</p>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-body">
-        <h4 class="card-title">CVE-2019-17420 Implementation</h4>
-        <p class="card-text">Developed a python script which can be used to implement the following vulnerability on the server. Independent Project, Aug 2020.</p>
-        <a href="https://github.com/Sheri98/DictionaryAttackTool" class="card-link">Link to GitHub repository</a>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-body">
-        <h4 class="card-title">Buffer-Overflow Automation Tool</h4>
-        <p class="card-text">This is a Python script that utilizes a stack-based buffer overflow vulnerability to automate the process of fuzzing, exploiting, and gaining access to a server. The tool was developed as part of an independent project in November 2020, and it can be used to test the security of a target system and identify vulnerabilities.</p>
-        <a href="https://github.com/Sheri98/MajorProject" class="card-link">Link to GitHub repository</a>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-body">
-        <h4 class="card-title">Web Application Firewall</h4>
-        <p class="card-text">Built a Web Application Firewall using secure programming and sanitizing options available in PHP. University Group Project, Jun 2020.</p>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-body">
-        <h4 class="card-title">Reconnaissance Tool</h4>
-        <p class="card-text">Scripted a program to perform basic Reconnaissance testing using Bash and Python for automating the information gathering phase. Independent Project, Nov 2019.</p>
-        <a href="https://github.com/Sheri98/personalautomation/blob/master/AutomationBash.sh" class="card-link">Link to Github repository</a>
-      </div>
-    </div>
-  </div>
-</div>
+	<!-- Hero Section -->
+	<section class="hero-section">
+		<div class="container">
+			<h1>Shravan Kumar Sheri</h1>
+			<h2>Security Engineer & Researcher</h2>
+			<p>Security Engineer & Researcher with 3+ years of experience in Application Security, Penetration Testing, and Red Teaming. Skilled in designing and executing advanced offensive assessments, developing custom security tools, and conducting research on Windows internals and drivers.</p>
+		</div>
+	</section>
 
-<div class="row">
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-body">
-        <h3 class="card-title">Certifications</h3>
-        <ul>
-          <li>OSCP (Offensive Security Certified Professional)</li>
-          <li>CRTP (Certified Red Team Professional)</li>
-          <li>CompTIA Security+</li>
-          <li>eCXD (eLearnSecurity Certified eXploit Developer)</li>
-          <li>Sektor7 (Intermediate)</li>
-          <li>MalDev Academy</li>
-          <li>HTB AI Red Team Path</li>
-          <li>CRTO (in-progress)</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-body">
-        <h3 class="card-title">Skills</h3>
-        <ul>
-          <li><strong>Red Teaming:</strong> Adversary Simulation, Reverse Proxy Phishing, Malware Development, Exploit Writing, AV Evasion, Driver Exploitation, Windows Internals</li>
-          <li><strong>Penetration Testing:</strong> Cloud (AWS), API, Web App, Mobile App, Generative AI, Thick Client, Active Directory</li>
-          <li><strong>AppSec:</strong> Secure Code Review, Threat Modeling, Secure Architecture Review</li>
-          <li><strong>Tools:</strong> Sliver, Cobalt Strike, Evilginx, Bettercap, Metasploit, Burp Suite, Postman, Nuclei, PromptFoo, PYRIT, Prowler, ScoutSuite, XSOAR, Ghidra</li>
-          <li><strong>Languages:</strong> C, C++, Python, Bash, PowerShell, JavaScript</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="row">
-<div class="col-md-12">
-<h3>Education</h3>
-</div>
-<div class="col-md-12">
-<div class="card">
-<div class="card-body">
-<h4 class="card-title">University of Maryland - College Park</h4>
-<h5 class="card-subtitle">College Park, MD</h5>
-<p class="card-text">Masters in Cybersecurity | Aug 2022 – May 2024</p>
-</div>
-</div>
-</div>
-</div>
-
-<div class="row">
-<div class="col-md-12">
-<h3>Publications</h3>
-</div>
-<div class="col-md-6">
-<div class="card">
-<div class="card-body">
-<h4 class="card-title">AWS Pen Testing Methodology</h4>
-<p class="card-text">White Paper - Comprehensive guide to full-scope black-box pentesting on AWS.</p>
-<a href="https://www.securityinnovation.com/wp-content/uploads/2025/04/AWS-Pen-Testing-Methodology-WHITEPAPER_4-16-25.pdf" class="card-link" target="_blank">Read White Paper</a>
-</div>
-</div>
-</div>
-<div class="col-md-6">
-<div class="card">
-<div class="card-body">
-<h4 class="card-title">Malware Analysis Review</h4>
-<p class="card-text">Structured approach to malware detection and forensic analysis.</p>
-<a href="https://ijrar.org/viewfull.php?&p_id=IJRAR21D1641" class="card-link" target="_blank">Read Paper</a>
-</div>
-</div>
-</div>
-</div>
-</div>
-
-</section>
-<section class="bg-light py-5">
-	<div class="container">
-		<div class="row">
-			<div class="col-md-12">
-				<h3>Connect with me</h3>
+	<!-- Main Content -->
+	<section class="main-content">
+		<div class="container">
+			<!-- Professional Experience -->
+			<h3 class="section-title">Professional Experience</h3>
+			<div class="row">
+				<div class="col-lg-6">
+					<div class="card experience-card">
+						<div class="card-body">
+							<h4 class="card-title">Security Engineer</h4>
+							<h5 class="card-subtitle">Bureau Veritas, Remote, Seattle</h5>
+							<p class="card-text"><i class="far fa-calendar-alt"></i> May 2024 - Present</p>
+							<ul>
+								<li><strong>Research & Tooling:</strong> Researched Windows Internals to engineer a "Driver Hunting Framework," automating the analysis and detection of malicious/vulnerable kernel drivers.</li>
+								<li>Performed 40+ penetration tests for web and AWS applications, identifying critical vulnerabilities including PII theft vectors for major financial sector clients and prompt injection for LLM models.</li>
+								<li>Developed custom automation tools for complex authorization testing, assessing 100+ web APIs for flaws such as authZ bypass, SSRF, and XSS.</li>
+								<li>Built and delivered a reverse proxy phishing lab training environment and conducted internal red teaming workshops on malware development.</li>
+								<li>Performed in-depth source code analysis using semgrep, threat modeling, and third-party package reviews on fully developed web applications.</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+				<div class="col-lg-6">
+					<div class="card experience-card">
+						<div class="card-body">
+							<h4 class="card-title">Offensive Security Engineer</h4>
+							<h5 class="card-subtitle">FICO, Remote, USA</h5>
+							<p class="card-text"><i class="far fa-calendar-alt"></i> May 2023 - Jan 2024</p>
+							<ul>
+								<li><strong>High-Impact Discovery:</strong> Discovered a CVSS 9.0 vulnerability in a production AWS environment as part of emulating adversary tactics.</li>
+								<li>Conducted adversarial machine learning research with practical business applications and developed custom detection rules.</li>
+								<li>Conducted penetration testing across 100+ APIs as part of continuous security assessments, identifying and mitigating critical flaws.</li>
+								<li>Delivered team-wide training sessions on binary exploitation and malware analysis to enhance offensive security capabilities.</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+				<div class="col-lg-6">
+					<div class="card experience-card">
+						<div class="card-body">
+							<h4 class="card-title">Cyber Security Engineer</h4>
+							<h5 class="card-subtitle">FICO, India</h5>
+							<p class="card-text"><i class="far fa-calendar-alt"></i> Jan 2021 - Aug 2022</p>
+							<ul>
+								<li>Spearheaded XSOAR administration to streamline incident response workflows, boosting operational efficiency by 50% through automation.</li>
+								<li>Deployed malware and forensic sandbox environments on AWS, improving team training effectiveness by 70%.</li>
+								<li>Led threat hunting initiatives using Microsoft ATP, creating detection rules that improved visibility and response across enterprise infrastructure.</li>
+								<li>Investigated and mitigated 15+ suspicious files monthly using AV and EDR tools, significantly reducing endpoint threat exposure.</li>
+							</ul>
+						</div>
+					</div>
+				</div>
 			</div>
-			<div class="col-md-6">
-				<ul>
-					<li>Phone: +1 (240) 854-8747</li>
-					<li>Email: <a href="mailto:shravankumarsheri39@gmail.com">shravankumarsheri39@gmail.com</a></li>
-					<li>LinkedIn: <a href="https://linkedin.com/in/shravankumarsheri" target="_blank">linkedin.com/in/shravankumarsheri</a></li>
-				</ul>
+
+			<!-- Education -->
+			<h3 class="section-title">Education</h3>
+			<div class="row">
+				<div class="col-lg-6">
+					<div class="card education-card">
+						<div class="card-body">
+							<h4 class="card-title"><i class="fas fa-graduation-cap"></i> University of Maryland - College Park</h4>
+							<h5 class="card-subtitle">College Park, MD</h5>
+							<p class="card-text">Masters in Cybersecurity | Aug 2022 - May 2024</p>
+						</div>
+					</div>
+				</div>
 			</div>
-			<div class="col-md-6">
-				<ul>
-					<li>GitHub: <a href="https://github.com/sheri98" target="_blank">github.com/sheri98</a></li>
-				</ul>
+
+			<!-- Skills & Certifications -->
+			<h3 class="section-title">Skills & Certifications</h3>
+			<div class="row">
+				<div class="col-lg-6">
+					<div class="card">
+						<div class="card-body">
+							<h4 class="card-title"><i class="fas fa-tools"></i> Technical Skills</h4>
+							<div class="mb-3">
+								<p class="skill-category"><i class="fas fa-user-secret"></i> Red Teaming</p>
+								<span class="skill-tag">Adversary Simulation</span>
+								<span class="skill-tag">Reverse Proxy Phishing</span>
+								<span class="skill-tag">Malware Development</span>
+								<span class="skill-tag">Exploit Writing</span>
+								<span class="skill-tag">AV Evasion</span>
+								<span class="skill-tag">Driver Exploitation</span>
+								<span class="skill-tag">Windows Internals</span>
+							</div>
+							<div class="mb-3">
+								<p class="skill-category"><i class="fas fa-crosshairs"></i> Penetration Testing</p>
+								<span class="skill-tag">Cloud (AWS)</span>
+								<span class="skill-tag">API</span>
+								<span class="skill-tag">Web App</span>
+								<span class="skill-tag">Mobile App</span>
+								<span class="skill-tag">Generative AI</span>
+								<span class="skill-tag">Thick Client</span>
+								<span class="skill-tag">Active Directory</span>
+							</div>
+							<div class="mb-3">
+								<p class="skill-category"><i class="fas fa-shield-alt"></i> AppSec</p>
+								<span class="skill-tag">Secure Code Review</span>
+								<span class="skill-tag">Threat Modeling</span>
+								<span class="skill-tag">Secure Architecture Review</span>
+							</div>
+							<div class="mb-3">
+								<p class="skill-category"><i class="fas fa-code"></i> Languages</p>
+								<span class="skill-tag">C</span>
+								<span class="skill-tag">C++</span>
+								<span class="skill-tag">Python</span>
+								<span class="skill-tag">Bash</span>
+								<span class="skill-tag">PowerShell</span>
+								<span class="skill-tag">JavaScript</span>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="col-lg-6">
+					<div class="card">
+						<div class="card-body">
+							<h4 class="card-title"><i class="fas fa-certificate"></i> Certifications</h4>
+							<div class="cert-item">
+								<i class="fas fa-award"></i>
+								<span>OSCP (Offensive Security Certified Professional)</span>
+							</div>
+							<div class="cert-item">
+								<i class="fas fa-award"></i>
+								<span>CRTP (Certified Red Team Professional)</span>
+							</div>
+							<div class="cert-item">
+								<i class="fas fa-award"></i>
+								<span>CompTIA Security+</span>
+							</div>
+							<div class="cert-item">
+								<i class="fas fa-award"></i>
+								<span>eCXD (eLearnSecurity Certified eXploit Developer)</span>
+							</div>
+							<div class="cert-item">
+								<i class="fas fa-award"></i>
+								<span>Sektor7 (Intermediate)</span>
+							</div>
+							<div class="cert-item">
+								<i class="fas fa-award"></i>
+								<span>MalDev Academy</span>
+							</div>
+							<div class="cert-item">
+								<i class="fas fa-award"></i>
+								<span>HTB AI Red Team Path</span>
+							</div>
+							<div class="cert-item">
+								<i class="fas fa-spinner"></i>
+								<span>CRTO (in-progress)</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Tools -->
+			<div class="row">
+				<div class="col-12">
+					<div class="card">
+						<div class="card-body">
+							<h4 class="card-title"><i class="fas fa-wrench"></i> Tools & Technologies</h4>
+							<span class="skill-tag">Sliver</span>
+							<span class="skill-tag">Cobalt Strike</span>
+							<span class="skill-tag">Evilginx</span>
+							<span class="skill-tag">Bettercap</span>
+							<span class="skill-tag">Metasploit</span>
+							<span class="skill-tag">Burp Suite</span>
+							<span class="skill-tag">Postman</span>
+							<span class="skill-tag">Nuclei</span>
+							<span class="skill-tag">PromptFoo</span>
+							<span class="skill-tag">PYRIT</span>
+							<span class="skill-tag">Prowler</span>
+							<span class="skill-tag">ScoutSuite</span>
+							<span class="skill-tag">XSOAR</span>
+							<span class="skill-tag">Ghidra</span>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Publications -->
+			<h3 class="section-title">Publications</h3>
+			<div class="row">
+				<div class="col-lg-6">
+					<div class="card publication-card">
+						<div class="card-body">
+							<h4 class="card-title"><i class="fas fa-file-alt"></i> AWS Pen Testing Methodology</h4>
+							<p class="card-text">White Paper - Comprehensive guide to full-scope black-box pentesting on AWS.</p>
+							<a href="https://www.securityinnovation.com/wp-content/uploads/2025/04/AWS-Pen-Testing-Methodology-WHITEPAPER_4-16-25.pdf" class="card-link" target="_blank"><i class="fas fa-external-link-alt"></i> Read White Paper</a>
+						</div>
+					</div>
+				</div>
+				<div class="col-lg-6">
+					<div class="card publication-card">
+						<div class="card-body">
+							<h4 class="card-title"><i class="fas fa-file-alt"></i> Malware Analysis Review</h4>
+							<p class="card-text">Structured approach to malware detection and forensic analysis.</p>
+							<a href="https://ijrar.org/viewfull.php?&p_id=IJRAR21D1641" class="card-link" target="_blank"><i class="fas fa-external-link-alt"></i> Read Paper</a>
+						</div>
+					</div>
+				</div>
 			</div>
 		</div>
-	</div>
-</section>
-<footer class="bg-dark text-light py-3">
-	<div class="container">
-		<div class="row">
-			<div class="col-md-12">
-				<p class="text-center">&copy; 2025 Shravan Kumar Sheri - All Rights Reserved</p>
+	</section>
+
+	<!-- Connect Section -->
+	<section class="connect-section">
+		<div class="container">
+			<h3 class="section-title">Connect with me</h3>
+			<div class="row">
+				<div class="col-md-6">
+					<div class="connect-item">
+						<i class="fas fa-phone"></i>
+						<span>+1 (240) 854-8747</span>
+					</div>
+					<div class="connect-item">
+						<i class="fas fa-envelope"></i>
+						<a href="mailto:shravankumarsheri39@gmail.com">shravankumarsheri39@gmail.com</a>
+					</div>
+				</div>
+				<div class="col-md-6">
+					<div class="connect-item">
+						<i class="fab fa-linkedin"></i>
+						<a href="https://linkedin.com/in/shravankumarsheri" target="_blank">linkedin.com/in/shravankumarsheri</a>
+					</div>
+					<div class="connect-item">
+						<i class="fab fa-github"></i>
+						<a href="https://github.com/sheri98" target="_blank">github.com/sheri98</a>
+					</div>
+				</div>
 			</div>
 		</div>
-	</div>
-</footer>
+	</section>
+
+	<footer>
+		<div class="container">
+			<p>&copy; 2025 Shravan Kumar Sheri - All Rights Reserved</p>
+		</div>
+	</footer>
 </body>
 </html>
