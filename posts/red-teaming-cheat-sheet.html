@@ -146,7 +146,7 @@
 					<li><a href="#collection">Collection & Exfiltration</a></li>
 					<li><a href="#c2">Command & Control</a></li>
 					<li><a href="#ad-attacks">Active Directory Attacks</a></li>
-					<li><a href="#useful-resources">Useful Resources</a></li>
+					<li><a href="#useful-resources">Tool Reference & Resources</a></li>
 				</ul>
 			</div>
 
@@ -675,27 +675,134 @@ mimikatz # kerberos::golden /user:Administrator /domain:child.local /sid:S-1-5-2
 # Inter-forest attacks
 Rubeus.exe asktgt /user:user /domain:domain.local /rc4:HASH /createnetonly:C:\Windows\System32\cmd.exe</code></pre>
 
-			<h2 id="useful-resources">Useful Resources</h2>
+			<h2 id="useful-resources">Useful Resources & Tool Reference</h2>
 
 			<h3>Reference Links</h3>
 			<ul>
-				<li><strong>MITRE ATT&CK:</strong> attack.mitre.org</li>
-				<li><strong>HackTricks:</strong> book.hacktricks.xyz</li>
-				<li><strong>PayloadsAllTheThings:</strong> github.com/swisskyrepo/PayloadsAllTheThings</li>
-				<li><strong>LOLBAS:</strong> lolbas-project.github.io</li>
-				<li><strong>GTFOBins:</strong> gtfobins.github.io</li>
-				<li><strong>WADComs:</strong> wadcoms.github.io</li>
-				<li><strong>LOLDrivers:</strong> loldrivers.io</li>
+				<li><a href="https://attack.mitre.org" target="_blank"><strong>MITRE ATT&CK</strong></a> - Adversary tactics and techniques knowledge base</li>
+				<li><a href="https://book.hacktricks.xyz" target="_blank"><strong>HackTricks</strong></a> - Comprehensive hacking methodology</li>
+				<li><a href="https://github.com/swisskyrepo/PayloadsAllTheThings" target="_blank"><strong>PayloadsAllTheThings</strong></a> - Useful payloads and bypass for security testing</li>
+				<li><a href="https://lolbas-project.github.io" target="_blank"><strong>LOLBAS</strong></a> - Living Off The Land Binaries and Scripts</li>
+				<li><a href="https://gtfobins.github.io" target="_blank"><strong>GTFOBins</strong></a> - Unix binaries for privilege escalation</li>
+				<li><a href="https://wadcoms.github.io" target="_blank"><strong>WADComs</strong></a> - Windows/AD interactive cheat sheet</li>
+				<li><a href="https://www.loldrivers.io" target="_blank"><strong>LOLDrivers</strong></a> - Vulnerable drivers database</li>
 			</ul>
 
-			<h3>Tool Repositories</h3>
+			<h3>Reconnaissance Tools</h3>
 			<ul>
-				<li><strong>Impacket:</strong> github.com/SecureAuthCorp/impacket</li>
-				<li><strong>Rubeus:</strong> github.com/GhostPack/Rubeus</li>
-				<li><strong>BloodHound:</strong> github.com/BloodHoundAD/BloodHound</li>
-				<li><strong>CrackMapExec:</strong> github.com/byt3bl33d3r/CrackMapExec</li>
-				<li><strong>Certipy:</strong> github.com/ly4k/Certipy</li>
-				<li><strong>Sliver:</strong> github.com/BishopFox/sliver</li>
+				<li><a href="https://github.com/projectdiscovery/subfinder" target="_blank"><strong>Subfinder</strong></a> - Fast passive subdomain enumeration</li>
+				<li><a href="https://github.com/owasp-amass/amass" target="_blank"><strong>Amass</strong></a> - In-depth attack surface mapping</li>
+				<li><a href="https://github.com/projectdiscovery/httpx" target="_blank"><strong>httpx</strong></a> - Fast HTTP toolkit</li>
+				<li><a href="https://github.com/projectdiscovery/nuclei" target="_blank"><strong>Nuclei</strong></a> - Vulnerability scanner with templates</li>
+				<li><a href="https://github.com/laramies/theHarvester" target="_blank"><strong>theHarvester</strong></a> - OSINT tool for email/subdomain gathering</li>
+				<li><a href="https://github.com/OJ/gobuster" target="_blank"><strong>Gobuster</strong></a> - Directory/DNS bruteforcing</li>
+				<li><a href="https://github.com/epi052/feroxbuster" target="_blank"><strong>Feroxbuster</strong></a> - Fast content discovery tool</li>
+				<li><a href="https://github.com/sensepost/gowitness" target="_blank"><strong>gowitness</strong></a> - Web screenshot utility</li>
+				<li><a href="https://github.com/aboul3la/Sublist3r" target="_blank"><strong>Sublist3r</strong></a> - Subdomain enumeration using OSINT</li>
+			</ul>
+
+			<h3>Cloud Reconnaissance</h3>
+			<ul>
+				<li><a href="https://github.com/NetSPI/MicroBurst" target="_blank"><strong>MicroBurst</strong></a> - Azure security assessment tools</li>
+				<li><a href="https://github.com/nccgroup/ScoutSuite" target="_blank"><strong>ScoutSuite</strong></a> - Multi-cloud security auditing</li>
+				<li><a href="https://github.com/RhinoSecurityLabs/pacu" target="_blank"><strong>Pacu</strong></a> - AWS exploitation framework</li>
+				<li><a href="https://github.com/prowler-cloud/prowler" target="_blank"><strong>Prowler</strong></a> - AWS/Azure/GCP security assessments</li>
+				<li><a href="https://github.com/hausec/PowerZure" target="_blank"><strong>PowerZure</strong></a> - Azure PowerShell assessment</li>
+				<li><a href="https://github.com/dafthack/CloudPentestCheatsheets" target="_blank"><strong>CloudPentestCheatsheets</strong></a> - Cloud pentest reference</li>
+			</ul>
+
+			<h3>Initial Access & Phishing</h3>
+			<ul>
+				<li><a href="https://github.com/gophish/gophish" target="_blank"><strong>GoPhish</strong></a> - Open-source phishing framework</li>
+				<li><a href="https://github.com/kgretzky/evilginx2" target="_blank"><strong>Evilginx2</strong></a> - Man-in-the-middle attack framework</li>
+				<li><a href="https://github.com/byt3bl33d3r/SprayingToolkit" target="_blank"><strong>SprayingToolkit</strong></a> - Password spraying tools</li>
+				<li><a href="https://github.com/sensepost/ruler" target="_blank"><strong>Ruler</strong></a> - Exchange/O365 exploitation</li>
+				<li><a href="https://github.com/ZeroPointSecurity/PhishInSuits" target="_blank"><strong>PhishInSuits</strong></a> - OAuth phishing tool</li>
+				<li><a href="https://github.com/sevagas/macro_pack" target="_blank"><strong>macro_pack</strong></a> - Office document payload generator</li>
+			</ul>
+
+			<h3>Privilege Escalation - Windows</h3>
+			<ul>
+				<li><a href="https://github.com/peass-ng/PEASS-ng" target="_blank"><strong>WinPEAS</strong></a> - Windows privilege escalation scanner</li>
+				<li><a href="https://github.com/PowerShellMafia/PowerSploit/tree/master/Privesc" target="_blank"><strong>PowerUp</strong></a> - PowerShell privesc checks</li>
+				<li><a href="https://github.com/GhostPack/Seatbelt" target="_blank"><strong>Seatbelt</strong></a> - Windows security enumeration</li>
+				<li><a href="https://github.com/itm4n/PrintSpoofer" target="_blank"><strong>PrintSpoofer</strong></a> - SeImpersonatePrivilege exploit</li>
+				<li><a href="https://github.com/BeichenDream/GodPotato" target="_blank"><strong>GodPotato</strong></a> - Potato privilege escalation</li>
+				<li><a href="https://github.com/CCob/SweetPotato" target="_blank"><strong>SweetPotato</strong></a> - Service account to SYSTEM</li>
+				<li><a href="https://github.com/ohpe/juicy-potato" target="_blank"><strong>JuicyPotato</strong></a> - COM object privilege escalation</li>
+			</ul>
+
+			<h3>Privilege Escalation - Linux</h3>
+			<ul>
+				<li><a href="https://github.com/peass-ng/PEASS-ng" target="_blank"><strong>LinPEAS</strong></a> - Linux privilege escalation scanner</li>
+				<li><a href="https://github.com/DominicBreuker/pspy" target="_blank"><strong>pspy</strong></a> - Linux process monitoring</li>
+				<li><a href="https://github.com/rebootuser/LinEnum" target="_blank"><strong>LinEnum</strong></a> - Linux enumeration script</li>
+				<li><a href="https://github.com/mzet-/linux-exploit-suggester" target="_blank"><strong>linux-exploit-suggester</strong></a> - Kernel exploit suggestions</li>
+				<li><a href="https://github.com/jondonas/linux-exploit-suggester-2" target="_blank"><strong>linux-exploit-suggester-2</strong></a> - Next-gen exploit suggester</li>
+			</ul>
+
+			<h3>Post-Exploitation & Credential Access</h3>
+			<ul>
+				<li><a href="https://github.com/gentilkiwi/mimikatz" target="_blank"><strong>Mimikatz</strong></a> - Windows credential extraction</li>
+				<li><a href="https://github.com/GhostPack/Rubeus" target="_blank"><strong>Rubeus</strong></a> - Kerberos abuse toolkit</li>
+				<li><a href="https://github.com/fortra/impacket" target="_blank"><strong>Impacket</strong></a> - Network protocol implementations</li>
+				<li><a href="https://github.com/GhostPack/SharpDPAPI" target="_blank"><strong>SharpDPAPI</strong></a> - DPAPI credential extraction</li>
+				<li><a href="https://github.com/skelsec/pypykatz" target="_blank"><strong>pypykatz</strong></a> - Python Mimikatz implementation</li>
+				<li><a href="https://github.com/login-securite/lsassy" target="_blank"><strong>lsassy</strong></a> - Remote LSASS credential dump</li>
+				<li><a href="https://github.com/AlessandroZ/LaZagne" target="_blank"><strong>LaZagne</strong></a> - Multi-platform credential recovery</li>
+			</ul>
+
+			<h3>Lateral Movement</h3>
+			<ul>
+				<li><a href="https://github.com/byt3bl33d3r/CrackMapExec" target="_blank"><strong>CrackMapExec</strong></a> - Swiss army knife for AD pentesting</li>
+				<li><a href="https://github.com/Pennyw0rth/NetExec" target="_blank"><strong>NetExec</strong></a> - CrackMapExec successor</li>
+				<li><a href="https://github.com/Hackndo/lsassy" target="_blank"><strong>lsassy</strong></a> - Remote credential extraction</li>
+				<li><a href="https://github.com/Hackplayers/evil-winrm" target="_blank"><strong>Evil-WinRM</strong></a> - WinRM shell for pentesting</li>
+				<li><a href="https://github.com/0x09AL/RdpThief" target="_blank"><strong>RdpThief</strong></a> - RDP credential extraction</li>
+				<li><a href="https://github.com/cube0x0/SharpMapExec" target="_blank"><strong>SharpMapExec</strong></a> - C# network tool</li>
+			</ul>
+
+			<h3>Active Directory</h3>
+			<ul>
+				<li><a href="https://github.com/BloodHoundAD/BloodHound" target="_blank"><strong>BloodHound</strong></a> - AD relationship analysis</li>
+				<li><a href="https://github.com/fox-it/BloodHound.py" target="_blank"><strong>BloodHound.py</strong></a> - Python BloodHound collector</li>
+				<li><a href="https://github.com/ly4k/Certipy" target="_blank"><strong>Certipy</strong></a> - AD CS attack tool</li>
+				<li><a href="https://github.com/GhostPack/Certify" target="_blank"><strong>Certify</strong></a> - AD CS enumeration</li>
+				<li><a href="https://github.com/zer1t0/certi" target="_blank"><strong>Certi</strong></a> - AD CS tool</li>
+				<li><a href="https://github.com/PowerShellMafia/PowerSploit" target="_blank"><strong>PowerSploit</strong></a> - PowerShell post-exploitation</li>
+				<li><a href="https://github.com/Kevin-Robertson/Powermad" target="_blank"><strong>Powermad</strong></a> - PowerShell MachineAccountQuota</li>
+				<li><a href="https://github.com/dirkjanm/ldapdomaindump" target="_blank"><strong>ldapdomaindump</strong></a> - LDAP domain enumeration</li>
+			</ul>
+
+			<h3>C2 Frameworks</h3>
+			<ul>
+				<li><a href="https://github.com/BishopFox/sliver" target="_blank"><strong>Sliver</strong></a> - Open-source C2 framework</li>
+				<li><a href="https://github.com/HavocFramework/Havoc" target="_blank"><strong>Havoc</strong></a> - Modern C2 framework</li>
+				<li><a href="https://github.com/cobbr/Covenant" target="_blank"><strong>Covenant</strong></a> - .NET C2 framework</li>
+				<li><a href="https://github.com/BC-SECURITY/Empire" target="_blank"><strong>Empire</strong></a> - PowerShell/Python post-exploitation</li>
+				<li><a href="https://github.com/t3l3machus/Villain" target="_blank"><strong>Villain</strong></a> - Windows/Linux C2 framework</li>
+				<li><a href="https://github.com/byt3bl33d3r/SILENTTRINITY" target="_blank"><strong>SILENTTRINITY</strong></a> - Async C2 framework</li>
+				<li><a href="https://github.com/nettitude/PoshC2" target="_blank"><strong>PoshC2</strong></a> - C2 with proxy support</li>
+			</ul>
+
+			<h3>Evasion & AV Bypass</h3>
+			<ul>
+				<li><a href="https://github.com/optiv/ScareCrow" target="_blank"><strong>ScareCrow</strong></a> - Payload creation for evasion</li>
+				<li><a href="https://github.com/klezVirus/inceptor" target="_blank"><strong>Inceptor</strong></a> - Template-based AV evasion</li>
+				<li><a href="https://github.com/Flangvik/SharpCollection" target="_blank"><strong>SharpCollection</strong></a> - Pre-compiled .NET tools</li>
+				<li><a href="https://github.com/rasta-mouse/ThreatCheck" target="_blank"><strong>ThreatCheck</strong></a> - AV signature detection</li>
+				<li><a href="https://github.com/S3cur3Th1sSh1t/Amsi-Bypass-Powershell" target="_blank"><strong>AMSI Bypass</strong></a> - AMSI bypass collection</li>
+				<li><a href="https://github.com/Arvanaghi/CheckPlease" target="_blank"><strong>CheckPlease</strong></a> - Sandbox evasion modules</li>
+			</ul>
+
+			<h3>Web Application Testing</h3>
+			<ul>
+				<li><a href="https://portswigger.net/burp" target="_blank"><strong>Burp Suite</strong></a> - Web security testing platform</li>
+				<li><a href="https://github.com/sqlmapproject/sqlmap" target="_blank"><strong>sqlmap</strong></a> - Automated SQL injection</li>
+				<li><a href="https://github.com/ffuf/ffuf" target="_blank"><strong>ffuf</strong></a> - Fast web fuzzer</li>
+				<li><a href="https://github.com/maurosoria/dirsearch" target="_blank"><strong>dirsearch</strong></a> - Web path scanner</li>
+				<li><a href="https://github.com/wpscanteam/wpscan" target="_blank"><strong>WPScan</strong></a> - WordPress vulnerability scanner</li>
+				<li><a href="https://github.com/commixproject/commix" target="_blank"><strong>Commix</strong></a> - Command injection exploiter</li>
 			</ul>
 
 			<div class="tags">
