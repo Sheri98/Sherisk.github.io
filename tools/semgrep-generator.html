@@ -1,0 +1,1575 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Semgrep Rule Generator - Security Tools</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="Generate custom Semgrep rules for security scanning - detect SQL injection, XSS, command injection, hardcoded secrets, and more.">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+	<style>
+		* { box-sizing: border-box; }
+
+		body {
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			background-color: #f8f9fa;
+			margin: 0;
+			padding: 0;
+			line-height: 1.6;
+		}
+
+		.navbar {
+			background-color: #1a1a2e !important;
+			padding: 15px 0;
+			box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+		}
+
+		.navbar-brand { color: #fff !important; font-size: 22px; font-weight: 600; }
+		.nav-link { color: rgba(255,255,255,0.9) !important; font-size: 16px; margin-left: 20px; transition: color 0.3s; }
+		.nav-link:hover { color: #4a9eff !important; }
+
+		.hero-section {
+			background: linear-gradient(135deg, #00897b 0%, #00695c 100%);
+			color: #fff;
+			padding: 40px 0;
+			text-align: center;
+		}
+
+		.hero-section h1 { font-size: 36px; font-weight: 700; margin-bottom: 10px; }
+		.hero-section p { font-size: 16px; opacity: 0.9; }
+
+		.main-content { padding: 40px 0; }
+
+		.card {
+			background: #fff;
+			border-radius: 12px;
+			box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+			border: none;
+			margin-bottom: 25px;
+		}
+
+		.card-header {
+			background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+			color: #fff;
+			font-weight: 600;
+			border-radius: 12px 12px 0 0 !important;
+			padding: 15px 20px;
+			cursor: pointer;
+		}
+
+		.card-body { padding: 25px; }
+
+		.form-group label { font-weight: 600; color: #1a1a2e; margin-bottom: 8px; }
+		.form-control { border-radius: 8px; border: 2px solid #e9ecef; padding: 10px 15px; }
+		.form-control:focus { border-color: #00897b; box-shadow: 0 0 0 3px rgba(0, 137, 123, 0.1); }
+
+		.btn-primary {
+			background: linear-gradient(135deg, #00897b 0%, #00695c 100%);
+			border: none;
+			padding: 10px 25px;
+			font-weight: 600;
+			border-radius: 8px;
+			transition: transform 0.3s, box-shadow 0.3s;
+		}
+
+		.btn-primary:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 5px 20px rgba(0, 137, 123, 0.4);
+			background: linear-gradient(135deg, #00897b 0%, #00695c 100%);
+		}
+
+		.btn-secondary {
+			background: #6c757d;
+			border: none;
+			padding: 8px 20px;
+			font-weight: 600;
+			border-radius: 8px;
+		}
+
+		.output-area {
+			background: #1a1a2e;
+			color: #98c379;
+			font-family: 'Consolas', 'Monaco', monospace;
+			padding: 20px;
+			border-radius: 8px;
+			font-size: 13px;
+			white-space: pre-wrap;
+			word-break: break-all;
+			min-height: 300px;
+			max-height: 600px;
+			overflow-y: auto;
+			position: relative;
+		}
+
+		.copy-btn {
+			position: absolute;
+			top: 10px;
+			right: 10px;
+			background: #00897b;
+			border: none;
+			color: #fff;
+			padding: 5px 15px;
+			border-radius: 5px;
+			cursor: pointer;
+			font-size: 12px;
+		}
+
+		.copy-btn:hover { background: #00695c; }
+
+		.preset-btn {
+			margin: 3px;
+			font-size: 12px;
+			padding: 6px 12px;
+			border-radius: 20px;
+			border: 2px solid #00897b;
+			background: transparent;
+			color: #00897b;
+			cursor: pointer;
+			transition: all 0.3s;
+		}
+
+		.preset-btn:hover, .preset-btn.active {
+			background: #00897b;
+			color: #fff;
+		}
+
+		.category-title {
+			font-weight: 700;
+			color: #1a1a2e;
+			margin: 20px 0 10px 0;
+			padding-bottom: 5px;
+			border-bottom: 2px solid #00897b;
+			font-size: 14px;
+		}
+
+		.lang-badge {
+			display: inline-block;
+			padding: 4px 12px;
+			border-radius: 15px;
+			font-size: 12px;
+			font-weight: 600;
+			margin: 2px;
+			cursor: pointer;
+			transition: all 0.3s;
+		}
+
+		.lang-python { background: #e8f5e9; color: #2e7d32; border: 2px solid #2e7d32; }
+		.lang-python.active { background: #2e7d32; color: #fff; }
+		.lang-javascript { background: #fff8e1; color: #f57f17; border: 2px solid #f57f17; }
+		.lang-javascript.active { background: #f57f17; color: #fff; }
+		.lang-java { background: #ffebee; color: #c62828; border: 2px solid #c62828; }
+		.lang-java.active { background: #c62828; color: #fff; }
+		.lang-go { background: #e3f2fd; color: #1565c0; border: 2px solid #1565c0; }
+		.lang-go.active { background: #1565c0; color: #fff; }
+		.lang-php { background: #f3e5f5; color: #7b1fa2; border: 2px solid #7b1fa2; }
+		.lang-php.active { background: #7b1fa2; color: #fff; }
+		.lang-csharp { background: #e8eaf6; color: #3949ab; border: 2px solid #3949ab; }
+		.lang-csharp.active { background: #3949ab; color: #fff; }
+		.lang-ruby { background: #fce4ec; color: #c2185b; border: 2px solid #c2185b; }
+		.lang-ruby.active { background: #c2185b; color: #fff; }
+		.lang-generic { background: #eceff1; color: #546e7a; border: 2px solid #546e7a; }
+		.lang-generic.active { background: #546e7a; color: #fff; }
+
+		.severity-badge {
+			display: inline-block;
+			padding: 4px 12px;
+			border-radius: 15px;
+			font-size: 11px;
+			font-weight: 700;
+		}
+
+		.severity-error { background: #ffebee; color: #c62828; }
+		.severity-warning { background: #fff3e0; color: #e65100; }
+		.severity-info { background: #e3f2fd; color: #1565c0; }
+
+		.nav-tabs .nav-link {
+			color: #1a1a2e !important;
+			font-weight: 600;
+			margin-left: 0;
+		}
+
+		.nav-tabs .nav-link.active {
+			color: #00897b !important;
+			border-color: #00897b #00897b #fff;
+		}
+
+		.tab-content {
+			padding: 20px;
+			border: 1px solid #dee2e6;
+			border-top: none;
+			border-radius: 0 0 8px 8px;
+			background: #fff;
+		}
+
+		.pattern-input {
+			font-family: 'Consolas', 'Monaco', monospace;
+			background: #f5f5f5;
+		}
+
+		.help-text {
+			font-size: 12px;
+			color: #6c757d;
+			margin-top: 5px;
+		}
+
+		.yaml-key { color: #e06c75; }
+		.yaml-string { color: #98c379; }
+		.yaml-comment { color: #5c6370; font-style: italic; }
+
+		footer {
+			background: #1a1a2e;
+			color: #fff;
+			padding: 30px 0;
+			text-align: center;
+		}
+
+		footer p { margin: 0; opacity: 0.8; }
+
+		.accordion .card { margin-bottom: 10px; }
+		.pattern-example {
+			background: #f8f9fa;
+			border: 1px solid #e9ecef;
+			border-radius: 5px;
+			padding: 10px;
+			font-family: monospace;
+			font-size: 13px;
+			margin: 5px 0;
+		}
+	</style>
+</head>
+<body>
+	<!-- Navigation Bar -->
+	<nav class="navbar navbar-expand-lg navbar-dark">
+		<div class="container">
+			<a class="navbar-brand" href="../index.html">Shravan Kumar Sheri</a>
+			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+				<span class="navbar-toggler-icon"></span>
+			</button>
+			<div class="collapse navbar-collapse" id="navbarNav">
+				<ul class="navbar-nav ml-auto">
+					<li class="nav-item"><a class="nav-link" href="../index.html">Home</a></li>
+					<li class="nav-item"><a class="nav-link" href="../blog.html">Blog</a></li>
+					<li class="nav-item active"><a class="nav-link" href="../tools.html">Tools</a></li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+
+	<!-- Hero Section -->
+	<section class="hero-section">
+		<div class="container">
+			<h1><i class="fas fa-search-plus"></i> Semgrep Rule Generator</h1>
+			<p>Generate custom Semgrep SAST rules for security vulnerability detection</p>
+		</div>
+	</section>
+
+	<!-- Main Content -->
+	<section class="main-content">
+		<div class="container">
+			<div class="row">
+				<!-- Left Column - Builder -->
+				<div class="col-lg-7">
+					<!-- Language Selection -->
+					<div class="card">
+						<div class="card-header">
+							<i class="fas fa-code"></i> Select Language
+						</div>
+						<div class="card-body">
+							<span class="lang-badge lang-python active" onclick="selectLanguage('python')">Python</span>
+							<span class="lang-badge lang-javascript" onclick="selectLanguage('javascript')">JavaScript</span>
+							<span class="lang-badge lang-java" onclick="selectLanguage('java')">Java</span>
+							<span class="lang-badge lang-go" onclick="selectLanguage('go')">Go</span>
+							<span class="lang-badge lang-php" onclick="selectLanguage('php')">PHP</span>
+							<span class="lang-badge lang-csharp" onclick="selectLanguage('csharp')">C#</span>
+							<span class="lang-badge lang-ruby" onclick="selectLanguage('ruby')">Ruby</span>
+							<span class="lang-badge lang-generic" onclick="selectLanguage('generic')">Generic</span>
+						</div>
+					</div>
+
+					<!-- Preset Patterns -->
+					<div class="card">
+						<div class="card-header">
+							<i class="fas fa-bolt"></i> Quick Presets
+						</div>
+						<div class="card-body">
+							<p class="category-title"><i class="fas fa-syringe"></i> Injection</p>
+							<button class="preset-btn" onclick="setPreset('sqli')">SQL Injection</button>
+							<button class="preset-btn" onclick="setPreset('cmdi')">Command Injection</button>
+							<button class="preset-btn" onclick="setPreset('xss')">XSS</button>
+							<button class="preset-btn" onclick="setPreset('ssrf')">SSRF</button>
+							<button class="preset-btn" onclick="setPreset('xxe')">XXE</button>
+							<button class="preset-btn" onclick="setPreset('ldapi')">LDAP Injection</button>
+							<button class="preset-btn" onclick="setPreset('xpath')">XPath Injection</button>
+							<button class="preset-btn" onclick="setPreset('ssti')">SSTI</button>
+
+							<p class="category-title"><i class="fas fa-key"></i> Secrets & Credentials</p>
+							<button class="preset-btn" onclick="setPreset('hardcodedPassword')">Hardcoded Password</button>
+							<button class="preset-btn" onclick="setPreset('hardcodedSecret')">Hardcoded Secret</button>
+							<button class="preset-btn" onclick="setPreset('apiKey')">API Key Exposure</button>
+							<button class="preset-btn" onclick="setPreset('awsKeys')">AWS Keys</button>
+							<button class="preset-btn" onclick="setPreset('privateKey')">Private Key</button>
+							<button class="preset-btn" onclick="setPreset('jwtSecret')">JWT Secret</button>
+
+							<p class="category-title"><i class="fas fa-lock-open"></i> Crypto & Auth</p>
+							<button class="preset-btn" onclick="setPreset('weakCrypto')">Weak Crypto</button>
+							<button class="preset-btn" onclick="setPreset('weakHash')">Weak Hashing</button>
+							<button class="preset-btn" onclick="setPreset('insecureRandom')">Insecure Random</button>
+							<button class="preset-btn" onclick="setPreset('noAuth')">Missing Auth Check</button>
+							<button class="preset-btn" onclick="setPreset('hardcodedIV')">Hardcoded IV</button>
+
+							<p class="category-title"><i class="fas fa-bug"></i> Code Quality</p>
+							<button class="preset-btn" onclick="setPreset('debugCode')">Debug Code</button>
+							<button class="preset-btn" onclick="setPreset('todoFixme')">TODO/FIXME</button>
+							<button class="preset-btn" onclick="setPreset('emptyExcept')">Empty Exception</button>
+							<button class="preset-btn" onclick="setPreset('eval')">Dangerous Eval</button>
+							<button class="preset-btn" onclick="setPreset('exec')">Dangerous Exec</button>
+
+							<p class="category-title"><i class="fas fa-file-alt"></i> File Operations</p>
+							<button class="preset-btn" onclick="setPreset('pathTraversal')">Path Traversal</button>
+							<button class="preset-btn" onclick="setPreset('unsafeDeserialize')">Unsafe Deserialization</button>
+							<button class="preset-btn" onclick="setPreset('fileUpload')">Unsafe File Upload</button>
+							<button class="preset-btn" onclick="setPreset('tempFile')">Insecure Temp File</button>
+
+							<p class="category-title"><i class="fas fa-network-wired"></i> Network & HTTP</p>
+							<button class="preset-btn" onclick="setPreset('noTLSVerify')">TLS Verify Disabled</button>
+							<button class="preset-btn" onclick="setPreset('httpOnly')">HTTP Instead of HTTPS</button>
+							<button class="preset-btn" onclick="setPreset('corsAll')">CORS Allow All</button>
+							<button class="preset-btn" onclick="setPreset('openRedirect')">Open Redirect</button>
+						</div>
+					</div>
+
+					<!-- Custom Rule Builder -->
+					<div class="card">
+						<div class="card-header">
+							<i class="fas fa-hammer"></i> Custom Rule Builder
+						</div>
+						<div class="card-body">
+							<ul class="nav nav-tabs" id="builderTabs" role="tablist">
+								<li class="nav-item">
+									<a class="nav-link active" id="basic-tab" data-toggle="tab" href="#basic" role="tab">Basic</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" id="advanced-tab" data-toggle="tab" href="#advanced" role="tab">Advanced</a>
+								</li>
+							</ul>
+							<div class="tab-content">
+								<!-- Basic Tab -->
+								<div class="tab-pane fade show active" id="basic" role="tabpanel">
+									<div class="form-group">
+										<label>Rule ID</label>
+										<input type="text" class="form-control" id="ruleId" placeholder="my-company.security.sqli-detection" value="custom-security-rule" onchange="generateRule()">
+										<p class="help-text">Unique identifier for this rule (use dots for namespacing)</p>
+									</div>
+									<div class="form-group">
+										<label>Pattern to Match</label>
+										<textarea class="form-control pattern-input" id="pattern" rows="3" placeholder="cursor.execute($QUERY)" onchange="generateRule()"></textarea>
+										<p class="help-text">Use $VAR for metavariables, ... for wildcards</p>
+									</div>
+									<div class="form-group">
+										<label>Message</label>
+										<textarea class="form-control" id="message" rows="2" placeholder="Potential SQL injection vulnerability detected" onchange="generateRule()"></textarea>
+									</div>
+									<div class="row">
+										<div class="col-md-6">
+											<div class="form-group">
+												<label>Severity</label>
+												<select class="form-control" id="severity" onchange="generateRule()">
+													<option value="ERROR">ERROR (High)</option>
+													<option value="WARNING" selected>WARNING (Medium)</option>
+													<option value="INFO">INFO (Low)</option>
+												</select>
+											</div>
+										</div>
+										<div class="col-md-6">
+											<div class="form-group">
+												<label>Category</label>
+												<select class="form-control" id="category" onchange="generateRule()">
+													<option value="security">Security</option>
+													<option value="correctness">Correctness</option>
+													<option value="best-practice">Best Practice</option>
+													<option value="performance">Performance</option>
+													<option value="maintainability">Maintainability</option>
+												</select>
+											</div>
+										</div>
+									</div>
+								</div>
+								<!-- Advanced Tab -->
+								<div class="tab-pane fade" id="advanced" role="tabpanel">
+									<div class="form-group">
+										<label>Pattern Type</label>
+										<select class="form-control" id="patternType" onchange="updatePatternFields()">
+											<option value="pattern">Simple Pattern</option>
+											<option value="patterns">Multiple Patterns (AND)</option>
+											<option value="pattern-either">Pattern Either (OR)</option>
+											<option value="pattern-regex">Regex Pattern</option>
+										</select>
+									</div>
+									<div id="multiPatternContainer" style="display: none;">
+										<div class="form-group">
+											<label>Pattern 1</label>
+											<input type="text" class="form-control pattern-input" id="pattern1" placeholder="First pattern">
+										</div>
+										<div class="form-group">
+											<label>Pattern 2</label>
+											<input type="text" class="form-control pattern-input" id="pattern2" placeholder="Second pattern">
+										</div>
+										<button class="btn btn-secondary btn-sm" onclick="addPatternField()"><i class="fas fa-plus"></i> Add Pattern</button>
+									</div>
+									<div class="form-group mt-3">
+										<label>Pattern NOT (Exclude)</label>
+										<input type="text" class="form-control pattern-input" id="patternNot" placeholder="Pattern to exclude from matches" onchange="generateRule()">
+										<p class="help-text">Matches will be excluded if they also match this pattern</p>
+									</div>
+									<div class="form-group">
+										<label>Metavariable Regex Filter</label>
+										<div class="row">
+											<div class="col-5">
+												<input type="text" class="form-control" id="metavar" placeholder="$VAR">
+											</div>
+											<div class="col-7">
+												<input type="text" class="form-control" id="metavarRegex" placeholder=".*password.*">
+											</div>
+										</div>
+										<p class="help-text">Filter matches where metavariable matches regex</p>
+									</div>
+									<div class="form-group">
+										<label>Fix (Auto-fix suggestion)</label>
+										<textarea class="form-control pattern-input" id="fix" rows="2" placeholder="cursor.execute($QUERY, $PARAMS)" onchange="generateRule()"></textarea>
+										<p class="help-text">Suggested fix using same metavariables</p>
+									</div>
+									<div class="form-group">
+										<label>CWE ID</label>
+										<input type="text" class="form-control" id="cwe" placeholder="CWE-89" onchange="generateRule()">
+									</div>
+									<div class="form-group">
+										<label>OWASP Category</label>
+										<select class="form-control" id="owasp" onchange="generateRule()">
+											<option value="">Select...</option>
+											<option value="A01:2021">A01:2021 - Broken Access Control</option>
+											<option value="A02:2021">A02:2021 - Cryptographic Failures</option>
+											<option value="A03:2021">A03:2021 - Injection</option>
+											<option value="A04:2021">A04:2021 - Insecure Design</option>
+											<option value="A05:2021">A05:2021 - Security Misconfiguration</option>
+											<option value="A06:2021">A06:2021 - Vulnerable Components</option>
+											<option value="A07:2021">A07:2021 - Auth Failures</option>
+											<option value="A08:2021">A08:2021 - Software Integrity Failures</option>
+											<option value="A09:2021">A09:2021 - Logging Failures</option>
+											<option value="A10:2021">A10:2021 - SSRF</option>
+										</select>
+									</div>
+									<button class="btn btn-primary" onclick="generateRule()"><i class="fas fa-sync"></i> Generate Rule</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Right Column - Output & Reference -->
+				<div class="col-lg-5">
+					<!-- Generated Rule -->
+					<div class="card">
+						<div class="card-header">
+							<i class="fas fa-file-code"></i> Generated Semgrep Rule (YAML)
+						</div>
+						<div class="card-body">
+							<div class="output-area" id="ruleOutput">
+								<button class="copy-btn" onclick="copyRule()"><i class="fas fa-copy"></i> Copy</button>
+								<span id="ruleYaml"># Select a preset or build a custom rule</span>
+							</div>
+							<div class="mt-3">
+								<button class="btn btn-secondary btn-sm" onclick="downloadRule()"><i class="fas fa-download"></i> Download .yaml</button>
+								<button class="btn btn-secondary btn-sm" onclick="testRule()"><i class="fas fa-play"></i> Test in Playground</button>
+							</div>
+						</div>
+					</div>
+
+					<!-- Pattern Syntax Reference -->
+					<div class="card">
+						<div class="card-header" data-toggle="collapse" href="#syntaxRef">
+							<i class="fas fa-book"></i> Pattern Syntax Reference <i class="fas fa-chevron-down float-right"></i>
+						</div>
+						<div id="syntaxRef" class="collapse show">
+							<div class="card-body" style="font-size: 13px;">
+								<p><strong>Metavariables:</strong></p>
+								<div class="pattern-example">$VAR - matches any expression<br>$...ARGS - matches multiple arguments<br>$_VAR - matches but don't bind</div>
+
+								<p class="mt-3"><strong>Ellipsis (...):</strong></p>
+								<div class="pattern-example">foo(...) - any arguments<br>foo($X, ...) - first arg + any others<br>{ ... } - any statements in block</div>
+
+								<p class="mt-3"><strong>Typed Metavariables:</strong></p>
+								<div class="pattern-example">(String $X) - matches String type<br>(int $NUM) - matches int type</div>
+
+								<p class="mt-3"><strong>Deep Expression:</strong></p>
+								<div class="pattern-example">&lt;... $EXPR ...&gt; - $EXPR anywhere nested</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Common Patterns by Language -->
+					<div class="card">
+						<div class="card-header" data-toggle="collapse" href="#langPatterns">
+							<i class="fas fa-code-branch"></i> Language-Specific Patterns <i class="fas fa-chevron-down float-right"></i>
+						</div>
+						<div id="langPatterns" class="collapse">
+							<div class="card-body" style="font-size: 12px; max-height: 300px; overflow-y: auto;">
+								<p><strong>Python:</strong></p>
+								<code>subprocess.call($CMD, shell=True)</code><br>
+								<code>eval($INPUT)</code><br>
+								<code>pickle.loads($DATA)</code><br><br>
+
+								<p><strong>JavaScript:</strong></p>
+								<code>eval($CODE)</code><br>
+								<code>innerHTML = $INPUT</code><br>
+								<code>child_process.exec($CMD)</code><br><br>
+
+								<p><strong>Java:</strong></p>
+								<code>Runtime.getRuntime().exec($CMD)</code><br>
+								<code>new ProcessBuilder($CMD)</code><br>
+								<code>Statement.executeQuery($SQL)</code><br><br>
+
+								<p><strong>Go:</strong></p>
+								<code>exec.Command($CMD, ...)</code><br>
+								<code>template.HTML($INPUT)</code><br>
+								<code>sql.Query($QUERY)</code>
+							</div>
+						</div>
+					</div>
+
+					<!-- Test Cases -->
+					<div class="card">
+						<div class="card-header" data-toggle="collapse" href="#testCases">
+							<i class="fas fa-vial"></i> Test Cases <i class="fas fa-chevron-down float-right"></i>
+						</div>
+						<div id="testCases" class="collapse">
+							<div class="card-body">
+								<div class="form-group">
+									<label>Positive Test (Should Match)</label>
+									<textarea class="form-control pattern-input" id="positiveTest" rows="3" placeholder="# ruleid: my-rule&#10;cursor.execute(user_input)"></textarea>
+								</div>
+								<div class="form-group">
+									<label>Negative Test (Should Not Match)</label>
+									<textarea class="form-control pattern-input" id="negativeTest" rows="3" placeholder="# ok: my-rule&#10;cursor.execute(query, [param])"></textarea>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<footer>
+		<div class="container">
+			<p>&copy; 2025 Shravan Kumar Sheri - All Rights Reserved</p>
+		</div>
+	</footer>
+
+	<script>
+		let currentLanguage = 'python';
+		let patternFieldCount = 2;
+
+		const languageMap = {
+			'python': 'python',
+			'javascript': 'javascript',
+			'java': 'java',
+			'go': 'go',
+			'php': 'php',
+			'csharp': 'csharp',
+			'ruby': 'ruby',
+			'generic': 'generic'
+		};
+
+		const presets = {
+			// Injection
+			sqli: {
+				python: {
+					pattern: 'cursor.execute($QUERY)',
+					patternNot: 'cursor.execute($QUERY, $PARAMS)',
+					message: 'Possible SQL injection. Use parameterized queries instead of string formatting.',
+					severity: 'ERROR',
+					cwe: 'CWE-89',
+					owasp: 'A03:2021',
+					fix: 'cursor.execute($QUERY, [...])'
+				},
+				javascript: {
+					pattern: '$DB.query($QUERY)',
+					patternNot: '$DB.query($QUERY, $PARAMS)',
+					message: 'Possible SQL injection. Use parameterized queries.',
+					severity: 'ERROR',
+					cwe: 'CWE-89',
+					owasp: 'A03:2021'
+				},
+				java: {
+					pattern: '$STMT.executeQuery($QUERY)',
+					message: 'Possible SQL injection. Use PreparedStatement with parameterized queries.',
+					severity: 'ERROR',
+					cwe: 'CWE-89',
+					owasp: 'A03:2021'
+				},
+				go: {
+					pattern: '$DB.Query($QUERY)',
+					patternNot: '$DB.Query($QUERY, $...ARGS)',
+					message: 'Possible SQL injection. Use parameterized queries.',
+					severity: 'ERROR',
+					cwe: 'CWE-89',
+					owasp: 'A03:2021'
+				},
+				php: {
+					pattern: 'mysqli_query($CONN, $QUERY)',
+					message: 'Possible SQL injection. Use prepared statements.',
+					severity: 'ERROR',
+					cwe: 'CWE-89',
+					owasp: 'A03:2021'
+				},
+				generic: {
+					pattern: 'execute($QUERY)',
+					message: 'Possible SQL injection vulnerability.',
+					severity: 'ERROR',
+					cwe: 'CWE-89',
+					owasp: 'A03:2021'
+				}
+			},
+			cmdi: {
+				python: {
+					pattern: 'subprocess.call($CMD, shell=True, ...)',
+					message: 'Command injection risk. Avoid shell=True with untrusted input.',
+					severity: 'ERROR',
+					cwe: 'CWE-78',
+					owasp: 'A03:2021'
+				},
+				javascript: {
+					pattern: 'child_process.exec($CMD, ...)',
+					message: 'Command injection risk. Use execFile with arguments array instead.',
+					severity: 'ERROR',
+					cwe: 'CWE-78',
+					owasp: 'A03:2021'
+				},
+				java: {
+					pattern: 'Runtime.getRuntime().exec($CMD)',
+					message: 'Command injection risk. Validate and sanitize input.',
+					severity: 'ERROR',
+					cwe: 'CWE-78',
+					owasp: 'A03:2021'
+				},
+				go: {
+					pattern: 'exec.Command($CMD, ...)',
+					message: 'Potential command injection. Validate command and arguments.',
+					severity: 'WARNING',
+					cwe: 'CWE-78',
+					owasp: 'A03:2021'
+				},
+				php: {
+					pattern: 'shell_exec($CMD)',
+					message: 'Command injection risk. Avoid shell_exec with user input.',
+					severity: 'ERROR',
+					cwe: 'CWE-78',
+					owasp: 'A03:2021'
+				},
+				generic: {
+					pattern: 'exec($CMD)',
+					message: 'Potential command injection.',
+					severity: 'ERROR',
+					cwe: 'CWE-78',
+					owasp: 'A03:2021'
+				}
+			},
+			xss: {
+				python: {
+					pattern: 'return HttpResponse($INPUT)',
+					message: 'Potential XSS. Ensure output is properly escaped.',
+					severity: 'WARNING',
+					cwe: 'CWE-79',
+					owasp: 'A03:2021'
+				},
+				javascript: {
+					pattern: '$EL.innerHTML = $INPUT',
+					message: 'XSS risk. Use textContent or sanitize HTML.',
+					severity: 'ERROR',
+					cwe: 'CWE-79',
+					owasp: 'A03:2021',
+					fix: '$EL.textContent = $INPUT'
+				},
+				java: {
+					pattern: 'response.getWriter().write($INPUT)',
+					message: 'Potential XSS. Encode output properly.',
+					severity: 'WARNING',
+					cwe: 'CWE-79',
+					owasp: 'A03:2021'
+				},
+				go: {
+					pattern: 'template.HTML($INPUT)',
+					message: 'XSS risk. Avoid template.HTML with untrusted input.',
+					severity: 'ERROR',
+					cwe: 'CWE-79',
+					owasp: 'A03:2021'
+				},
+				php: {
+					pattern: 'echo $INPUT',
+					message: 'Potential XSS. Use htmlspecialchars() for output.',
+					severity: 'WARNING',
+					cwe: 'CWE-79',
+					owasp: 'A03:2021',
+					fix: 'echo htmlspecialchars($INPUT, ENT_QUOTES, "UTF-8")'
+				},
+				generic: {
+					pattern: 'innerHTML = $INPUT',
+					message: 'Potential XSS vulnerability.',
+					severity: 'ERROR',
+					cwe: 'CWE-79',
+					owasp: 'A03:2021'
+				}
+			},
+			ssrf: {
+				python: {
+					pattern: 'requests.get($URL, ...)',
+					message: 'Potential SSRF. Validate and whitelist URLs.',
+					severity: 'WARNING',
+					cwe: 'CWE-918',
+					owasp: 'A10:2021'
+				},
+				javascript: {
+					pattern: 'fetch($URL, ...)',
+					message: 'Potential SSRF. Validate URL before fetching.',
+					severity: 'WARNING',
+					cwe: 'CWE-918',
+					owasp: 'A10:2021'
+				},
+				java: {
+					pattern: 'new URL($URL).openConnection()',
+					message: 'Potential SSRF. Validate and whitelist URLs.',
+					severity: 'WARNING',
+					cwe: 'CWE-918',
+					owasp: 'A10:2021'
+				},
+				go: {
+					pattern: 'http.Get($URL)',
+					message: 'Potential SSRF. Validate URL before request.',
+					severity: 'WARNING',
+					cwe: 'CWE-918',
+					owasp: 'A10:2021'
+				},
+				php: {
+					pattern: 'file_get_contents($URL)',
+					message: 'Potential SSRF. Validate and whitelist URLs.',
+					severity: 'WARNING',
+					cwe: 'CWE-918',
+					owasp: 'A10:2021'
+				},
+				generic: {
+					pattern: 'fetch($URL)',
+					message: 'Potential SSRF vulnerability.',
+					severity: 'WARNING',
+					cwe: 'CWE-918',
+					owasp: 'A10:2021'
+				}
+			},
+			xxe: {
+				python: {
+					pattern: 'etree.parse($INPUT)',
+					message: 'Potential XXE. Disable external entity processing.',
+					severity: 'ERROR',
+					cwe: 'CWE-611',
+					owasp: 'A05:2021'
+				},
+				java: {
+					pattern: 'DocumentBuilderFactory.newInstance()',
+					message: 'XXE risk. Disable external entities in XML parser.',
+					severity: 'WARNING',
+					cwe: 'CWE-611',
+					owasp: 'A05:2021'
+				},
+				php: {
+					pattern: 'simplexml_load_string($INPUT)',
+					message: 'Potential XXE. Use LIBXML_NOENT flag.',
+					severity: 'ERROR',
+					cwe: 'CWE-611',
+					owasp: 'A05:2021'
+				},
+				generic: {
+					pattern: 'parseXML($INPUT)',
+					message: 'Potential XXE vulnerability.',
+					severity: 'ERROR',
+					cwe: 'CWE-611',
+					owasp: 'A05:2021'
+				}
+			},
+			ldapi: {
+				python: {
+					pattern: 'ldap.search_s($BASE, $SCOPE, $FILTER)',
+					message: 'Potential LDAP injection. Sanitize filter input.',
+					severity: 'ERROR',
+					cwe: 'CWE-90',
+					owasp: 'A03:2021'
+				},
+				java: {
+					pattern: '$CTX.search($NAME, $FILTER, ...)',
+					message: 'Potential LDAP injection. Use parameterized filters.',
+					severity: 'ERROR',
+					cwe: 'CWE-90',
+					owasp: 'A03:2021'
+				},
+				generic: {
+					pattern: 'ldap_search($CONN, $BASE, $FILTER)',
+					message: 'Potential LDAP injection.',
+					severity: 'ERROR',
+					cwe: 'CWE-90',
+					owasp: 'A03:2021'
+				}
+			},
+			xpath: {
+				python: {
+					pattern: '$TREE.xpath($QUERY)',
+					message: 'Potential XPath injection. Parameterize XPath queries.',
+					severity: 'ERROR',
+					cwe: 'CWE-643',
+					owasp: 'A03:2021'
+				},
+				java: {
+					pattern: '$XPATH.evaluate($EXPR, ...)',
+					message: 'Potential XPath injection. Use parameterized queries.',
+					severity: 'ERROR',
+					cwe: 'CWE-643',
+					owasp: 'A03:2021'
+				},
+				generic: {
+					pattern: 'xpath($QUERY)',
+					message: 'Potential XPath injection.',
+					severity: 'ERROR',
+					cwe: 'CWE-643',
+					owasp: 'A03:2021'
+				}
+			},
+			ssti: {
+				python: {
+					pattern: 'Template($INPUT).render(...)',
+					message: 'Server-Side Template Injection risk. Never pass user input to Template().',
+					severity: 'ERROR',
+					cwe: 'CWE-1336',
+					owasp: 'A03:2021'
+				},
+				javascript: {
+					pattern: 'ejs.render($TEMPLATE, ...)',
+					message: 'Potential SSTI. Avoid user-controlled templates.',
+					severity: 'ERROR',
+					cwe: 'CWE-1336',
+					owasp: 'A03:2021'
+				},
+				java: {
+					pattern: '$ENGINE.getTemplate($INPUT)',
+					message: 'Potential SSTI. Never use user input as template.',
+					severity: 'ERROR',
+					cwe: 'CWE-1336',
+					owasp: 'A03:2021'
+				},
+				generic: {
+					pattern: 'render_template_string($INPUT)',
+					message: 'Server-Side Template Injection risk.',
+					severity: 'ERROR',
+					cwe: 'CWE-1336',
+					owasp: 'A03:2021'
+				}
+			},
+			// Secrets
+			hardcodedPassword: {
+				python: {
+					pattern: 'password = "..."',
+					message: 'Hardcoded password detected. Use environment variables or secrets manager.',
+					severity: 'ERROR',
+					cwe: 'CWE-798',
+					owasp: 'A07:2021'
+				},
+				javascript: {
+					pattern: 'password: "..."',
+					message: 'Hardcoded password detected. Use environment variables.',
+					severity: 'ERROR',
+					cwe: 'CWE-798',
+					owasp: 'A07:2021'
+				},
+				java: {
+					pattern: 'String password = "...";',
+					message: 'Hardcoded password detected.',
+					severity: 'ERROR',
+					cwe: 'CWE-798',
+					owasp: 'A07:2021'
+				},
+				generic: {
+					pattern: 'password = "..."',
+					message: 'Hardcoded password detected.',
+					severity: 'ERROR',
+					cwe: 'CWE-798',
+					owasp: 'A07:2021'
+				}
+			},
+			hardcodedSecret: {
+				python: {
+					pattern: 'secret_key = "..."',
+					message: 'Hardcoded secret detected. Use environment variables.',
+					severity: 'ERROR',
+					cwe: 'CWE-798',
+					owasp: 'A07:2021'
+				},
+				javascript: {
+					pattern: 'secretKey: "..."',
+					message: 'Hardcoded secret detected.',
+					severity: 'ERROR',
+					cwe: 'CWE-798',
+					owasp: 'A07:2021'
+				},
+				generic: {
+					pattern: 'secret = "..."',
+					message: 'Hardcoded secret detected.',
+					severity: 'ERROR',
+					cwe: 'CWE-798',
+					owasp: 'A07:2021'
+				}
+			},
+			apiKey: {
+				generic: {
+					patternRegex: '(api_key|apikey|api-key)\\s*[=:]\\s*["\'][a-zA-Z0-9]{16,}["\']',
+					message: 'Potential API key exposure. Use environment variables.',
+					severity: 'ERROR',
+					cwe: 'CWE-798',
+					owasp: 'A07:2021'
+				}
+			},
+			awsKeys: {
+				generic: {
+					patternRegex: 'AKIA[0-9A-Z]{16}',
+					message: 'AWS Access Key ID detected. Remove and rotate immediately.',
+					severity: 'ERROR',
+					cwe: 'CWE-798',
+					owasp: 'A07:2021'
+				}
+			},
+			privateKey: {
+				generic: {
+					patternRegex: '-----BEGIN (RSA |EC |DSA )?PRIVATE KEY-----',
+					message: 'Private key detected in source code. Remove immediately.',
+					severity: 'ERROR',
+					cwe: 'CWE-798',
+					owasp: 'A07:2021'
+				}
+			},
+			jwtSecret: {
+				python: {
+					pattern: 'jwt.encode($PAYLOAD, "...", ...)',
+					message: 'Hardcoded JWT secret. Use environment variable.',
+					severity: 'ERROR',
+					cwe: 'CWE-798',
+					owasp: 'A07:2021'
+				},
+				javascript: {
+					pattern: 'jwt.sign($PAYLOAD, "...", ...)',
+					message: 'Hardcoded JWT secret.',
+					severity: 'ERROR',
+					cwe: 'CWE-798',
+					owasp: 'A07:2021'
+				},
+				generic: {
+					pattern: 'jwt.sign($PAYLOAD, "...")',
+					message: 'Hardcoded JWT secret detected.',
+					severity: 'ERROR',
+					cwe: 'CWE-798',
+					owasp: 'A07:2021'
+				}
+			},
+			// Crypto
+			weakCrypto: {
+				python: {
+					pattern: 'DES.new(...)',
+					message: 'Weak cryptography (DES). Use AES-256 instead.',
+					severity: 'ERROR',
+					cwe: 'CWE-327',
+					owasp: 'A02:2021'
+				},
+				java: {
+					pattern: 'Cipher.getInstance("DES")',
+					message: 'Weak cryptography (DES). Use AES instead.',
+					severity: 'ERROR',
+					cwe: 'CWE-327',
+					owasp: 'A02:2021'
+				},
+				generic: {
+					pattern: 'DES.encrypt(...)',
+					message: 'Weak cryptography detected.',
+					severity: 'ERROR',
+					cwe: 'CWE-327',
+					owasp: 'A02:2021'
+				}
+			},
+			weakHash: {
+				python: {
+					pattern: 'hashlib.md5($INPUT)',
+					message: 'Weak hash function (MD5). Use SHA-256 or better.',
+					severity: 'WARNING',
+					cwe: 'CWE-328',
+					owasp: 'A02:2021',
+					fix: 'hashlib.sha256($INPUT)'
+				},
+				javascript: {
+					pattern: 'crypto.createHash("md5")',
+					message: 'Weak hash function (MD5). Use sha256.',
+					severity: 'WARNING',
+					cwe: 'CWE-328',
+					owasp: 'A02:2021'
+				},
+				java: {
+					pattern: 'MessageDigest.getInstance("MD5")',
+					message: 'Weak hash function (MD5). Use SHA-256.',
+					severity: 'WARNING',
+					cwe: 'CWE-328',
+					owasp: 'A02:2021'
+				},
+				php: {
+					pattern: 'md5($INPUT)',
+					message: 'Weak hash function. Use password_hash() for passwords.',
+					severity: 'WARNING',
+					cwe: 'CWE-328',
+					owasp: 'A02:2021'
+				},
+				generic: {
+					pattern: 'md5($INPUT)',
+					message: 'Weak hash function detected.',
+					severity: 'WARNING',
+					cwe: 'CWE-328',
+					owasp: 'A02:2021'
+				}
+			},
+			insecureRandom: {
+				python: {
+					pattern: 'random.random()',
+					message: 'Insecure random for security. Use secrets module.',
+					severity: 'WARNING',
+					cwe: 'CWE-330',
+					owasp: 'A02:2021',
+					fix: 'secrets.token_bytes()'
+				},
+				javascript: {
+					pattern: 'Math.random()',
+					message: 'Insecure random. Use crypto.randomBytes() for security.',
+					severity: 'WARNING',
+					cwe: 'CWE-330',
+					owasp: 'A02:2021'
+				},
+				java: {
+					pattern: 'new Random()',
+					message: 'Insecure random. Use SecureRandom for security.',
+					severity: 'WARNING',
+					cwe: 'CWE-330',
+					owasp: 'A02:2021',
+					fix: 'new SecureRandom()'
+				},
+				generic: {
+					pattern: 'rand()',
+					message: 'Potentially insecure random number generation.',
+					severity: 'WARNING',
+					cwe: 'CWE-330',
+					owasp: 'A02:2021'
+				}
+			},
+			noAuth: {
+				python: {
+					pattern: '@app.route($PATH)\ndef $FUNC(...):\n    ...',
+					patternNot: '@login_required',
+					message: 'Route may be missing authentication check.',
+					severity: 'WARNING',
+					cwe: 'CWE-306',
+					owasp: 'A07:2021'
+				},
+				generic: {
+					pattern: 'router.get($PATH, $HANDLER)',
+					message: 'Ensure endpoint has proper authentication.',
+					severity: 'INFO',
+					cwe: 'CWE-306',
+					owasp: 'A07:2021'
+				}
+			},
+			hardcodedIV: {
+				python: {
+					pattern: 'AES.new($KEY, AES.MODE_CBC, "...")',
+					message: 'Hardcoded IV detected. Use random IV.',
+					severity: 'ERROR',
+					cwe: 'CWE-329',
+					owasp: 'A02:2021'
+				},
+				java: {
+					pattern: 'new IvParameterSpec("...".getBytes())',
+					message: 'Hardcoded IV. Use SecureRandom for IV.',
+					severity: 'ERROR',
+					cwe: 'CWE-329',
+					owasp: 'A02:2021'
+				},
+				generic: {
+					pattern: 'iv = "..."',
+					message: 'Hardcoded initialization vector.',
+					severity: 'ERROR',
+					cwe: 'CWE-329',
+					owasp: 'A02:2021'
+				}
+			},
+			// Code Quality
+			debugCode: {
+				python: {
+					pattern: 'import pdb; pdb.set_trace()',
+					message: 'Debug code detected. Remove before production.',
+					severity: 'WARNING',
+					cwe: 'CWE-489'
+				},
+				javascript: {
+					pattern: 'debugger',
+					message: 'Debugger statement found. Remove before production.',
+					severity: 'WARNING',
+					cwe: 'CWE-489'
+				},
+				generic: {
+					pattern: 'console.log($DEBUG)',
+					message: 'Debug logging detected.',
+					severity: 'INFO',
+					cwe: 'CWE-489'
+				}
+			},
+			todoFixme: {
+				generic: {
+					patternRegex: '(TODO|FIXME|XXX|HACK):?\\s*.*',
+					message: 'TODO/FIXME comment found. Address before release.',
+					severity: 'INFO'
+				}
+			},
+			emptyExcept: {
+				python: {
+					pattern: 'except:\n    pass',
+					message: 'Empty except clause. Handle or log exceptions.',
+					severity: 'WARNING',
+					cwe: 'CWE-390'
+				},
+				java: {
+					pattern: 'catch ($TYPE $E) { }',
+					message: 'Empty catch block. Handle or log exceptions.',
+					severity: 'WARNING',
+					cwe: 'CWE-390'
+				},
+				generic: {
+					pattern: 'catch { }',
+					message: 'Empty catch block detected.',
+					severity: 'WARNING',
+					cwe: 'CWE-390'
+				}
+			},
+			eval: {
+				python: {
+					pattern: 'eval($INPUT)',
+					message: 'Dangerous eval() usage. Avoid with untrusted input.',
+					severity: 'ERROR',
+					cwe: 'CWE-95',
+					owasp: 'A03:2021'
+				},
+				javascript: {
+					pattern: 'eval($INPUT)',
+					message: 'Dangerous eval() usage.',
+					severity: 'ERROR',
+					cwe: 'CWE-95',
+					owasp: 'A03:2021'
+				},
+				php: {
+					pattern: 'eval($INPUT)',
+					message: 'Dangerous eval() usage.',
+					severity: 'ERROR',
+					cwe: 'CWE-95',
+					owasp: 'A03:2021'
+				},
+				generic: {
+					pattern: 'eval($CODE)',
+					message: 'Dangerous eval() detected.',
+					severity: 'ERROR',
+					cwe: 'CWE-95',
+					owasp: 'A03:2021'
+				}
+			},
+			exec: {
+				python: {
+					pattern: 'exec($CODE)',
+					message: 'Dangerous exec() usage.',
+					severity: 'ERROR',
+					cwe: 'CWE-95',
+					owasp: 'A03:2021'
+				},
+				generic: {
+					pattern: 'exec($CODE)',
+					message: 'Dangerous exec() detected.',
+					severity: 'ERROR',
+					cwe: 'CWE-95',
+					owasp: 'A03:2021'
+				}
+			},
+			// File Operations
+			pathTraversal: {
+				python: {
+					pattern: 'open($PATH, ...)',
+					message: 'Potential path traversal. Validate file paths.',
+					severity: 'WARNING',
+					cwe: 'CWE-22',
+					owasp: 'A01:2021'
+				},
+				javascript: {
+					pattern: 'fs.readFile($PATH, ...)',
+					message: 'Potential path traversal. Use path.resolve() and validate.',
+					severity: 'WARNING',
+					cwe: 'CWE-22',
+					owasp: 'A01:2021'
+				},
+				java: {
+					pattern: 'new FileInputStream($PATH)',
+					message: 'Potential path traversal. Validate file paths.',
+					severity: 'WARNING',
+					cwe: 'CWE-22',
+					owasp: 'A01:2021'
+				},
+				php: {
+					pattern: 'include($PATH)',
+					message: 'Potential LFI/path traversal.',
+					severity: 'ERROR',
+					cwe: 'CWE-22',
+					owasp: 'A01:2021'
+				},
+				generic: {
+					pattern: 'readFile($PATH)',
+					message: 'Potential path traversal.',
+					severity: 'WARNING',
+					cwe: 'CWE-22',
+					owasp: 'A01:2021'
+				}
+			},
+			unsafeDeserialize: {
+				python: {
+					pattern: 'pickle.loads($DATA)',
+					message: 'Unsafe deserialization. Never unpickle untrusted data.',
+					severity: 'ERROR',
+					cwe: 'CWE-502',
+					owasp: 'A08:2021'
+				},
+				javascript: {
+					pattern: 'JSON.parse($INPUT)',
+					message: 'Ensure JSON.parse input is trusted.',
+					severity: 'INFO',
+					cwe: 'CWE-502'
+				},
+				java: {
+					pattern: 'new ObjectInputStream($STREAM).readObject()',
+					message: 'Unsafe deserialization. Validate input source.',
+					severity: 'ERROR',
+					cwe: 'CWE-502',
+					owasp: 'A08:2021'
+				},
+				php: {
+					pattern: 'unserialize($DATA)',
+					message: 'Unsafe deserialization.',
+					severity: 'ERROR',
+					cwe: 'CWE-502',
+					owasp: 'A08:2021'
+				},
+				ruby: {
+					pattern: 'Marshal.load($DATA)',
+					message: 'Unsafe deserialization.',
+					severity: 'ERROR',
+					cwe: 'CWE-502',
+					owasp: 'A08:2021'
+				},
+				generic: {
+					pattern: 'deserialize($DATA)',
+					message: 'Potential unsafe deserialization.',
+					severity: 'ERROR',
+					cwe: 'CWE-502',
+					owasp: 'A08:2021'
+				}
+			},
+			fileUpload: {
+				python: {
+					pattern: 'file.save($PATH)',
+					message: 'File upload detected. Validate file type and sanitize filename.',
+					severity: 'WARNING',
+					cwe: 'CWE-434',
+					owasp: 'A04:2021'
+				},
+				php: {
+					pattern: 'move_uploaded_file($TMP, $DEST)',
+					message: 'File upload. Validate file type and extension.',
+					severity: 'WARNING',
+					cwe: 'CWE-434',
+					owasp: 'A04:2021'
+				},
+				generic: {
+					pattern: 'saveFile($FILE, $PATH)',
+					message: 'File upload detected.',
+					severity: 'WARNING',
+					cwe: 'CWE-434',
+					owasp: 'A04:2021'
+				}
+			},
+			tempFile: {
+				python: {
+					pattern: 'tempfile.mktemp()',
+					message: 'Insecure temp file. Use tempfile.mkstemp() instead.',
+					severity: 'WARNING',
+					cwe: 'CWE-377',
+					fix: 'tempfile.mkstemp()'
+				},
+				generic: {
+					pattern: 'tmpnam()',
+					message: 'Insecure temporary file creation.',
+					severity: 'WARNING',
+					cwe: 'CWE-377'
+				}
+			},
+			// Network
+			noTLSVerify: {
+				python: {
+					pattern: 'requests.get($URL, verify=False, ...)',
+					message: 'TLS verification disabled. This enables MITM attacks.',
+					severity: 'ERROR',
+					cwe: 'CWE-295',
+					owasp: 'A02:2021'
+				},
+				javascript: {
+					pattern: 'rejectUnauthorized: false',
+					message: 'TLS verification disabled.',
+					severity: 'ERROR',
+					cwe: 'CWE-295',
+					owasp: 'A02:2021'
+				},
+				go: {
+					pattern: 'InsecureSkipVerify: true',
+					message: 'TLS verification disabled.',
+					severity: 'ERROR',
+					cwe: 'CWE-295',
+					owasp: 'A02:2021'
+				},
+				generic: {
+					pattern: 'verify=false',
+					message: 'TLS verification may be disabled.',
+					severity: 'ERROR',
+					cwe: 'CWE-295',
+					owasp: 'A02:2021'
+				}
+			},
+			httpOnly: {
+				generic: {
+					patternRegex: 'http://[^\\s]+',
+					message: 'HTTP URL detected. Use HTTPS instead.',
+					severity: 'WARNING',
+					cwe: 'CWE-319',
+					owasp: 'A02:2021'
+				}
+			},
+			corsAll: {
+				python: {
+					pattern: 'Access-Control-Allow-Origin: "*"',
+					message: 'CORS allows all origins. Restrict to trusted domains.',
+					severity: 'WARNING',
+					cwe: 'CWE-942',
+					owasp: 'A05:2021'
+				},
+				javascript: {
+					pattern: '"Access-Control-Allow-Origin": "*"',
+					message: 'CORS allows all origins.',
+					severity: 'WARNING',
+					cwe: 'CWE-942',
+					owasp: 'A05:2021'
+				},
+				generic: {
+					pattern: 'Access-Control-Allow-Origin: *',
+					message: 'Overly permissive CORS configuration.',
+					severity: 'WARNING',
+					cwe: 'CWE-942',
+					owasp: 'A05:2021'
+				}
+			},
+			openRedirect: {
+				python: {
+					pattern: 'redirect($URL)',
+					message: 'Potential open redirect. Validate redirect URLs.',
+					severity: 'WARNING',
+					cwe: 'CWE-601',
+					owasp: 'A01:2021'
+				},
+				javascript: {
+					pattern: 'window.location = $URL',
+					message: 'Potential open redirect.',
+					severity: 'WARNING',
+					cwe: 'CWE-601',
+					owasp: 'A01:2021'
+				},
+				java: {
+					pattern: 'response.sendRedirect($URL)',
+					message: 'Potential open redirect.',
+					severity: 'WARNING',
+					cwe: 'CWE-601',
+					owasp: 'A01:2021'
+				},
+				php: {
+					pattern: 'header("Location: " . $URL)',
+					message: 'Potential open redirect.',
+					severity: 'WARNING',
+					cwe: 'CWE-601',
+					owasp: 'A01:2021'
+				},
+				generic: {
+					pattern: 'redirect($URL)',
+					message: 'Potential open redirect.',
+					severity: 'WARNING',
+					cwe: 'CWE-601',
+					owasp: 'A01:2021'
+				}
+			}
+		};
+
+		function selectLanguage(lang) {
+			currentLanguage = lang;
+			document.querySelectorAll('.lang-badge').forEach(b => b.classList.remove('active'));
+			document.querySelector(`.lang-${lang}`).classList.add('active');
+			generateRule();
+		}
+
+		function setPreset(presetName) {
+			const preset = presets[presetName];
+			const langPreset = preset[currentLanguage] || preset['generic'] || Object.values(preset)[0];
+
+			document.getElementById('ruleId').value = `security.${currentLanguage}.${presetName}`;
+			document.getElementById('pattern').value = langPreset.pattern || '';
+			document.getElementById('message').value = langPreset.message || '';
+			document.getElementById('severity').value = langPreset.severity || 'WARNING';
+			document.getElementById('patternNot').value = langPreset.patternNot || '';
+			document.getElementById('fix').value = langPreset.fix || '';
+			document.getElementById('cwe').value = langPreset.cwe || '';
+			document.getElementById('owasp').value = langPreset.owasp || '';
+
+			if (langPreset.patternRegex) {
+				document.getElementById('patternType').value = 'pattern-regex';
+				document.getElementById('pattern').value = langPreset.patternRegex;
+			} else {
+				document.getElementById('patternType').value = 'pattern';
+			}
+
+			document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+			event.target.classList.add('active');
+
+			generateRule();
+		}
+
+		function generateRule() {
+			const ruleId = document.getElementById('ruleId').value || 'custom-rule';
+			const pattern = document.getElementById('pattern').value;
+			const message = document.getElementById('message').value || 'Security issue detected';
+			const severity = document.getElementById('severity').value;
+			const category = document.getElementById('category').value;
+			const patternNot = document.getElementById('patternNot').value;
+			const fix = document.getElementById('fix').value;
+			const cwe = document.getElementById('cwe').value;
+			const owasp = document.getElementById('owasp').value;
+			const patternType = document.getElementById('patternType').value;
+
+			let yaml = `rules:
+  - id: ${ruleId}
+    languages:
+      - ${currentLanguage}
+    message: >-
+      ${message}
+    severity: ${severity}
+    metadata:
+      category: ${category}
+      technology:
+        - ${currentLanguage}`;
+
+			if (cwe) {
+				yaml += `
+      cwe:
+        - "${cwe}"`;
+			}
+
+			if (owasp) {
+				yaml += `
+      owasp:
+        - "${owasp}"`;
+			}
+
+			yaml += `
+      confidence: MEDIUM`;
+
+			if (pattern) {
+				if (patternType === 'pattern-regex') {
+					yaml += `
+    pattern-regex: '${pattern}'`;
+				} else if (patternNot) {
+					yaml += `
+    patterns:
+      - pattern: ${pattern}
+      - pattern-not: ${patternNot}`;
+				} else {
+					yaml += `
+    pattern: ${pattern}`;
+				}
+			}
+
+			if (fix) {
+				yaml += `
+    fix: ${fix}`;
+			}
+
+			document.getElementById('ruleYaml').textContent = yaml;
+		}
+
+		function updatePatternFields() {
+			const type = document.getElementById('patternType').value;
+			const container = document.getElementById('multiPatternContainer');
+			container.style.display = (type === 'patterns' || type === 'pattern-either') ? 'block' : 'none';
+		}
+
+		function addPatternField() {
+			patternFieldCount++;
+			const container = document.getElementById('multiPatternContainer');
+			const newField = document.createElement('div');
+			newField.className = 'form-group';
+			newField.innerHTML = `
+				<label>Pattern ${patternFieldCount}</label>
+				<input type="text" class="form-control pattern-input" id="pattern${patternFieldCount}" placeholder="Additional pattern">
+			`;
+			container.insertBefore(newField, container.lastElementChild);
+		}
+
+		function copyRule() {
+			const rule = document.getElementById('ruleYaml').textContent;
+			navigator.clipboard.writeText(rule).then(() => {
+				const btn = document.querySelector('.copy-btn');
+				btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+				setTimeout(() => {
+					btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+				}, 2000);
+			});
+		}
+
+		function downloadRule() {
+			const rule = document.getElementById('ruleYaml').textContent;
+			const ruleId = document.getElementById('ruleId').value || 'custom-rule';
+			const blob = new Blob([rule], { type: 'text/yaml' });
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = `${ruleId.replace(/\./g, '-')}.yaml`;
+			a.click();
+			URL.revokeObjectURL(url);
+		}
+
+		function testRule() {
+			window.open('https://semgrep.dev/playground', '_blank');
+		}
+
+		// Initialize
+		document.addEventListener('DOMContentLoaded', function() {
+			generateRule();
+		});
+	</script>
+</body>
+</html>
