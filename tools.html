@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Security Tools - Shravan Kumar Sheri</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="Free security tools for penetration testers and red teamers - LDAP Query Generator, BloodHound Cypher Generator, and more.">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+	<style>
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			background-color: #f8f9fa;
+			margin: 0;
+			padding: 0;
+			line-height: 1.6;
+		}
+
+		.navbar {
+			background-color: #1a1a2e !important;
+			padding: 15px 0;
+			box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+		}
+
+		.navbar-brand {
+			color: #fff !important;
+			font-size: 22px;
+			font-weight: 600;
+		}
+
+		.nav-link {
+			color: rgba(255,255,255,0.9) !important;
+			font-size: 16px;
+			margin-left: 20px;
+			transition: color 0.3s;
+		}
+
+		.nav-link:hover {
+			color: #4a9eff !important;
+		}
+
+		.hero-section {
+			background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+			color: #fff;
+			padding: 60px 0;
+			text-align: center;
+		}
+
+		.hero-section h1 {
+			font-size: 42px;
+			font-weight: 700;
+			margin-bottom: 15px;
+		}
+
+		.hero-section p {
+			font-size: 18px;
+			opacity: 0.85;
+			max-width: 600px;
+			margin: 0 auto;
+		}
+
+		.main-content {
+			padding: 60px 0;
+		}
+
+		.section-title {
+			font-size: 32px;
+			font-weight: 700;
+			color: #1a1a2e;
+			margin-bottom: 30px;
+			text-align: center;
+		}
+
+		.tool-card {
+			background: #fff;
+			border-radius: 12px;
+			overflow: hidden;
+			box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+			transition: transform 0.3s, box-shadow 0.3s;
+			border: none;
+			margin-bottom: 30px;
+			height: 100%;
+		}
+
+		.tool-card:hover {
+			transform: translateY(-5px);
+			box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+		}
+
+		.tool-icon {
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			padding: 40px;
+			text-align: center;
+		}
+
+		.tool-icon i {
+			font-size: 48px;
+			color: #fff;
+		}
+
+		.tool-card .card-body {
+			padding: 25px;
+		}
+
+		.tool-card .card-title {
+			font-size: 22px;
+			font-weight: 700;
+			color: #1a1a2e;
+			margin-bottom: 12px;
+		}
+
+		.tool-card .card-text {
+			color: #6c757d;
+			font-size: 15px;
+			margin-bottom: 20px;
+		}
+
+		.tool-card .btn-primary {
+			background: linear-gradient(135deg, #4a9eff 0%, #00d2ff 100%);
+			border: none;
+			padding: 10px 25px;
+			font-weight: 600;
+			border-radius: 25px;
+			transition: transform 0.3s, box-shadow 0.3s;
+		}
+
+		.tool-card .btn-primary:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 5px 20px rgba(74, 158, 255, 0.4);
+		}
+
+		.feature-list {
+			list-style: none;
+			padding: 0;
+			margin: 0 0 20px 0;
+		}
+
+		.feature-list li {
+			padding: 5px 0;
+			color: #495057;
+			font-size: 14px;
+		}
+
+		.feature-list li i {
+			color: #4a9eff;
+			margin-right: 8px;
+		}
+
+		footer {
+			background: #1a1a2e;
+			color: #fff;
+			padding: 30px 0;
+			text-align: center;
+		}
+
+		footer p {
+			margin: 0;
+			opacity: 0.8;
+		}
+
+		@media (max-width: 768px) {
+			.hero-section h1 {
+				font-size: 32px;
+			}
+		}
+	</style>
+</head>
+<body>
+	<!-- Navigation Bar -->
+	<nav class="navbar navbar-expand-lg navbar-dark">
+		<div class="container">
+			<a class="navbar-brand" href="index.html">Shravan Kumar Sheri</a>
+			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+				<span class="navbar-toggler-icon"></span>
+			</button>
+			<div class="collapse navbar-collapse" id="navbarNav">
+				<ul class="navbar-nav ml-auto">
+					<li class="nav-item">
+						<a class="nav-link" href="index.html">Home</a>
+					</li>
+					<li class="nav-item">
+						<a class="nav-link" href="blog.html">Blog</a>
+					</li>
+					<li class="nav-item active">
+						<a class="nav-link" href="tools.html">Tools</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+
+	<!-- Hero Section -->
+	<section class="hero-section">
+		<div class="container">
+			<h1><i class="fas fa-tools"></i> Security Tools</h1>
+			<p>Free browser-based tools for penetration testers, red teamers, and security professionals. No installation required.</p>
+		</div>
+	</section>
+
+	<!-- Main Content -->
+	<section class="main-content">
+		<div class="container">
+			<div class="row">
+				<!-- LDAP Query Generator -->
+				<div class="col-lg-6 mb-4">
+					<div class="tool-card">
+						<div class="tool-icon">
+							<i class="fas fa-sitemap"></i>
+						</div>
+						<div class="card-body">
+							<h4 class="card-title">LDAP Query Generator</h4>
+							<p class="card-text">Build complex LDAP queries for Active Directory enumeration without memorizing syntax.</p>
+							<ul class="feature-list">
+								<li><i class="fas fa-check"></i> User, Group, Computer queries</li>
+								<li><i class="fas fa-check"></i> Privileged account enumeration</li>
+								<li><i class="fas fa-check"></i> Kerberoastable & AS-REP roastable</li>
+								<li><i class="fas fa-check"></i> UserAccountControl flags</li>
+								<li><i class="fas fa-check"></i> Custom filter builder</li>
+							</ul>
+							<a href="tools/ldap-generator.html" class="btn btn-primary"><i class="fas fa-arrow-right"></i> Launch Tool</a>
+						</div>
+					</div>
+				</div>
+
+				<!-- BloodHound Cypher Generator -->
+				<div class="col-lg-6 mb-4">
+					<div class="tool-card">
+						<div class="tool-icon" style="background: linear-gradient(135deg, #e53935 0%, #d32f2f 100%);">
+							<i class="fas fa-project-diagram"></i>
+						</div>
+						<div class="card-body">
+							<h4 class="card-title">BloodHound Cypher Generator</h4>
+							<p class="card-text">Generate Cypher queries for BloodHound/Neo4j to analyze Active Directory attack paths.</p>
+							<ul class="feature-list">
+								<li><i class="fas fa-check"></i> Shortest path to Domain Admin</li>
+								<li><i class="fas fa-check"></i> Kerberos delegation queries</li>
+								<li><i class="fas fa-check"></i> ACL abuse detection</li>
+								<li><i class="fas fa-check"></i> Session & credential paths</li>
+								<li><i class="fas fa-check"></i> Custom node targeting</li>
+							</ul>
+							<a href="tools/bloodhound-cypher.html" class="btn btn-primary"><i class="fas fa-arrow-right"></i> Launch Tool</a>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<footer>
+		<div class="container">
+			<p>&copy; 2025 Shravan Kumar Sheri - All Rights Reserved</p>
+		</div>
+	</footer>
+</body>
+</html>
