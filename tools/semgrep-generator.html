@@ -1470,6 +1470,8 @@
 			const cwe = document.getElementById('cwe').value;
 			const owasp = document.getElementById('owasp').value;
 			const patternType = document.getElementById('patternType').value;
+			const metavar = document.getElementById('metavar').value;
+			const metavarRegex = document.getElementById('metavarRegex').value;
 
 			let yaml = `rules:
   - id: ${ruleId}
@@ -1498,15 +1500,62 @@
 			yaml += `
       confidence: MEDIUM`;
 
+			// Handle different pattern types
 			if (pattern) {
 				if (patternType === 'pattern-regex') {
 					yaml += `
     pattern-regex: '${pattern}'`;
-				} else if (patternNot) {
+				} else if (patternType === 'patterns' || patternType === 'pattern-either') {
+					// Multiple patterns - gather all pattern fields
+					const patterns = [pattern];
+					for (let i = 1; i <= patternFieldCount; i++) {
+						const pField = document.getElementById(`pattern${i}`);
+						if (pField && pField.value) {
+							patterns.push(pField.value);
+						}
+					}
+
+					if (patternType === 'patterns') {
+						yaml += `
+    patterns:`;
+						patterns.forEach(p => {
+							yaml += `
+      - pattern: ${p}`;
+						});
+						if (patternNot) {
+							yaml += `
+      - pattern-not: ${patternNot}`;
+						}
+						if (metavar && metavarRegex) {
+							yaml += `
+      - metavariable-regex:
+          metavariable: ${metavar}
+          regex: '${metavarRegex}'`;
+						}
+					} else {
+						// pattern-either
+						yaml += `
+    pattern-either:`;
+						patterns.forEach(p => {
+							yaml += `
+      - pattern: ${p}`;
+						});
+					}
+				} else if (patternNot || (metavar && metavarRegex)) {
+					// Simple pattern with pattern-not or metavariable filter
 					yaml += `
     patterns:
-      - pattern: ${pattern}
+      - pattern: ${pattern}`;
+					if (patternNot) {
+						yaml += `
       - pattern-not: ${patternNot}`;
+					}
+					if (metavar && metavarRegex) {
+						yaml += `
+      - metavariable-regex:
+          metavariable: ${metavar}
+          regex: '${metavarRegex}'`;
+					}
 				} else {
 					yaml += `
     pattern: ${pattern}`;
