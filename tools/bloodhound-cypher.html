@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>BloodHound Cypher Query Generator - Security Tools</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="Generate Cypher queries for BloodHound and Neo4j - find attack paths, ACL abuse, Kerberos delegation, and more.">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+	<style>
+		* { box-sizing: border-box; }
+
+		body {
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			background-color: #f8f9fa;
+			margin: 0;
+			padding: 0;
+			line-height: 1.6;
+		}
+
+		.navbar {
+			background-color: #1a1a2e !important;
+			padding: 15px 0;
+			box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+		}
+
+		.navbar-brand { color: #fff !important; font-size: 22px; font-weight: 600; }
+		.nav-link { color: rgba(255,255,255,0.9) !important; font-size: 16px; margin-left: 20px; transition: color 0.3s; }
+		.nav-link:hover { color: #4a9eff !important; }
+
+		.hero-section {
+			background: linear-gradient(135deg, #e53935 0%, #d32f2f 100%);
+			color: #fff;
+			padding: 40px 0;
+			text-align: center;
+		}
+
+		.hero-section h1 { font-size: 36px; font-weight: 700; margin-bottom: 10px; }
+		.hero-section p { font-size: 16px; opacity: 0.9; }
+
+		.main-content { padding: 40px 0; }
+
+		.card {
+			background: #fff;
+			border-radius: 12px;
+			box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+			border: none;
+			margin-bottom: 25px;
+		}
+
+		.card-header {
+			background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+			color: #fff;
+			font-weight: 600;
+			border-radius: 12px 12px 0 0 !important;
+			padding: 15px 20px;
+			cursor: pointer;
+		}
+
+		.card-body { padding: 25px; }
+
+		.form-group label { font-weight: 600; color: #1a1a2e; margin-bottom: 8px; }
+		.form-control { border-radius: 8px; border: 2px solid #e9ecef; padding: 10px 15px; }
+		.form-control:focus { border-color: #e53935; box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.1); }
+
+		.btn-primary {
+			background: linear-gradient(135deg, #e53935 0%, #d32f2f 100%);
+			border: none;
+			padding: 10px 25px;
+			font-weight: 600;
+			border-radius: 8px;
+			transition: transform 0.3s, box-shadow 0.3s;
+		}
+
+		.btn-primary:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 5px 20px rgba(229, 57, 53, 0.4);
+			background: linear-gradient(135deg, #e53935 0%, #d32f2f 100%);
+		}
+
+		.output-area {
+			background: #1a1a2e;
+			color: #00ff00;
+			font-family: 'Consolas', 'Monaco', monospace;
+			padding: 20px;
+			border-radius: 8px;
+			font-size: 14px;
+			white-space: pre-wrap;
+			word-break: break-all;
+			min-height: 120px;
+			position: relative;
+		}
+
+		.copy-btn {
+			position: absolute;
+			top: 10px;
+			right: 10px;
+			background: #e53935;
+			border: none;
+			color: #fff;
+			padding: 5px 15px;
+			border-radius: 5px;
+			cursor: pointer;
+			font-size: 12px;
+		}
+
+		.copy-btn:hover { background: #c62828; }
+
+		.preset-btn {
+			margin: 3px;
+			font-size: 12px;
+			padding: 6px 12px;
+			border-radius: 20px;
+			border: 2px solid #e53935;
+			background: transparent;
+			color: #e53935;
+			cursor: pointer;
+			transition: all 0.3s;
+		}
+
+		.preset-btn:hover, .preset-btn.active {
+			background: #e53935;
+			color: #fff;
+		}
+
+		.category-title {
+			font-weight: 700;
+			color: #1a1a2e;
+			margin: 20px 0 10px 0;
+			padding-bottom: 5px;
+			border-bottom: 2px solid #e53935;
+			font-size: 14px;
+		}
+
+		.query-description {
+			background: #fff3e0;
+			border-left: 4px solid #ff9800;
+			padding: 15px;
+			margin-bottom: 20px;
+			border-radius: 0 8px 8px 0;
+			font-size: 14px;
+		}
+
+		.node-type {
+			display: inline-block;
+			padding: 3px 10px;
+			border-radius: 15px;
+			font-size: 11px;
+			font-weight: 600;
+			margin: 2px;
+		}
+
+		.node-user { background: #e3f2fd; color: #1976d2; }
+		.node-group { background: #f3e5f5; color: #7b1fa2; }
+		.node-computer { background: #e8f5e9; color: #388e3c; }
+		.node-domain { background: #fff3e0; color: #f57c00; }
+		.node-gpo { background: #fce4ec; color: #c2185b; }
+		.node-ou { background: #e0f7fa; color: #00838f; }
+
+		.edge-type {
+			display: inline-block;
+			padding: 3px 10px;
+			border-radius: 15px;
+			font-size: 11px;
+			font-weight: 600;
+			margin: 2px;
+			background: #ffebee;
+			color: #c62828;
+		}
+
+		footer {
+			background: #1a1a2e;
+			color: #fff;
+			padding: 30px 0;
+			text-align: center;
+		}
+
+		footer p { margin: 0; opacity: 0.8; }
+
+		.accordion .card { margin-bottom: 10px; }
+		.accordion .card-header { padding: 12px 20px; }
+		.accordion .card-header i.fa-chevron-down { transition: transform 0.3s; }
+		.accordion .card-header.collapsed i.fa-chevron-down { transform: rotate(-90deg); }
+
+		.nav-tabs .nav-link {
+			color: #1a1a2e !important;
+			font-weight: 600;
+			margin-left: 0;
+		}
+
+		.nav-tabs .nav-link.active {
+			color: #e53935 !important;
+			border-color: #e53935 #e53935 #fff;
+		}
+
+		.tab-content {
+			padding: 20px;
+			border: 1px solid #dee2e6;
+			border-top: none;
+			border-radius: 0 0 8px 8px;
+			background: #fff;
+		}
+
+		.variable-badge {
+			background: #673ab7;
+			color: #fff;
+			padding: 2px 8px;
+			border-radius: 10px;
+			font-size: 11px;
+			font-family: monospace;
+		}
+	</style>
+</head>
+<body>
+	<!-- Navigation Bar -->
+	<nav class="navbar navbar-expand-lg navbar-dark">
+		<div class="container">
+			<a class="navbar-brand" href="../index.html">Shravan Kumar Sheri</a>
+			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+				<span class="navbar-toggler-icon"></span>
+			</button>
+			<div class="collapse navbar-collapse" id="navbarNav">
+				<ul class="navbar-nav ml-auto">
+					<li class="nav-item"><a class="nav-link" href="../index.html">Home</a></li>
+					<li class="nav-item"><a class="nav-link" href="../blog.html">Blog</a></li>
+					<li class="nav-item active"><a class="nav-link" href="../tools.html">Tools</a></li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+
+	<!-- Hero Section -->
+	<section class="hero-section">
+		<div class="container">
+			<h1><i class="fas fa-project-diagram"></i> BloodHound Cypher Generator</h1>
+			<p>Generate Cypher queries for BloodHound CE / Neo4j to analyze Active Directory attack paths</p>
+		</div>
+	</section>
+
+	<!-- Main Content -->
+	<section class="main-content">
+		<div class="container">
+			<div class="row">
+				<!-- Left Column - Query Categories -->
+				<div class="col-lg-8">
+					<!-- Domain Settings -->
+					<div class="card">
+						<div class="card-header">
+							<i class="fas fa-cog"></i> Query Settings
+						</div>
+						<div class="card-body">
+							<div class="row">
+								<div class="col-md-6">
+									<div class="form-group">
+										<label>Domain Name (uppercase)</label>
+										<input type="text" class="form-control" id="domainName" placeholder="DOMAIN.COM" value="DOMAIN.COM" onchange="regenerateQuery()">
+									</div>
+								</div>
+								<div class="col-md-6">
+									<div class="form-group">
+										<label>Target User/Group/Computer</label>
+										<input type="text" class="form-control" id="targetNode" placeholder="JOHN@DOMAIN.COM" onchange="regenerateQuery()">
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Quick Presets Accordion -->
+					<div class="accordion" id="queryAccordion">
+						<!-- Path Finding -->
+						<div class="card">
+							<div class="card-header" data-toggle="collapse" data-target="#pathFinding">
+								<i class="fas fa-route"></i> Path Finding Queries <i class="fas fa-chevron-down float-right"></i>
+							</div>
+							<div id="pathFinding" class="collapse show" data-parent="#queryAccordion">
+								<div class="card-body">
+									<button class="preset-btn" onclick="setPreset('shortestDA')">Shortest Path to DA</button>
+									<button class="preset-btn" onclick="setPreset('shortestFromUser')">Path from User to DA</button>
+									<button class="preset-btn" onclick="setPreset('shortestFromGroup')">Path from Group to DA</button>
+									<button class="preset-btn" onclick="setPreset('shortestFromComputer')">Path from Computer to DA</button>
+									<button class="preset-btn" onclick="setPreset('allPathsDA')">All Paths to DA</button>
+									<button class="preset-btn" onclick="setPreset('shortestDC')">Shortest Path to DC</button>
+									<button class="preset-btn" onclick="setPreset('ownedToDA')">Owned to DA</button>
+									<button class="preset-btn" onclick="setPreset('pathLength')">Paths by Length</button>
+								</div>
+							</div>
+						</div>
+
+						<!-- Kerberos -->
+						<div class="card">
+							<div class="card-header collapsed" data-toggle="collapse" data-target="#kerberos">
+								<i class="fas fa-key"></i> Kerberos Attacks <i class="fas fa-chevron-down float-right"></i>
+							</div>
+							<div id="kerberos" class="collapse" data-parent="#queryAccordion">
+								<div class="card-body">
+									<button class="preset-btn" onclick="setPreset('kerberoastable')">Kerberoastable Users</button>
+									<button class="preset-btn" onclick="setPreset('kerberoastableHA')">Kerberoastable High Value</button>
+									<button class="preset-btn" onclick="setPreset('asrep')">AS-REP Roastable</button>
+									<button class="preset-btn" onclick="setPreset('unconstrained')">Unconstrained Delegation</button>
+									<button class="preset-btn" onclick="setPreset('constrainedUser')">Constrained Delegation (Users)</button>
+									<button class="preset-btn" onclick="setPreset('constrainedComp')">Constrained Delegation (Computers)</button>
+									<button class="preset-btn" onclick="setPreset('rbcd')">RBCD Targets</button>
+									<button class="preset-btn" onclick="setPreset('rbcdPath')">RBCD Attack Path</button>
+								</div>
+							</div>
+						</div>
+
+						<!-- ACL Abuse -->
+						<div class="card">
+							<div class="card-header collapsed" data-toggle="collapse" data-target="#aclAbuse">
+								<i class="fas fa-shield-alt"></i> ACL Abuse <i class="fas fa-chevron-down float-right"></i>
+							</div>
+							<div id="aclAbuse" class="collapse" data-parent="#queryAccordion">
+								<div class="card-body">
+									<button class="preset-btn" onclick="setPreset('genericAll')">GenericAll on Users</button>
+									<button class="preset-btn" onclick="setPreset('genericAllGroup')">GenericAll on Groups</button>
+									<button class="preset-btn" onclick="setPreset('genericAllComp')">GenericAll on Computers</button>
+									<button class="preset-btn" onclick="setPreset('genericWrite')">GenericWrite</button>
+									<button class="preset-btn" onclick="setPreset('writeDacl')">WriteDACL</button>
+									<button class="preset-btn" onclick="setPreset('writeOwner')">WriteOwner</button>
+									<button class="preset-btn" onclick="setPreset('forceChangePass')">ForceChangePassword</button>
+									<button class="preset-btn" onclick="setPreset('addMember')">AddMember</button>
+									<button class="preset-btn" onclick="setPreset('dcsync')">DCSync Rights</button>
+									<button class="preset-btn" onclick="setPreset('addSelf')">AddSelf</button>
+									<button class="preset-btn" onclick="setPreset('allExtendedRights')">AllExtendedRights</button>
+									<button class="preset-btn" onclick="setPreset('owns')">Object Ownership</button>
+								</div>
+							</div>
+						</div>
+
+						<!-- Sessions -->
+						<div class="card">
+							<div class="card-header collapsed" data-toggle="collapse" data-target="#sessions">
+								<i class="fas fa-desktop"></i> Sessions & Local Admin <i class="fas fa-chevron-down float-right"></i>
+							</div>
+							<div id="sessions" class="collapse" data-parent="#queryAccordion">
+								<div class="card-body">
+									<button class="preset-btn" onclick="setPreset('userSessions')">User Sessions</button>
+									<button class="preset-btn" onclick="setPreset('adminSessions')">DA Sessions</button>
+									<button class="preset-btn" onclick="setPreset('localAdmins')">Local Admins</button>
+									<button class="preset-btn" onclick="setPreset('rdpUsers')">RDP Users</button>
+									<button class="preset-btn" onclick="setPreset('dcomUsers')">DCOM Users</button>
+									<button class="preset-btn" onclick="setPreset('psRemote')">PSRemote Users</button>
+									<button class="preset-btn" onclick="setPreset('sqlAdmin')">SQL Admins</button>
+									<button class="preset-btn" onclick="setPreset('canRDP')">CanRDP Paths</button>
+									<button class="preset-btn" onclick="setPreset('canPSRemote')">CanPSRemote Paths</button>
+								</div>
+							</div>
+						</div>
+
+						<!-- Groups -->
+						<div class="card">
+							<div class="card-header collapsed" data-toggle="collapse" data-target="#groups">
+								<i class="fas fa-users"></i> Group Analysis <i class="fas fa-chevron-down float-right"></i>
+							</div>
+							<div id="groups" class="collapse" data-parent="#queryAccordion">
+								<div class="card-body">
+									<button class="preset-btn" onclick="setPreset('daMembers')">Domain Admin Members</button>
+									<button class="preset-btn" onclick="setPreset('eaMembers')">Enterprise Admin Members</button>
+									<button class="preset-btn" onclick="setPreset('nestedGroups')">Nested Group Membership</button>
+									<button class="preset-btn" onclick="setPreset('foreignMembers')">Foreign Domain Members</button>
+									<button class="preset-btn" onclick="setPreset('highValueGroups')">High Value Groups</button>
+									<button class="preset-btn" onclick="setPreset('adminGroups')">All Admin Groups</button>
+									<button class="preset-btn" onclick="setPreset('groupsCanRDP')">Groups with RDP</button>
+								</div>
+							</div>
+						</div>
+
+						<!-- Computers -->
+						<div class="card">
+							<div class="card-header collapsed" data-toggle="collapse" data-target="#computers">
+								<i class="fas fa-server"></i> Computer Analysis <i class="fas fa-chevron-down float-right"></i>
+							</div>
+							<div id="computers" class="collapse" data-parent="#queryAccordion">
+								<div class="card-body">
+									<button class="preset-btn" onclick="setPreset('allComputers')">All Computers</button>
+									<button class="preset-btn" onclick="setPreset('domainControllers')">Domain Controllers</button>
+									<button class="preset-btn" onclick="setPreset('lapsComputers')">LAPS Enabled</button>
+									<button class="preset-btn" onclick="setPreset('noLaps')">No LAPS</button>
+									<button class="preset-btn" onclick="setPreset('windows10')">Windows 10</button>
+									<button class="preset-btn" onclick="setPreset('windows11')">Windows 11</button>
+									<button class="preset-btn" onclick="setPreset('server2019')">Server 2019</button>
+									<button class="preset-btn" onclick="setPreset('server2022')">Server 2022</button>
+									<button class="preset-btn" onclick="setPreset('unsupportedOS')">Unsupported OS</button>
+									<button class="preset-btn" onclick="setPreset('compWithSessions')">Computers with Sessions</button>
+								</div>
+							</div>
+						</div>
+
+						<!-- Users -->
+						<div class="card">
+							<div class="card-header collapsed" data-toggle="collapse" data-target="#users">
+								<i class="fas fa-user"></i> User Analysis <i class="fas fa-chevron-down float-right"></i>
+							</div>
+							<div id="users" class="collapse" data-parent="#queryAccordion">
+								<div class="card-body">
+									<button class="preset-btn" onclick="setPreset('allUsers')">All Users</button>
+									<button class="preset-btn" onclick="setPreset('enabledUsers')">Enabled Users</button>
+									<button class="preset-btn" onclick="setPreset('disabledUsers')">Disabled Users</button>
+									<button class="preset-btn" onclick="setPreset('highValueUsers')">High Value Users</button>
+									<button class="preset-btn" onclick="setPreset('adminCount')">AdminCount=1</button>
+									<button class="preset-btn" onclick="setPreset('passNotReq')">Password Not Required</button>
+									<button class="preset-btn" onclick="setPreset('passNeverExp')">Password Never Expires</button>
+									<button class="preset-btn" onclick="setPreset('ownedUsers')">Owned Users</button>
+									<button class="preset-btn" onclick="setPreset('sensitiveUsers')">Sensitive Users</button>
+								</div>
+							</div>
+						</div>
+
+						<!-- GPO -->
+						<div class="card">
+							<div class="card-header collapsed" data-toggle="collapse" data-target="#gpo">
+								<i class="fas fa-clipboard-list"></i> GPO Analysis <i class="fas fa-chevron-down float-right"></i>
+							</div>
+							<div id="gpo" class="collapse" data-parent="#queryAccordion">
+								<div class="card-body">
+									<button class="preset-btn" onclick="setPreset('allGPOs')">All GPOs</button>
+									<button class="preset-btn" onclick="setPreset('gpoOnDA')">GPOs Affecting DAs</button>
+									<button class="preset-btn" onclick="setPreset('gpoOnDC')">GPOs on DCs</button>
+									<button class="preset-btn" onclick="setPreset('gpoControllers')">GPO Controllers</button>
+									<button class="preset-btn" onclick="setPreset('gpoToComputer')">GPO to Computer Path</button>
+								</div>
+							</div>
+						</div>
+
+						<!-- Domain/Trust -->
+						<div class="card">
+							<div class="card-header collapsed" data-toggle="collapse" data-target="#trusts">
+								<i class="fas fa-handshake"></i> Domain & Trusts <i class="fas fa-chevron-down float-right"></i>
+							</div>
+							<div id="trusts" class="collapse" data-parent="#queryAccordion">
+								<div class="card-body">
+									<button class="preset-btn" onclick="setPreset('allDomains')">All Domains</button>
+									<button class="preset-btn" onclick="setPreset('domainTrusts')">Domain Trusts</button>
+									<button class="preset-btn" onclick="setPreset('foreignGroups')">Foreign Group Membership</button>
+									<button class="preset-btn" onclick="setPreset('crossDomainPaths')">Cross-Domain Paths</button>
+									<button class="preset-btn" onclick="setPreset('sidHistory')">SID History Abuse</button>
+								</div>
+							</div>
+						</div>
+
+						<!-- Azure/Hybrid -->
+						<div class="card">
+							<div class="card-header collapsed" data-toggle="collapse" data-target="#azure">
+								<i class="fas fa-cloud"></i> Azure / Hybrid <i class="fas fa-chevron-down float-right"></i>
+							</div>
+							<div id="azure" class="collapse" data-parent="#queryAccordion">
+								<div class="card-body">
+									<button class="preset-btn" onclick="setPreset('azureUsers')">Azure Synced Users</button>
+									<button class="preset-btn" onclick="setPreset('azureAdmins')">Azure Admin Roles</button>
+									<button class="preset-btn" onclick="setPreset('azureApps')">Azure Applications</button>
+									<button class="preset-btn" onclick="setPreset('azureToOnPrem')">Azure to On-Prem Paths</button>
+								</div>
+							</div>
+						</div>
+
+						<!-- Statistics -->
+						<div class="card">
+							<div class="card-header collapsed" data-toggle="collapse" data-target="#stats">
+								<i class="fas fa-chart-bar"></i> Statistics & Reporting <i class="fas fa-chevron-down float-right"></i>
+							</div>
+							<div id="stats" class="collapse" data-parent="#queryAccordion">
+								<div class="card-body">
+									<button class="preset-btn" onclick="setPreset('nodeCount')">Node Counts</button>
+									<button class="preset-btn" onclick="setPreset('edgeCount')">Edge Counts</button>
+									<button class="preset-btn" onclick="setPreset('daCount')">Domain Admins Count</button>
+									<button class="preset-btn" onclick="setPreset('computerOS')">Computers by OS</button>
+									<button class="preset-btn" onclick="setPreset('usersPerGroup')">Users per Group</button>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Output -->
+					<div class="card">
+						<div class="card-header">
+							<i class="fas fa-terminal"></i> Generated Cypher Query
+						</div>
+						<div class="card-body">
+							<div class="query-description" id="queryDescription">
+								<strong>Select a preset query above</strong> or build a custom query. The generated Cypher can be used directly in BloodHound's Raw Query box or Neo4j Browser.
+							</div>
+							<div class="output-area" id="cypherOutput">
+								<button class="copy-btn" onclick="copyQuery()"><i class="fas fa-copy"></i> Copy</button>
+								<span id="cypherQuery">// Select a query preset above</span>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Right Column - Reference -->
+				<div class="col-lg-4">
+					<!-- Custom Query Builder -->
+					<div class="card">
+						<div class="card-header">
+							<i class="fas fa-hammer"></i> Custom Query Builder
+						</div>
+						<div class="card-body">
+							<div class="form-group">
+								<label>Find Node Type</label>
+								<select class="form-control" id="customNodeType">
+									<option value="User">User</option>
+									<option value="Group">Group</option>
+									<option value="Computer">Computer</option>
+									<option value="Domain">Domain</option>
+									<option value="GPO">GPO</option>
+									<option value="OU">OU</option>
+								</select>
+							</div>
+							<div class="form-group">
+								<label>With Relationship</label>
+								<select class="form-control" id="customEdgeType">
+									<option value="">Any Path (*)</option>
+									<option value="MemberOf">MemberOf</option>
+									<option value="AdminTo">AdminTo</option>
+									<option value="HasSession">HasSession</option>
+									<option value="GenericAll">GenericAll</option>
+									<option value="GenericWrite">GenericWrite</option>
+									<option value="WriteDacl">WriteDacl</option>
+									<option value="WriteOwner">WriteOwner</option>
+									<option value="Owns">Owns</option>
+									<option value="ForceChangePassword">ForceChangePassword</option>
+									<option value="AddMember">AddMember</option>
+									<option value="CanRDP">CanRDP</option>
+									<option value="CanPSRemote">CanPSRemote</option>
+									<option value="ExecuteDCOM">ExecuteDCOM</option>
+									<option value="AllowedToDelegate">AllowedToDelegate</option>
+									<option value="AllowedToAct">AllowedToAct</option>
+									<option value="GetChanges">GetChanges</option>
+									<option value="GetChangesAll">GetChangesAll</option>
+									<option value="Contains">Contains</option>
+									<option value="GpLink">GpLink</option>
+								</select>
+							</div>
+							<div class="form-group">
+								<label>To Target Type</label>
+								<select class="form-control" id="customTargetType">
+									<option value="User">User</option>
+									<option value="Group">Group</option>
+									<option value="Computer">Computer</option>
+									<option value="Domain">Domain</option>
+									<option value="GPO">GPO</option>
+									<option value="OU">OU</option>
+								</select>
+							</div>
+							<div class="form-group">
+								<label>Target Name (optional)</label>
+								<input type="text" class="form-control" id="customTargetName" placeholder="DOMAIN ADMINS">
+							</div>
+							<button class="btn btn-primary btn-block" onclick="buildCustomQuery()"><i class="fas fa-search"></i> Generate Query</button>
+						</div>
+					</div>
+
+					<!-- Node Types -->
+					<div class="card">
+						<div class="card-header" data-toggle="collapse" href="#nodeTypes">
+							<i class="fas fa-circle"></i> Node Types <i class="fas fa-chevron-down float-right"></i>
+						</div>
+						<div id="nodeTypes" class="collapse show">
+							<div class="card-body">
+								<span class="node-type node-user">User</span>
+								<span class="node-type node-group">Group</span>
+								<span class="node-type node-computer">Computer</span>
+								<span class="node-type node-domain">Domain</span>
+								<span class="node-type node-gpo">GPO</span>
+								<span class="node-type node-ou">OU</span>
+							</div>
+						</div>
+					</div>
+
+					<!-- Edge Types -->
+					<div class="card">
+						<div class="card-header" data-toggle="collapse" href="#edgeTypes">
+							<i class="fas fa-arrow-right"></i> Edge Types <i class="fas fa-chevron-down float-right"></i>
+						</div>
+						<div id="edgeTypes" class="collapse">
+							<div class="card-body" style="max-height: 300px; overflow-y: auto;">
+								<p><strong>Group:</strong></p>
+								<span class="edge-type">MemberOf</span>
+								<span class="edge-type">AddMember</span>
+								<span class="edge-type">AddSelf</span>
+								<p class="mt-2"><strong>ACL:</strong></p>
+								<span class="edge-type">GenericAll</span>
+								<span class="edge-type">GenericWrite</span>
+								<span class="edge-type">WriteDacl</span>
+								<span class="edge-type">WriteOwner</span>
+								<span class="edge-type">Owns</span>
+								<span class="edge-type">ForceChangePassword</span>
+								<span class="edge-type">AllExtendedRights</span>
+								<p class="mt-2"><strong>Sessions:</strong></p>
+								<span class="edge-type">AdminTo</span>
+								<span class="edge-type">HasSession</span>
+								<span class="edge-type">CanRDP</span>
+								<span class="edge-type">CanPSRemote</span>
+								<span class="edge-type">ExecuteDCOM</span>
+								<span class="edge-type">SQLAdmin</span>
+								<p class="mt-2"><strong>Delegation:</strong></p>
+								<span class="edge-type">AllowedToDelegate</span>
+								<span class="edge-type">AllowedToAct</span>
+								<p class="mt-2"><strong>DCSync:</strong></p>
+								<span class="edge-type">GetChanges</span>
+								<span class="edge-type">GetChangesAll</span>
+								<p class="mt-2"><strong>GPO:</strong></p>
+								<span class="edge-type">GpLink</span>
+								<span class="edge-type">Contains</span>
+							</div>
+						</div>
+					</div>
+
+					<!-- Cypher Syntax -->
+					<div class="card">
+						<div class="card-header" data-toggle="collapse" href="#syntaxRef">
+							<i class="fas fa-code"></i> Cypher Syntax <i class="fas fa-chevron-down float-right"></i>
+						</div>
+						<div id="syntaxRef" class="collapse">
+							<div class="card-body" style="font-size: 13px;">
+								<code>MATCH (n:User)</code> - Find all users<br><br>
+								<code>(n)-[:MemberOf]->(g)</code> - Direct relationship<br><br>
+								<code>(n)-[:MemberOf*1..]->(g)</code> - Recursive (1+ hops)<br><br>
+								<code>(n)-[*1..]->(g)</code> - Any edge type<br><br>
+								<code>WHERE n.name =~ '.*ADMIN.*'</code> - Regex match<br><br>
+								<code>WHERE n.enabled = true</code> - Property filter<br><br>
+								<code>shortestPath((a)-[*1..]->(b))</code> - Shortest path<br><br>
+								<code>RETURN n.name, n.enabled</code> - Return properties
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<footer>
+		<div class="container">
+			<p>&copy; 2025 Shravan Kumar Sheri - All Rights Reserved</p>
+		</div>
+	</footer>
+
+	<script>
+		let currentPreset = '';
+
+		const presets = {
+			// Path Finding
+			shortestDA: {
+				query: `MATCH p=shortestPath((n)-[*1..]->(g:Group))
+WHERE g.name =~ "(?i).*DOMAIN ADMINS.*"
+AND n<>g
+RETURN p`,
+				desc: 'Find the shortest path from any node to Domain Admins group.'
+			},
+			shortestFromUser: {
+				query: `MATCH p=shortestPath((n:User {name:"TARGET@DOMAIN.COM"})-[*1..]->(g:Group))
+WHERE g.name =~ "(?i).*DOMAIN ADMINS.*"
+RETURN p`,
+				desc: 'Find shortest path from a specific user to Domain Admins.'
+			},
+			shortestFromGroup: {
+				query: `MATCH p=shortestPath((n:Group {name:"SOURCE GROUP@DOMAIN.COM"})-[*1..]->(g:Group))
+WHERE g.name =~ "(?i).*DOMAIN ADMINS.*"
+RETURN p`,
+				desc: 'Find shortest path from a specific group to Domain Admins.'
+			},
+			shortestFromComputer: {
+				query: `MATCH p=shortestPath((n:Computer {name:"COMPUTER.DOMAIN.COM"})-[*1..]->(g:Group))
+WHERE g.name =~ "(?i).*DOMAIN ADMINS.*"
+RETURN p`,
+				desc: 'Find shortest path from a specific computer to Domain Admins.'
+			},
+			allPathsDA: {
+				query: `MATCH p=allShortestPaths((n)-[*1..]->(g:Group))
+WHERE g.name =~ "(?i).*DOMAIN ADMINS.*"
+AND n<>g
+RETURN p LIMIT 50`,
+				desc: 'Find all shortest paths to Domain Admins (limited to 50).'
+			},
+			shortestDC: {
+				query: `MATCH p=shortestPath((n)-[*1..]->(c:Computer))
+WHERE c.name =~ "(?i).*DC.*"
+AND n<>c
+RETURN p`,
+				desc: 'Find shortest paths to Domain Controllers.'
+			},
+			ownedToDA: {
+				query: `MATCH p=shortestPath((n {owned:true})-[*1..]->(g:Group))
+WHERE g.name =~ "(?i).*DOMAIN ADMINS.*"
+RETURN p`,
+				desc: 'Find paths from owned nodes to Domain Admins.'
+			},
+			pathLength: {
+				query: `MATCH p=(n)-[*1..5]->(g:Group)
+WHERE g.name =~ "(?i).*DOMAIN ADMINS.*"
+RETURN p, length(p) as pathLength
+ORDER BY pathLength`,
+				desc: 'Find paths to DA with specific length (1-5 hops).'
+			},
+
+			// Kerberos
+			kerberoastable: {
+				query: `MATCH (n:User)
+WHERE n.hasspn = true
+AND n.enabled = true
+RETURN n.name, n.serviceprincipalnames`,
+				desc: 'Find all Kerberoastable users (users with SPNs set).'
+			},
+			kerberoastableHA: {
+				query: `MATCH (n:User)
+WHERE n.hasspn = true
+AND n.enabled = true
+AND n.highvalue = true
+RETURN n.name, n.serviceprincipalnames`,
+				desc: 'Find Kerberoastable high-value users.'
+			},
+			asrep: {
+				query: `MATCH (n:User)
+WHERE n.dontreqpreauth = true
+AND n.enabled = true
+RETURN n.name`,
+				desc: 'Find AS-REP Roastable users (no Kerberos pre-auth required).'
+			},
+			unconstrained: {
+				query: `MATCH (c:Computer)
+WHERE c.unconstraineddelegation = true
+AND NOT c.name CONTAINS "DC"
+RETURN c.name`,
+				desc: 'Find computers with unconstrained delegation (excluding DCs).'
+			},
+			constrainedUser: {
+				query: `MATCH (u:User)
+WHERE u.allowedtodelegate IS NOT NULL
+RETURN u.name, u.allowedtodelegate`,
+				desc: 'Find users with constrained delegation.'
+			},
+			constrainedComp: {
+				query: `MATCH (c:Computer)
+WHERE c.allowedtodelegate IS NOT NULL
+RETURN c.name, c.allowedtodelegate`,
+				desc: 'Find computers with constrained delegation.'
+			},
+			rbcd: {
+				query: `MATCH p=(n)-[:AllowedToAct]->(c:Computer)
+RETURN p`,
+				desc: 'Find Resource-Based Constrained Delegation targets.'
+			},
+			rbcdPath: {
+				query: `MATCH p=shortestPath((u:User)-[*1..]->(c:Computer))
+WHERE EXISTS((c)-[:AllowedToAct]->())
+RETURN p`,
+				desc: 'Find paths to computers that allow RBCD.'
+			},
+
+			// ACL Abuse
+			genericAll: {
+				query: `MATCH p=(n)-[:GenericAll]->(u:User)
+WHERE n<>u
+RETURN p`,
+				desc: 'Find nodes with GenericAll rights on users.'
+			},
+			genericAllGroup: {
+				query: `MATCH p=(n)-[:GenericAll]->(g:Group)
+RETURN p`,
+				desc: 'Find nodes with GenericAll rights on groups.'
+			},
+			genericAllComp: {
+				query: `MATCH p=(n)-[:GenericAll]->(c:Computer)
+RETURN p`,
+				desc: 'Find nodes with GenericAll rights on computers.'
+			},
+			genericWrite: {
+				query: `MATCH p=(n)-[:GenericWrite]->(m)
+WHERE n<>m
+RETURN p`,
+				desc: 'Find nodes with GenericWrite permissions.'
+			},
+			writeDacl: {
+				query: `MATCH p=(n)-[:WriteDacl]->(m)
+WHERE n<>m
+RETURN p`,
+				desc: 'Find nodes with WriteDACL permissions.'
+			},
+			writeOwner: {
+				query: `MATCH p=(n)-[:WriteOwner]->(m)
+WHERE n<>m
+RETURN p`,
+				desc: 'Find nodes with WriteOwner permissions.'
+			},
+			forceChangePass: {
+				query: `MATCH p=(n)-[:ForceChangePassword]->(u:User)
+WHERE n<>u
+RETURN p`,
+				desc: 'Find nodes that can force password change on users.'
+			},
+			addMember: {
+				query: `MATCH p=(n)-[:AddMember]->(g:Group)
+RETURN p`,
+				desc: 'Find nodes that can add members to groups.'
+			},
+			dcsync: {
+				query: `MATCH p=(n)-[:GetChanges|GetChangesAll*1..2]->(d:Domain)
+RETURN p`,
+				desc: 'Find principals with DCSync rights.'
+			},
+			addSelf: {
+				query: `MATCH p=(n)-[:AddSelf]->(g:Group)
+RETURN p`,
+				desc: 'Find nodes that can add themselves to groups.'
+			},
+			allExtendedRights: {
+				query: `MATCH p=(n)-[:AllExtendedRights]->(m)
+RETURN p`,
+				desc: 'Find nodes with AllExtendedRights permission.'
+			},
+			owns: {
+				query: `MATCH p=(n)-[:Owns]->(m)
+WHERE NOT n.name CONTAINS "ADMIN"
+RETURN p`,
+				desc: 'Find object ownership (excluding known admins).'
+			},
+
+			// Sessions
+			userSessions: {
+				query: `MATCH p=(c:Computer)-[:HasSession]->(u:User)
+RETURN u.name, c.name`,
+				desc: 'Find all active user sessions.'
+			},
+			adminSessions: {
+				query: `MATCH (u:User)-[:MemberOf*1..]->(g:Group)
+WHERE g.name =~ "(?i).*DOMAIN ADMINS.*"
+WITH u
+MATCH p=(c:Computer)-[:HasSession]->(u)
+RETURN p`,
+				desc: 'Find Domain Admin sessions on computers.'
+			},
+			localAdmins: {
+				query: `MATCH p=(n)-[:AdminTo]->(c:Computer)
+RETURN p`,
+				desc: 'Find all local admin relationships.'
+			},
+			rdpUsers: {
+				query: `MATCH p=(n)-[:CanRDP]->(c:Computer)
+RETURN p`,
+				desc: 'Find users with RDP access.'
+			},
+			dcomUsers: {
+				query: `MATCH p=(n)-[:ExecuteDCOM]->(c:Computer)
+RETURN p`,
+				desc: 'Find users with DCOM execution rights.'
+			},
+			psRemote: {
+				query: `MATCH p=(n)-[:CanPSRemote]->(c:Computer)
+RETURN p`,
+				desc: 'Find users with PSRemote access.'
+			},
+			sqlAdmin: {
+				query: `MATCH p=(n)-[:SQLAdmin]->(c:Computer)
+RETURN p`,
+				desc: 'Find SQL Admin relationships.'
+			},
+			canRDP: {
+				query: `MATCH p=shortestPath((u:User {name:"TARGET@DOMAIN.COM"})-[:CanRDP|MemberOf*1..]->(c:Computer))
+RETURN p`,
+				desc: 'Find RDP paths from specific user.'
+			},
+			canPSRemote: {
+				query: `MATCH p=shortestPath((u:User {name:"TARGET@DOMAIN.COM"})-[:CanPSRemote|MemberOf*1..]->(c:Computer))
+RETURN p`,
+				desc: 'Find PSRemote paths from specific user.'
+			},
+
+			// Groups
+			daMembers: {
+				query: `MATCH (u:User)-[:MemberOf*1..]->(g:Group)
+WHERE g.name =~ "(?i).*DOMAIN ADMINS.*"
+RETURN DISTINCT u.name`,
+				desc: 'List all Domain Admin members (including nested).'
+			},
+			eaMembers: {
+				query: `MATCH (u:User)-[:MemberOf*1..]->(g:Group)
+WHERE g.name =~ "(?i).*ENTERPRISE ADMINS.*"
+RETURN DISTINCT u.name`,
+				desc: 'List all Enterprise Admin members (including nested).'
+			},
+			nestedGroups: {
+				query: `MATCH p=(g1:Group)-[:MemberOf*1..]->(g2:Group)
+RETURN p`,
+				desc: 'Find nested group memberships.'
+			},
+			foreignMembers: {
+				query: `MATCH (u)-[:MemberOf]->(g:Group)
+WHERE NOT u.domain = g.domain
+RETURN u.name, g.name`,
+				desc: 'Find foreign domain members in groups.'
+			},
+			highValueGroups: {
+				query: `MATCH (g:Group)
+WHERE g.highvalue = true
+RETURN g.name`,
+				desc: 'List all high-value groups.'
+			},
+			adminGroups: {
+				query: `MATCH (g:Group)
+WHERE g.name =~ "(?i).*(ADMIN|OPERATOR).*"
+RETURN g.name`,
+				desc: 'Find all administrative groups.'
+			},
+			groupsCanRDP: {
+				query: `MATCH (g:Group)-[:CanRDP]->(c:Computer)
+RETURN g.name, collect(c.name)`,
+				desc: 'Find groups with RDP access to computers.'
+			},
+
+			// Computers
+			allComputers: {
+				query: `MATCH (c:Computer)
+RETURN c.name, c.operatingsystem, c.enabled`,
+				desc: 'List all computers with OS and status.'
+			},
+			domainControllers: {
+				query: `MATCH (c:Computer)
+WHERE c.name =~ "(?i).*DC.*" OR c.unconstraineddelegation = true
+RETURN c.name, c.operatingsystem`,
+				desc: 'Find Domain Controllers.'
+			},
+			lapsComputers: {
+				query: `MATCH (c:Computer)
+WHERE c.haslaps = true
+RETURN c.name`,
+				desc: 'Find computers with LAPS enabled.'
+			},
+			noLaps: {
+				query: `MATCH (c:Computer)
+WHERE c.haslaps = false OR c.haslaps IS NULL
+RETURN c.name`,
+				desc: 'Find computers without LAPS.'
+			},
+			windows10: {
+				query: `MATCH (c:Computer)
+WHERE c.operatingsystem =~ "(?i).*Windows 10.*"
+RETURN c.name, c.operatingsystem`,
+				desc: 'Find Windows 10 computers.'
+			},
+			windows11: {
+				query: `MATCH (c:Computer)
+WHERE c.operatingsystem =~ "(?i).*Windows 11.*"
+RETURN c.name, c.operatingsystem`,
+				desc: 'Find Windows 11 computers.'
+			},
+			server2019: {
+				query: `MATCH (c:Computer)
+WHERE c.operatingsystem =~ "(?i).*Server 2019.*"
+RETURN c.name, c.operatingsystem`,
+				desc: 'Find Windows Server 2019.'
+			},
+			server2022: {
+				query: `MATCH (c:Computer)
+WHERE c.operatingsystem =~ "(?i).*Server 2022.*"
+RETURN c.name, c.operatingsystem`,
+				desc: 'Find Windows Server 2022.'
+			},
+			unsupportedOS: {
+				query: `MATCH (c:Computer)
+WHERE c.operatingsystem =~ "(?i).*(2008|2003|XP|Vista|Windows 7).*"
+RETURN c.name, c.operatingsystem`,
+				desc: 'Find computers with unsupported OS.'
+			},
+			compWithSessions: {
+				query: `MATCH (c:Computer)-[:HasSession]->(u:User)
+RETURN c.name, count(u) as sessionCount
+ORDER BY sessionCount DESC`,
+				desc: 'Computers ordered by session count.'
+			},
+
+			// Users
+			allUsers: {
+				query: `MATCH (u:User)
+RETURN u.name, u.enabled, u.lastlogon`,
+				desc: 'List all users.'
+			},
+			enabledUsers: {
+				query: `MATCH (u:User)
+WHERE u.enabled = true
+RETURN u.name`,
+				desc: 'List enabled users only.'
+			},
+			disabledUsers: {
+				query: `MATCH (u:User)
+WHERE u.enabled = false
+RETURN u.name`,
+				desc: 'List disabled users.'
+			},
+			highValueUsers: {
+				query: `MATCH (u:User)
+WHERE u.highvalue = true
+RETURN u.name`,
+				desc: 'List high-value users.'
+			},
+			adminCount: {
+				query: `MATCH (u:User)
+WHERE u.admincount = true
+RETURN u.name`,
+				desc: 'Find users with adminCount=1.'
+			},
+			passNotReq: {
+				query: `MATCH (u:User)
+WHERE u.passwordnotreqd = true
+AND u.enabled = true
+RETURN u.name`,
+				desc: 'Find users where password is not required.'
+			},
+			passNeverExp: {
+				query: `MATCH (u:User)
+WHERE u.pwdneverexpires = true
+AND u.enabled = true
+RETURN u.name`,
+				desc: 'Find users with password never expires.'
+			},
+			ownedUsers: {
+				query: `MATCH (u:User)
+WHERE u.owned = true
+RETURN u.name`,
+				desc: 'List all owned users.'
+			},
+			sensitiveUsers: {
+				query: `MATCH (u:User)
+WHERE u.sensitive = true
+RETURN u.name`,
+				desc: 'Find users marked as sensitive.'
+			},
+
+			// GPO
+			allGPOs: {
+				query: `MATCH (g:GPO)
+RETURN g.name, g.gpcpath`,
+				desc: 'List all GPOs.'
+			},
+			gpoOnDA: {
+				query: `MATCH p=(g:GPO)-[:GpLink]->(o:OU)-[:Contains*1..]->(u:User)-[:MemberOf*1..]->(da:Group)
+WHERE da.name =~ "(?i).*DOMAIN ADMINS.*"
+RETURN p`,
+				desc: 'Find GPOs that affect Domain Admins.'
+			},
+			gpoOnDC: {
+				query: `MATCH p=(g:GPO)-[:GpLink]->(o:OU)-[:Contains*1..]->(c:Computer)
+WHERE c.name =~ "(?i).*DC.*"
+RETURN p`,
+				desc: 'Find GPOs affecting Domain Controllers.'
+			},
+			gpoControllers: {
+				query: `MATCH p=(n)-[:GenericAll|GenericWrite|WriteOwner|WriteDacl]->(g:GPO)
+RETURN p`,
+				desc: 'Find who can modify GPOs.'
+			},
+			gpoToComputer: {
+				query: `MATCH p=(g:GPO)-[:GpLink]->(o:OU)-[:Contains*1..]->(c:Computer {name:"COMPUTER.DOMAIN.COM"})
+RETURN p`,
+				desc: 'Find GPOs affecting specific computer.'
+			},
+
+			// Domain/Trust
+			allDomains: {
+				query: `MATCH (d:Domain)
+RETURN d.name, d.functionallevel`,
+				desc: 'List all domains.'
+			},
+			domainTrusts: {
+				query: `MATCH p=(d1:Domain)-[:TrustedBy]->(d2:Domain)
+RETURN p`,
+				desc: 'Find domain trust relationships.'
+			},
+			foreignGroups: {
+				query: `MATCH (u)-[:MemberOf]->(g:Group)
+WHERE u.domain <> g.domain
+RETURN u.name, u.domain, g.name, g.domain`,
+				desc: 'Find cross-domain group memberships.'
+			},
+			crossDomainPaths: {
+				query: `MATCH p=shortestPath((n {domain:"DOMAIN1.COM"})-[*1..]->(m {domain:"DOMAIN2.COM"}))
+RETURN p`,
+				desc: 'Find attack paths across domains.'
+			},
+			sidHistory: {
+				query: `MATCH (u:User)
+WHERE u.sidhistory IS NOT NULL
+RETURN u.name, u.sidhistory`,
+				desc: 'Find users with SID History.'
+			},
+
+			// Azure
+			azureUsers: {
+				query: `MATCH (u:AZUser)
+RETURN u.name`,
+				desc: 'Find Azure AD synced users.'
+			},
+			azureAdmins: {
+				query: `MATCH (u)-[:AZGlobalAdmin|AZPrivilegedRoleAdmin]->(t)
+RETURN u.name, type(r), t.name`,
+				desc: 'Find Azure admin role assignments.'
+			},
+			azureApps: {
+				query: `MATCH (a:AZApp)
+RETURN a.name`,
+				desc: 'List Azure applications.'
+			},
+			azureToOnPrem: {
+				query: `MATCH p=(az:AZUser)-[*1..]->(ad:User)
+RETURN p`,
+				desc: 'Find Azure to on-prem attack paths.'
+			},
+
+			// Statistics
+			nodeCount: {
+				query: `MATCH (n)
+RETURN labels(n)[0] as NodeType, count(n) as Count
+ORDER BY Count DESC`,
+				desc: 'Count nodes by type.'
+			},
+			edgeCount: {
+				query: `MATCH ()-[r]->()
+RETURN type(r) as EdgeType, count(r) as Count
+ORDER BY Count DESC`,
+				desc: 'Count edges by type.'
+			},
+			daCount: {
+				query: `MATCH (u:User)-[:MemberOf*1..]->(g:Group)
+WHERE g.name =~ "(?i).*DOMAIN ADMINS.*"
+RETURN count(DISTINCT u)`,
+				desc: 'Count total Domain Admins.'
+			},
+			computerOS: {
+				query: `MATCH (c:Computer)
+RETURN c.operatingsystem as OS, count(c) as Count
+ORDER BY Count DESC`,
+				desc: 'Count computers by operating system.'
+			},
+			usersPerGroup: {
+				query: `MATCH (u:User)-[:MemberOf]->(g:Group)
+RETURN g.name, count(u) as MemberCount
+ORDER BY MemberCount DESC
+LIMIT 25`,
+				desc: 'Top 25 groups by member count.'
+			}
+		};
+
+		function setPreset(presetName) {
+			currentPreset = presetName;
+			const preset = presets[presetName];
+			let query = preset.query;
+
+			// Replace domain placeholder
+			const domain = document.getElementById('domainName').value || 'DOMAIN.COM';
+			query = query.replace(/DOMAIN\.COM/g, domain);
+
+			// Replace target placeholder if provided
+			const target = document.getElementById('targetNode').value;
+			if (target) {
+				query = query.replace(/TARGET@DOMAIN\.COM/g, target);
+				query = query.replace(/TARGET/g, target.split('@')[0]);
+			}
+
+			document.getElementById('cypherQuery').textContent = query;
+			document.getElementById('queryDescription').innerHTML = `<strong>${presetName}:</strong> ${preset.desc}`;
+
+			// Update active state
+			document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+			event.target.classList.add('active');
+		}
+
+		function regenerateQuery() {
+			if (currentPreset) {
+				// Find the button and trigger click
+				const preset = presets[currentPreset];
+				let query = preset.query;
+
+				const domain = document.getElementById('domainName').value || 'DOMAIN.COM';
+				query = query.replace(/DOMAIN\.COM/g, domain);
+
+				const target = document.getElementById('targetNode').value;
+				if (target) {
+					query = query.replace(/TARGET@DOMAIN\.COM/g, target);
+					query = query.replace(/TARGET/g, target.split('@')[0]);
+				}
+
+				document.getElementById('cypherQuery').textContent = query;
+			}
+		}
+
+		function buildCustomQuery() {
+			const nodeType = document.getElementById('customNodeType').value;
+			const edgeType = document.getElementById('customEdgeType').value;
+			const targetType = document.getElementById('customTargetType').value;
+			const targetName = document.getElementById('customTargetName').value;
+			const domain = document.getElementById('domainName').value || 'DOMAIN.COM';
+
+			let query = '';
+			let edge = edgeType ? `[:${edgeType}]` : '[*1..]';
+
+			if (targetName) {
+				query = `MATCH p=(n:${nodeType})-${edge}->(m:${targetType})
+WHERE m.name =~ "(?i).*${targetName}.*@${domain}"
+RETURN p`;
+			} else {
+				query = `MATCH p=(n:${nodeType})-${edge}->(m:${targetType})
+RETURN p
+LIMIT 100`;
+			}
+
+			document.getElementById('cypherQuery').textContent = query;
+			document.getElementById('queryDescription').innerHTML = `<strong>Custom Query:</strong> Find ${nodeType} nodes with ${edgeType || 'any'} relationship to ${targetType}${targetName ? ' named ' + targetName : ''}.`;
+		}
+
+		function copyQuery() {
+			const query = document.getElementById('cypherQuery').textContent;
+			navigator.clipboard.writeText(query).then(() => {
+				const btn = document.querySelector('.copy-btn');
+				btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+				setTimeout(() => {
+					btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+				}, 2000);
+			});
+		}
+	</script>
+</body>
+</html>

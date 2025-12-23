@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>LDAP Query Generator - Security Tools</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="Generate LDAP queries for Active Directory enumeration - find users, groups, computers, privileged accounts, and more.">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+	<style>
+		* { box-sizing: border-box; }
+
+		body {
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			background-color: #f8f9fa;
+			margin: 0;
+			padding: 0;
+			line-height: 1.6;
+		}
+
+		.navbar {
+			background-color: #1a1a2e !important;
+			padding: 15px 0;
+			box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+		}
+
+		.navbar-brand { color: #fff !important; font-size: 22px; font-weight: 600; }
+		.nav-link { color: rgba(255,255,255,0.9) !important; font-size: 16px; margin-left: 20px; transition: color 0.3s; }
+		.nav-link:hover { color: #4a9eff !important; }
+
+		.hero-section {
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			color: #fff;
+			padding: 40px 0;
+			text-align: center;
+		}
+
+		.hero-section h1 { font-size: 36px; font-weight: 700; margin-bottom: 10px; }
+		.hero-section p { font-size: 16px; opacity: 0.9; }
+
+		.main-content { padding: 40px 0; }
+
+		.card {
+			background: #fff;
+			border-radius: 12px;
+			box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+			border: none;
+			margin-bottom: 25px;
+		}
+
+		.card-header {
+			background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+			color: #fff;
+			font-weight: 600;
+			border-radius: 12px 12px 0 0 !important;
+			padding: 15px 20px;
+		}
+
+		.card-body { padding: 25px; }
+
+		.form-group label { font-weight: 600; color: #1a1a2e; margin-bottom: 8px; }
+		.form-control { border-radius: 8px; border: 2px solid #e9ecef; padding: 10px 15px; }
+		.form-control:focus { border-color: #4a9eff; box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.1); }
+
+		.btn-primary {
+			background: linear-gradient(135deg, #4a9eff 0%, #00d2ff 100%);
+			border: none;
+			padding: 10px 25px;
+			font-weight: 600;
+			border-radius: 8px;
+			transition: transform 0.3s, box-shadow 0.3s;
+		}
+
+		.btn-primary:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 5px 20px rgba(74, 158, 255, 0.4);
+		}
+
+		.btn-secondary {
+			background: #6c757d;
+			border: none;
+			padding: 10px 25px;
+			font-weight: 600;
+			border-radius: 8px;
+		}
+
+		.output-area {
+			background: #1a1a2e;
+			color: #00ff00;
+			font-family: 'Consolas', 'Monaco', monospace;
+			padding: 20px;
+			border-radius: 8px;
+			font-size: 14px;
+			white-space: pre-wrap;
+			word-break: break-all;
+			min-height: 100px;
+			position: relative;
+		}
+
+		.copy-btn {
+			position: absolute;
+			top: 10px;
+			right: 10px;
+			background: #4a9eff;
+			border: none;
+			color: #fff;
+			padding: 5px 15px;
+			border-radius: 5px;
+			cursor: pointer;
+			font-size: 12px;
+		}
+
+		.copy-btn:hover { background: #357abd; }
+
+		.preset-btn {
+			margin: 3px;
+			font-size: 13px;
+			padding: 6px 12px;
+			border-radius: 20px;
+			border: 2px solid #4a9eff;
+			background: transparent;
+			color: #4a9eff;
+			cursor: pointer;
+			transition: all 0.3s;
+		}
+
+		.preset-btn:hover {
+			background: #4a9eff;
+			color: #fff;
+		}
+
+		.preset-btn.active {
+			background: #4a9eff;
+			color: #fff;
+		}
+
+		.category-title {
+			font-weight: 700;
+			color: #1a1a2e;
+			margin: 20px 0 10px 0;
+			padding-bottom: 5px;
+			border-bottom: 2px solid #4a9eff;
+		}
+
+		.filter-tag {
+			display: inline-block;
+			background: #e3f2fd;
+			color: #1976d2;
+			padding: 4px 10px;
+			border-radius: 15px;
+			font-size: 12px;
+			margin: 2px;
+		}
+
+		.accordion .card-header {
+			cursor: pointer;
+			padding: 12px 20px;
+		}
+
+		.accordion .card-header:hover {
+			opacity: 0.9;
+		}
+
+		.nav-tabs .nav-link {
+			color: #1a1a2e !important;
+			font-weight: 600;
+			margin-left: 0;
+		}
+
+		.nav-tabs .nav-link.active {
+			color: #4a9eff !important;
+			border-color: #4a9eff #4a9eff #fff;
+		}
+
+		.tab-content {
+			padding: 20px;
+			border: 1px solid #dee2e6;
+			border-top: none;
+			border-radius: 0 0 8px 8px;
+			background: #fff;
+		}
+
+		.powershell-output {
+			background: #012456;
+			color: #fff;
+		}
+
+		.tool-command {
+			background: #2d2d2d;
+			color: #f8f8f2;
+		}
+
+		footer {
+			background: #1a1a2e;
+			color: #fff;
+			padding: 30px 0;
+			text-align: center;
+		}
+
+		footer p { margin: 0; opacity: 0.8; }
+
+		.info-icon {
+			color: #4a9eff;
+			cursor: pointer;
+			margin-left: 5px;
+		}
+
+		.uac-table {
+			font-size: 13px;
+		}
+
+		.uac-table th {
+			background: #1a1a2e;
+			color: #fff;
+		}
+	</style>
+</head>
+<body>
+	<!-- Navigation Bar -->
+	<nav class="navbar navbar-expand-lg navbar-dark">
+		<div class="container">
+			<a class="navbar-brand" href="../index.html">Shravan Kumar Sheri</a>
+			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+				<span class="navbar-toggler-icon"></span>
+			</button>
+			<div class="collapse navbar-collapse" id="navbarNav">
+				<ul class="navbar-nav ml-auto">
+					<li class="nav-item"><a class="nav-link" href="../index.html">Home</a></li>
+					<li class="nav-item"><a class="nav-link" href="../blog.html">Blog</a></li>
+					<li class="nav-item active"><a class="nav-link" href="../tools.html">Tools</a></li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+
+	<!-- Hero Section -->
+	<section class="hero-section">
+		<div class="container">
+			<h1><i class="fas fa-sitemap"></i> LDAP Query Generator</h1>
+			<p>Build complex LDAP queries for Active Directory enumeration</p>
+		</div>
+	</section>
+
+	<!-- Main Content -->
+	<section class="main-content">
+		<div class="container">
+			<div class="row">
+				<!-- Left Column - Query Builder -->
+				<div class="col-lg-8">
+					<!-- Quick Presets -->
+					<div class="card">
+						<div class="card-header">
+							<i class="fas fa-bolt"></i> Quick Presets
+						</div>
+						<div class="card-body">
+							<p class="category-title"><i class="fas fa-user"></i> Users</p>
+							<button class="preset-btn" onclick="setPreset('allUsers')">All Users</button>
+							<button class="preset-btn" onclick="setPreset('enabledUsers')">Enabled Users</button>
+							<button class="preset-btn" onclick="setPreset('disabledUsers')">Disabled Users</button>
+							<button class="preset-btn" onclick="setPreset('lockedUsers')">Locked Users</button>
+							<button class="preset-btn" onclick="setPreset('domainAdmins')">Domain Admins</button>
+							<button class="preset-btn" onclick="setPreset('enterpriseAdmins')">Enterprise Admins</button>
+							<button class="preset-btn" onclick="setPreset('adminCount')">AdminCount=1</button>
+							<button class="preset-btn" onclick="setPreset('kerberoastable')">Kerberoastable</button>
+							<button class="preset-btn" onclick="setPreset('asreproast')">AS-REP Roastable</button>
+							<button class="preset-btn" onclick="setPreset('noPassRequired')">Password Not Required</button>
+							<button class="preset-btn" onclick="setPreset('passNeverExpires')">Password Never Expires</button>
+							<button class="preset-btn" onclick="setPreset('reversibleEnc')">Reversible Encryption</button>
+							<button class="preset-btn" onclick="setPreset('unconstrained')">Unconstrained Delegation</button>
+							<button class="preset-btn" onclick="setPreset('constrained')">Constrained Delegation</button>
+							<button class="preset-btn" onclick="setPreset('sensitiveUsers')">Sensitive Users</button>
+							<button class="preset-btn" onclick="setPreset('serviceAccounts')">Service Accounts</button>
+							<button class="preset-btn" onclick="setPreset('recentlyCreated')">Recently Created</button>
+							<button class="preset-btn" onclick="setPreset('neverLoggedIn')">Never Logged In</button>
+							<button class="preset-btn" onclick="setPreset('staleUsers')">Stale Users (90 days)</button>
+
+							<p class="category-title"><i class="fas fa-users"></i> Groups</p>
+							<button class="preset-btn" onclick="setPreset('allGroups')">All Groups</button>
+							<button class="preset-btn" onclick="setPreset('securityGroups')">Security Groups</button>
+							<button class="preset-btn" onclick="setPreset('distributionGroups')">Distribution Groups</button>
+							<button class="preset-btn" onclick="setPreset('domainLocalGroups')">Domain Local Groups</button>
+							<button class="preset-btn" onclick="setPreset('globalGroups')">Global Groups</button>
+							<button class="preset-btn" onclick="setPreset('universalGroups')">Universal Groups</button>
+							<button class="preset-btn" onclick="setPreset('protectedGroups')">Protected Groups</button>
+							<button class="preset-btn" onclick="setPreset('emptyGroups')">Empty Groups</button>
+
+							<p class="category-title"><i class="fas fa-desktop"></i> Computers</p>
+							<button class="preset-btn" onclick="setPreset('allComputers')">All Computers</button>
+							<button class="preset-btn" onclick="setPreset('domainControllers')">Domain Controllers</button>
+							<button class="preset-btn" onclick="setPreset('servers')">Servers</button>
+							<button class="preset-btn" onclick="setPreset('workstations')">Workstations</button>
+							<button class="preset-btn" onclick="setPreset('windows10')">Windows 10</button>
+							<button class="preset-btn" onclick="setPreset('windows11')">Windows 11</button>
+							<button class="preset-btn" onclick="setPreset('server2019')">Server 2019</button>
+							<button class="preset-btn" onclick="setPreset('server2022')">Server 2022</button>
+							<button class="preset-btn" onclick="setPreset('compUnconstrained')">Unconstrained Delegation</button>
+							<button class="preset-btn" onclick="setPreset('compConstrained')">Constrained Delegation</button>
+							<button class="preset-btn" onclick="setPreset('lapsEnabled')">LAPS Enabled</button>
+							<button class="preset-btn" onclick="setPreset('trustedForDelegation')">Trusted for Delegation</button>
+							<button class="preset-btn" onclick="setPreset('staleComputers')">Stale Computers</button>
+
+							<p class="category-title"><i class="fas fa-shield-alt"></i> Security Objects</p>
+							<button class="preset-btn" onclick="setPreset('gpos')">All GPOs</button>
+							<button class="preset-btn" onclick="setPreset('ous')">All OUs</button>
+							<button class="preset-btn" onclick="setPreset('trusts')">Domain Trusts</button>
+							<button class="preset-btn" onclick="setPreset('gmsa')">gMSA Accounts</button>
+							<button class="preset-btn" onclick="setPreset('msa')">MSA Accounts</button>
+							<button class="preset-btn" onclick="setPreset('spns')">All SPNs</button>
+						</div>
+					</div>
+
+					<!-- Custom Query Builder -->
+					<div class="card">
+						<div class="card-header">
+							<i class="fas fa-cogs"></i> Custom Query Builder
+						</div>
+						<div class="card-body">
+							<ul class="nav nav-tabs" id="builderTabs" role="tablist">
+								<li class="nav-item">
+									<a class="nav-link active" id="simple-tab" data-toggle="tab" href="#simple" role="tab">Simple</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" id="advanced-tab" data-toggle="tab" href="#advanced" role="tab">Advanced</a>
+								</li>
+							</ul>
+							<div class="tab-content" id="builderTabsContent">
+								<!-- Simple Builder -->
+								<div class="tab-pane fade show active" id="simple" role="tabpanel">
+									<div class="form-group">
+										<label>Object Type</label>
+										<select class="form-control" id="objectType" onchange="updateSimpleQuery()">
+											<option value="user">User</option>
+											<option value="group">Group</option>
+											<option value="computer">Computer</option>
+											<option value="any">Any Object</option>
+										</select>
+									</div>
+									<div class="form-group">
+										<label>Attribute</label>
+										<select class="form-control" id="attribute" onchange="updateSimpleQuery()">
+											<option value="cn">Common Name (cn)</option>
+											<option value="sAMAccountName">SAM Account Name</option>
+											<option value="displayName">Display Name</option>
+											<option value="mail">Email</option>
+											<option value="description">Description</option>
+											<option value="memberOf">Member Of (Group DN)</option>
+											<option value="department">Department</option>
+											<option value="title">Title</option>
+											<option value="manager">Manager (DN)</option>
+											<option value="operatingSystem">Operating System</option>
+											<option value="servicePrincipalName">Service Principal Name</option>
+										</select>
+									</div>
+									<div class="form-group">
+										<label>Operator</label>
+										<select class="form-control" id="operator" onchange="updateSimpleQuery()">
+											<option value="=">Equals</option>
+											<option value="=*">Contains (wildcard)</option>
+											<option value=">=">Greater Than or Equal</option>
+											<option value="<=">Less Than or Equal</option>
+											<option value="!">Not Equal</option>
+										</select>
+									</div>
+									<div class="form-group">
+										<label>Value</label>
+										<input type="text" class="form-control" id="value" placeholder="Enter value..." onkeyup="updateSimpleQuery()">
+									</div>
+									<div class="form-group">
+										<label>Additional Filters</label>
+										<div class="form-check">
+											<input class="form-check-input" type="checkbox" id="filterEnabled" onchange="updateSimpleQuery()">
+											<label class="form-check-label" for="filterEnabled">Enabled Only</label>
+										</div>
+										<div class="form-check">
+											<input class="form-check-input" type="checkbox" id="filterDisabled" onchange="updateSimpleQuery()">
+											<label class="form-check-label" for="filterDisabled">Disabled Only</label>
+										</div>
+									</div>
+								</div>
+								<!-- Advanced Builder -->
+								<div class="tab-pane fade" id="advanced" role="tabpanel">
+									<div class="form-group">
+										<label>Base Object Class</label>
+										<select class="form-control" id="advObjectClass">
+											<option value="">Any</option>
+											<option value="user">User</option>
+											<option value="person">Person</option>
+											<option value="group">Group</option>
+											<option value="computer">Computer</option>
+											<option value="organizationalUnit">Organizational Unit</option>
+											<option value="groupPolicyContainer">Group Policy Object</option>
+										</select>
+									</div>
+									<div id="filterContainer">
+										<div class="filter-row mb-3" id="filter-0">
+											<div class="row">
+												<div class="col-md-2">
+													<select class="form-control" id="logic-0">
+														<option value="AND">AND</option>
+														<option value="OR">OR</option>
+														<option value="NOT">NOT</option>
+													</select>
+												</div>
+												<div class="col-md-4">
+													<input type="text" class="form-control" id="attr-0" placeholder="Attribute">
+												</div>
+												<div class="col-md-2">
+													<select class="form-control" id="op-0">
+														<option value="=">=</option>
+														<option value=">=">>=</option>
+														<option value="<="><=</option>
+														<option value="~=">~=</option>
+													</select>
+												</div>
+												<div class="col-md-4">
+													<input type="text" class="form-control" id="val-0" placeholder="Value">
+												</div>
+											</div>
+										</div>
+									</div>
+									<button class="btn btn-secondary btn-sm mt-2" onclick="addFilter()"><i class="fas fa-plus"></i> Add Filter</button>
+									<button class="btn btn-secondary btn-sm mt-2" onclick="removeFilter()"><i class="fas fa-minus"></i> Remove Filter</button>
+									<button class="btn btn-primary btn-sm mt-2 ml-2" onclick="buildAdvancedQuery()"><i class="fas fa-hammer"></i> Build Query</button>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Output -->
+					<div class="card">
+						<div class="card-header">
+							<i class="fas fa-terminal"></i> Generated Query
+						</div>
+						<div class="card-body">
+							<ul class="nav nav-tabs" id="outputTabs" role="tablist">
+								<li class="nav-item">
+									<a class="nav-link active" id="ldap-tab" data-toggle="tab" href="#ldapOutput" role="tab">LDAP Filter</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" id="ps-tab" data-toggle="tab" href="#psOutput" role="tab">PowerShell</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" id="ldapsearch-tab" data-toggle="tab" href="#ldapsearchOutput" role="tab">ldapsearch</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link" id="adfind-tab" data-toggle="tab" href="#adfindOutput" role="tab">ADFind</a>
+								</li>
+							</ul>
+							<div class="tab-content">
+								<div class="tab-pane fade show active" id="ldapOutput" role="tabpanel">
+									<div class="output-area" id="queryOutput">
+										<button class="copy-btn" onclick="copyQuery('queryOutput')"><i class="fas fa-copy"></i> Copy</button>
+										<span id="ldapQuery">(objectClass=user)</span>
+									</div>
+								</div>
+								<div class="tab-pane fade" id="psOutput" role="tabpanel">
+									<div class="output-area powershell-output" id="psQueryOutput">
+										<button class="copy-btn" onclick="copyQuery('psQueryOutput')"><i class="fas fa-copy"></i> Copy</button>
+										<span id="psQuery">Get-ADUser -LDAPFilter "(objectClass=user)"</span>
+									</div>
+								</div>
+								<div class="tab-pane fade" id="ldapsearchOutput" role="tabpanel">
+									<div class="output-area tool-command" id="ldapsearchQueryOutput">
+										<button class="copy-btn" onclick="copyQuery('ldapsearchQueryOutput')"><i class="fas fa-copy"></i> Copy</button>
+										<span id="ldapsearchQuery">ldapsearch -x -H ldap://DC -b "DC=domain,DC=com" "(objectClass=user)"</span>
+									</div>
+								</div>
+								<div class="tab-pane fade" id="adfindOutput" role="tabpanel">
+									<div class="output-area tool-command" id="adfindQueryOutput">
+										<button class="copy-btn" onclick="copyQuery('adfindQueryOutput')"><i class="fas fa-copy"></i> Copy</button>
+										<span id="adfindQuery">adfind -f "(objectClass=user)"</span>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Right Column - Reference -->
+				<div class="col-lg-4">
+					<!-- Domain Settings -->
+					<div class="card">
+						<div class="card-header">
+							<i class="fas fa-server"></i> Domain Settings
+						</div>
+						<div class="card-body">
+							<div class="form-group">
+								<label>Domain Controller</label>
+								<input type="text" class="form-control" id="dcHost" placeholder="dc01.domain.com" value="DC">
+							</div>
+							<div class="form-group">
+								<label>Base DN</label>
+								<input type="text" class="form-control" id="baseDN" placeholder="DC=domain,DC=com" value="DC=domain,DC=com">
+							</div>
+						</div>
+					</div>
+
+					<!-- UAC Flags Reference -->
+					<div class="card">
+						<div class="card-header" data-toggle="collapse" href="#uacCollapse">
+							<i class="fas fa-flag"></i> UserAccountControl Flags <i class="fas fa-chevron-down float-right"></i>
+						</div>
+						<div id="uacCollapse" class="collapse">
+							<div class="card-body" style="max-height: 400px; overflow-y: auto;">
+								<table class="table table-sm uac-table">
+									<thead>
+										<tr><th>Flag</th><th>Value</th></tr>
+									</thead>
+									<tbody>
+										<tr><td>SCRIPT</td><td>1</td></tr>
+										<tr><td>ACCOUNTDISABLE</td><td>2</td></tr>
+										<tr><td>HOMEDIR_REQUIRED</td><td>8</td></tr>
+										<tr><td>LOCKOUT</td><td>16</td></tr>
+										<tr><td>PASSWD_NOTREQD</td><td>32</td></tr>
+										<tr><td>PASSWD_CANT_CHANGE</td><td>64</td></tr>
+										<tr><td>ENCRYPTED_TEXT_PWD_ALLOWED</td><td>128</td></tr>
+										<tr><td>NORMAL_ACCOUNT</td><td>512</td></tr>
+										<tr><td>INTERDOMAIN_TRUST_ACCOUNT</td><td>2048</td></tr>
+										<tr><td>WORKSTATION_TRUST_ACCOUNT</td><td>4096</td></tr>
+										<tr><td>SERVER_TRUST_ACCOUNT</td><td>8192</td></tr>
+										<tr><td>DONT_EXPIRE_PASSWORD</td><td>65536</td></tr>
+										<tr><td>MNS_LOGON_ACCOUNT</td><td>131072</td></tr>
+										<tr><td>SMARTCARD_REQUIRED</td><td>262144</td></tr>
+										<tr><td>TRUSTED_FOR_DELEGATION</td><td>524288</td></tr>
+										<tr><td>NOT_DELEGATED</td><td>1048576</td></tr>
+										<tr><td>USE_DES_KEY_ONLY</td><td>2097152</td></tr>
+										<tr><td>DONT_REQ_PREAUTH</td><td>4194304</td></tr>
+										<tr><td>PASSWORD_EXPIRED</td><td>8388608</td></tr>
+										<tr><td>TRUSTED_TO_AUTH_FOR_DELEGATION</td><td>16777216</td></tr>
+										<tr><td>PARTIAL_SECRETS_ACCOUNT</td><td>67108864</td></tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+
+					<!-- Common Attributes -->
+					<div class="card">
+						<div class="card-header" data-toggle="collapse" href="#attrCollapse">
+							<i class="fas fa-list"></i> Common Attributes <i class="fas fa-chevron-down float-right"></i>
+						</div>
+						<div id="attrCollapse" class="collapse">
+							<div class="card-body" style="max-height: 300px; overflow-y: auto;">
+								<span class="filter-tag">sAMAccountName</span>
+								<span class="filter-tag">cn</span>
+								<span class="filter-tag">displayName</span>
+								<span class="filter-tag">distinguishedName</span>
+								<span class="filter-tag">mail</span>
+								<span class="filter-tag">memberOf</span>
+								<span class="filter-tag">member</span>
+								<span class="filter-tag">description</span>
+								<span class="filter-tag">userAccountControl</span>
+								<span class="filter-tag">adminCount</span>
+								<span class="filter-tag">servicePrincipalName</span>
+								<span class="filter-tag">msDS-AllowedToDelegateTo</span>
+								<span class="filter-tag">msDS-AllowedToActOnBehalfOfOtherIdentity</span>
+								<span class="filter-tag">userPrincipalName</span>
+								<span class="filter-tag">pwdLastSet</span>
+								<span class="filter-tag">lastLogon</span>
+								<span class="filter-tag">lastLogonTimestamp</span>
+								<span class="filter-tag">whenCreated</span>
+								<span class="filter-tag">whenChanged</span>
+								<span class="filter-tag">objectSid</span>
+								<span class="filter-tag">primaryGroupID</span>
+								<span class="filter-tag">operatingSystem</span>
+								<span class="filter-tag">operatingSystemVersion</span>
+								<span class="filter-tag">dNSHostName</span>
+								<span class="filter-tag">ms-Mcs-AdmPwd</span>
+								<span class="filter-tag">ms-Mcs-AdmPwdExpirationTime</span>
+							</div>
+						</div>
+					</div>
+
+					<!-- Group Types -->
+					<div class="card">
+						<div class="card-header" data-toggle="collapse" href="#groupCollapse">
+							<i class="fas fa-users"></i> Group Type Values <i class="fas fa-chevron-down float-right"></i>
+						</div>
+						<div id="groupCollapse" class="collapse">
+							<div class="card-body">
+								<table class="table table-sm">
+									<thead><tr><th>Type</th><th>Value</th></tr></thead>
+									<tbody>
+										<tr><td>Global Distribution</td><td>2</td></tr>
+										<tr><td>Domain Local Distribution</td><td>4</td></tr>
+										<tr><td>Universal Distribution</td><td>8</td></tr>
+										<tr><td>Global Security</td><td>-2147483646</td></tr>
+										<tr><td>Domain Local Security</td><td>-2147483644</td></tr>
+										<tr><td>Universal Security</td><td>-2147483640</td></tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<footer>
+		<div class="container">
+			<p>&copy; 2025 Shravan Kumar Sheri - All Rights Reserved</p>
+		</div>
+	</footer>
+
+	<script>
+		let filterCount = 1;
+
+		// Preset queries
+		const presets = {
+			// Users
+			allUsers: '(&(objectCategory=person)(objectClass=user))',
+			enabledUsers: '(&(objectCategory=person)(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))',
+			disabledUsers: '(&(objectCategory=person)(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=2))',
+			lockedUsers: '(&(objectCategory=person)(objectClass=user)(lockoutTime>=1))',
+			domainAdmins: '(&(objectCategory=person)(objectClass=user)(memberOf=CN=Domain Admins,CN=Users,DC=domain,DC=com))',
+			enterpriseAdmins: '(&(objectCategory=person)(objectClass=user)(memberOf=CN=Enterprise Admins,CN=Users,DC=domain,DC=com))',
+			adminCount: '(&(objectCategory=person)(objectClass=user)(adminCount=1))',
+			kerberoastable: '(&(objectCategory=person)(objectClass=user)(servicePrincipalName=*)(!(userAccountControl:1.2.840.113556.1.4.803:=2))(!(cn=krbtgt)))',
+			asreproast: '(&(objectCategory=person)(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=4194304))',
+			noPassRequired: '(&(objectCategory=person)(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=32))',
+			passNeverExpires: '(&(objectCategory=person)(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=65536))',
+			reversibleEnc: '(&(objectCategory=person)(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=128))',
+			unconstrained: '(&(objectCategory=person)(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=524288)(!(userAccountControl:1.2.840.113556.1.4.803:=8192)))',
+			constrained: '(&(objectCategory=person)(objectClass=user)(msDS-AllowedToDelegateTo=*))',
+			sensitiveUsers: '(&(objectCategory=person)(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=1048576))',
+			serviceAccounts: '(&(objectCategory=person)(objectClass=user)(servicePrincipalName=*)(!(sAMAccountName=krbtgt)))',
+			recentlyCreated: '(&(objectCategory=person)(objectClass=user)(whenCreated>=20240101000000.0Z))',
+			neverLoggedIn: '(&(objectCategory=person)(objectClass=user)(!(lastLogon=*))(!(lastLogonTimestamp=*)))',
+			staleUsers: '(&(objectCategory=person)(objectClass=user)(lastLogonTimestamp<=132500000000000000))',
+
+			// Groups
+			allGroups: '(objectCategory=group)',
+			securityGroups: '(&(objectCategory=group)(groupType:1.2.840.113556.1.4.803:=2147483648))',
+			distributionGroups: '(&(objectCategory=group)(!(groupType:1.2.840.113556.1.4.803:=2147483648)))',
+			domainLocalGroups: '(&(objectCategory=group)(groupType:1.2.840.113556.1.4.803:=4))',
+			globalGroups: '(&(objectCategory=group)(groupType:1.2.840.113556.1.4.803:=2))',
+			universalGroups: '(&(objectCategory=group)(groupType:1.2.840.113556.1.4.803:=8))',
+			protectedGroups: '(&(objectCategory=group)(adminCount=1))',
+			emptyGroups: '(&(objectCategory=group)(!(member=*)))',
+
+			// Computers
+			allComputers: '(objectCategory=computer)',
+			domainControllers: '(&(objectCategory=computer)(userAccountControl:1.2.840.113556.1.4.803:=8192))',
+			servers: '(&(objectCategory=computer)(operatingSystem=*Server*))',
+			workstations: '(&(objectCategory=computer)(!(operatingSystem=*Server*)))',
+			windows10: '(&(objectCategory=computer)(operatingSystem=Windows 10*))',
+			windows11: '(&(objectCategory=computer)(operatingSystem=Windows 11*))',
+			server2019: '(&(objectCategory=computer)(operatingSystem=Windows Server 2019*))',
+			server2022: '(&(objectCategory=computer)(operatingSystem=Windows Server 2022*))',
+			compUnconstrained: '(&(objectCategory=computer)(userAccountControl:1.2.840.113556.1.4.803:=524288)(!(userAccountControl:1.2.840.113556.1.4.803:=8192)))',
+			compConstrained: '(&(objectCategory=computer)(msDS-AllowedToDelegateTo=*))',
+			lapsEnabled: '(&(objectCategory=computer)(ms-Mcs-AdmPwdExpirationTime=*))',
+			trustedForDelegation: '(&(objectCategory=computer)(userAccountControl:1.2.840.113556.1.4.803:=524288))',
+			staleComputers: '(&(objectCategory=computer)(lastLogonTimestamp<=132500000000000000))',
+
+			// Security Objects
+			gpos: '(objectCategory=groupPolicyContainer)',
+			ous: '(objectCategory=organizationalUnit)',
+			trusts: '(objectClass=trustedDomain)',
+			gmsa: '(objectClass=msDS-GroupManagedServiceAccount)',
+			msa: '(objectClass=msDS-ManagedServiceAccount)',
+			spns: '(servicePrincipalName=*)'
+		};
+
+		function setPreset(presetName) {
+			const query = presets[presetName];
+			document.getElementById('ldapQuery').textContent = query;
+			updateAllOutputs(query);
+
+			// Update active state
+			document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+			event.target.classList.add('active');
+		}
+
+		function updateSimpleQuery() {
+			const objType = document.getElementById('objectType').value;
+			const attr = document.getElementById('attribute').value;
+			const op = document.getElementById('operator').value;
+			const val = document.getElementById('value').value;
+			const enabledOnly = document.getElementById('filterEnabled').checked;
+			const disabledOnly = document.getElementById('filterDisabled').checked;
+
+			let objectFilter = '';
+			switch(objType) {
+				case 'user':
+					objectFilter = '(objectCategory=person)(objectClass=user)';
+					break;
+				case 'group':
+					objectFilter = '(objectCategory=group)';
+					break;
+				case 'computer':
+					objectFilter = '(objectCategory=computer)';
+					break;
+				default:
+					objectFilter = '';
+			}
+
+			let attrFilter = '';
+			if (val) {
+				if (op === '=*') {
+					attrFilter = `(${attr}=*${val}*)`;
+				} else if (op === '!') {
+					attrFilter = `(!(${attr}=${val}))`;
+				} else {
+					attrFilter = `(${attr}${op}${val})`;
+				}
+			}
+
+			let uacFilter = '';
+			if (enabledOnly) {
+				uacFilter = '(!(userAccountControl:1.2.840.113556.1.4.803:=2))';
+			} else if (disabledOnly) {
+				uacFilter = '(userAccountControl:1.2.840.113556.1.4.803:=2)';
+			}
+
+			let query = '';
+			if (objectFilter || attrFilter || uacFilter) {
+				const parts = [objectFilter, attrFilter, uacFilter].filter(p => p);
+				if (parts.length > 1) {
+					query = `(&${parts.join('')})`;
+				} else {
+					query = parts[0] || '(objectClass=*)';
+				}
+			} else {
+				query = '(objectClass=*)';
+			}
+
+			document.getElementById('ldapQuery').textContent = query;
+			updateAllOutputs(query);
+		}
+
+		function addFilter() {
+			const container = document.getElementById('filterContainer');
+			const newFilter = document.createElement('div');
+			newFilter.className = 'filter-row mb-3';
+			newFilter.id = `filter-${filterCount}`;
+			newFilter.innerHTML = `
+				<div class="row">
+					<div class="col-md-2">
+						<select class="form-control" id="logic-${filterCount}">
+							<option value="AND">AND</option>
+							<option value="OR">OR</option>
+							<option value="NOT">NOT</option>
+						</select>
+					</div>
+					<div class="col-md-4">
+						<input type="text" class="form-control" id="attr-${filterCount}" placeholder="Attribute">
+					</div>
+					<div class="col-md-2">
+						<select class="form-control" id="op-${filterCount}">
+							<option value="=">=</option>
+							<option value=">=">>=</option>
+							<option value="<="><=</option>
+							<option value="~=">~=</option>
+						</select>
+					</div>
+					<div class="col-md-4">
+						<input type="text" class="form-control" id="val-${filterCount}" placeholder="Value">
+					</div>
+				</div>
+			`;
+			container.appendChild(newFilter);
+			filterCount++;
+		}
+
+		function removeFilter() {
+			if (filterCount > 1) {
+				filterCount--;
+				const element = document.getElementById(`filter-${filterCount}`);
+				if (element) element.remove();
+			}
+		}
+
+		function buildAdvancedQuery() {
+			const objClass = document.getElementById('advObjectClass').value;
+			let filters = [];
+
+			if (objClass) {
+				filters.push(`(objectClass=${objClass})`);
+			}
+
+			for (let i = 0; i < filterCount; i++) {
+				const attr = document.getElementById(`attr-${i}`);
+				const val = document.getElementById(`val-${i}`);
+				const op = document.getElementById(`op-${i}`);
+				const logic = document.getElementById(`logic-${i}`);
+
+				if (attr && val && attr.value && val.value) {
+					let filter = `(${attr.value}${op.value}${val.value})`;
+					if (logic.value === 'NOT') {
+						filter = `(!${filter})`;
+					}
+					filters.push(filter);
+				}
+			}
+
+			let query = '';
+			if (filters.length > 1) {
+				query = `(&${filters.join('')})`;
+			} else if (filters.length === 1) {
+				query = filters[0];
+			} else {
+				query = '(objectClass=*)';
+			}
+
+			document.getElementById('ldapQuery').textContent = query;
+			updateAllOutputs(query);
+		}
+
+		function updateAllOutputs(query) {
+			const dc = document.getElementById('dcHost').value || 'DC';
+			const baseDN = document.getElementById('baseDN').value || 'DC=domain,DC=com';
+
+			// PowerShell
+			let psCmd = '';
+			if (query.includes('objectCategory=person') || query.includes('objectClass=user')) {
+				psCmd = `Get-ADUser -LDAPFilter "${query}" -Properties *`;
+			} else if (query.includes('objectCategory=group')) {
+				psCmd = `Get-ADGroup -LDAPFilter "${query}" -Properties *`;
+			} else if (query.includes('objectCategory=computer')) {
+				psCmd = `Get-ADComputer -LDAPFilter "${query}" -Properties *`;
+			} else {
+				psCmd = `Get-ADObject -LDAPFilter "${query}" -Properties *`;
+			}
+			document.getElementById('psQuery').textContent = psCmd;
+
+			// ldapsearch
+			const ldapsearchCmd = `ldapsearch -x -H ldap://${dc} -b "${baseDN}" "${query}"`;
+			document.getElementById('ldapsearchQuery').textContent = ldapsearchCmd;
+
+			// ADFind
+			const adfindCmd = `adfind -h ${dc} -b "${baseDN}" -f "${query}"`;
+			document.getElementById('adfindQuery').textContent = adfindCmd;
+		}
+
+		function copyQuery(elementId) {
+			const element = document.getElementById(elementId);
+			const text = element.querySelector('span').textContent;
+			navigator.clipboard.writeText(text).then(() => {
+				const btn = element.querySelector('.copy-btn');
+				btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+				setTimeout(() => {
+					btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+				}, 2000);
+			});
+		}
+
+		// Initialize
+		document.addEventListener('DOMContentLoaded', function() {
+			updateSimpleQuery();
+		});
+	</script>
+</body>
+</html>
