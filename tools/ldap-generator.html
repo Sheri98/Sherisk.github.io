@@ -216,6 +216,23 @@
 			background: #1a1a2e;
 			color: #fff;
 		}
+
+		.clickable-code {
+			cursor: pointer;
+			background: #e3f2fd;
+			padding: 2px 6px;
+			border-radius: 3px;
+			transition: all 0.2s;
+		}
+
+		.clickable-code:hover {
+			background: #4a9eff;
+			color: #fff;
+		}
+
+		.uac-table code {
+			font-size: 11px;
+		}
 	</style>
 </head>
 <body>
@@ -498,41 +515,173 @@
 						</div>
 					</div>
 
+					<!-- objectClass Values -->
+					<div class="card">
+						<div class="card-header" data-toggle="collapse" href="#objectClassCollapse">
+							<i class="fas fa-cube"></i> objectClass Values <i class="fas fa-chevron-down float-right"></i>
+						</div>
+						<div id="objectClassCollapse" class="collapse show">
+							<div class="card-body" style="max-height: 350px; overflow-y: auto;">
+								<table class="table table-sm uac-table">
+									<thead><tr><th>Object Type</th><th>objectClass</th></tr></thead>
+									<tbody>
+										<tr><td>User Account</td><td><code class="clickable-code" onclick="insertFilter('objectClass=user')">user</code></td></tr>
+										<tr><td>Person</td><td><code class="clickable-code" onclick="insertFilter('objectClass=person')">person</code></td></tr>
+										<tr><td>Computer</td><td><code class="clickable-code" onclick="insertFilter('objectClass=computer')">computer</code></td></tr>
+										<tr><td>Group</td><td><code class="clickable-code" onclick="insertFilter('objectClass=group')">group</code></td></tr>
+										<tr><td>OU</td><td><code class="clickable-code" onclick="insertFilter('objectClass=organizationalUnit')">organizationalUnit</code></td></tr>
+										<tr><td>Domain</td><td><code class="clickable-code" onclick="insertFilter('objectClass=domain')">domain</code></td></tr>
+										<tr><td>GPO</td><td><code class="clickable-code" onclick="insertFilter('objectClass=groupPolicyContainer')">groupPolicyContainer</code></td></tr>
+										<tr><td>Container</td><td><code class="clickable-code" onclick="insertFilter('objectClass=container')">container</code></td></tr>
+										<tr><td>Domain Trust</td><td><code class="clickable-code" onclick="insertFilter('objectClass=trustedDomain')">trustedDomain</code></td></tr>
+										<tr><td>gMSA</td><td><code class="clickable-code" onclick="insertFilter('objectClass=msDS-GroupManagedServiceAccount')">msDS-GroupManagedServiceAccount</code></td></tr>
+										<tr><td>MSA</td><td><code class="clickable-code" onclick="insertFilter('objectClass=msDS-ManagedServiceAccount')">msDS-ManagedServiceAccount</code></td></tr>
+										<tr><td>Foreign Security Principal</td><td><code class="clickable-code" onclick="insertFilter('objectClass=foreignSecurityPrincipal')">foreignSecurityPrincipal</code></td></tr>
+										<tr><td>Subnet</td><td><code class="clickable-code" onclick="insertFilter('objectClass=subnet')">subnet</code></td></tr>
+										<tr><td>Site</td><td><code class="clickable-code" onclick="insertFilter('objectClass=site')">site</code></td></tr>
+										<tr><td>Site Link</td><td><code class="clickable-code" onclick="insertFilter('objectClass=siteLink')">siteLink</code></td></tr>
+										<tr><td>DNS Zone</td><td><code class="clickable-code" onclick="insertFilter('objectClass=dnsZone')">dnsZone</code></td></tr>
+										<tr><td>DNS Node</td><td><code class="clickable-code" onclick="insertFilter('objectClass=dnsNode')">dnsNode</code></td></tr>
+										<tr><td>Print Queue</td><td><code class="clickable-code" onclick="insertFilter('objectClass=printQueue')">printQueue</code></td></tr>
+										<tr><td>Contact</td><td><code class="clickable-code" onclick="insertFilter('objectClass=contact')">contact</code></td></tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+
+					<!-- sAMAccountType Values -->
+					<div class="card">
+						<div class="card-header" data-toggle="collapse" href="#samAccountCollapse">
+							<i class="fas fa-id-card"></i> sAMAccountType Values <i class="fas fa-chevron-down float-right"></i>
+						</div>
+						<div id="samAccountCollapse" class="collapse">
+							<div class="card-body">
+								<table class="table table-sm uac-table">
+									<thead><tr><th>Type</th><th>Value</th></tr></thead>
+									<tbody>
+										<tr><td>Domain Object</td><td><code class="clickable-code" onclick="insertFilter('sAMAccountType=0')">0</code></td></tr>
+										<tr><td>Group Object</td><td><code class="clickable-code" onclick="insertFilter('sAMAccountType=268435456')">268435456</code></td></tr>
+										<tr><td>Non-Security Group</td><td><code class="clickable-code" onclick="insertFilter('sAMAccountType=268435457')">268435457</code></td></tr>
+										<tr><td>Alias Object</td><td><code class="clickable-code" onclick="insertFilter('sAMAccountType=536870912')">536870912</code></td></tr>
+										<tr><td>Non-Security Alias</td><td><code class="clickable-code" onclick="insertFilter('sAMAccountType=536870913')">536870913</code></td></tr>
+										<tr><td><strong>User Account</strong></td><td><code class="clickable-code" onclick="insertFilter('sAMAccountType=805306368')">805306368</code></td></tr>
+										<tr><td><strong>Computer Account</strong></td><td><code class="clickable-code" onclick="insertFilter('sAMAccountType=805306369')">805306369</code></td></tr>
+										<tr><td>Trust Account</td><td><code class="clickable-code" onclick="insertFilter('sAMAccountType=805306370')">805306370</code></td></tr>
+									</tbody>
+								</table>
+								<small class="text-muted">Click value to insert filter</small>
+							</div>
+						</div>
+					</div>
+
+					<!-- objectCategory Values -->
+					<div class="card">
+						<div class="card-header" data-toggle="collapse" href="#objectCatCollapse">
+							<i class="fas fa-folder"></i> objectCategory Values <i class="fas fa-chevron-down float-right"></i>
+						</div>
+						<div id="objectCatCollapse" class="collapse">
+							<div class="card-body">
+								<table class="table table-sm uac-table">
+									<thead><tr><th>Object</th><th>objectCategory</th></tr></thead>
+									<tbody>
+										<tr><td>User</td><td><code class="clickable-code" onclick="insertFilter('objectCategory=person')">person</code></td></tr>
+										<tr><td>Computer</td><td><code class="clickable-code" onclick="insertFilter('objectCategory=computer')">computer</code></td></tr>
+										<tr><td>Group</td><td><code class="clickable-code" onclick="insertFilter('objectCategory=group')">group</code></td></tr>
+										<tr><td>OU</td><td><code class="clickable-code" onclick="insertFilter('objectCategory=organizationalUnit')">organizationalUnit</code></td></tr>
+										<tr><td>GPO</td><td><code class="clickable-code" onclick="insertFilter('objectCategory=groupPolicyContainer')">groupPolicyContainer</code></td></tr>
+										<tr><td>Domain</td><td><code class="clickable-code" onclick="insertFilter('objectCategory=domainDNS')">domainDNS</code></td></tr>
+										<tr><td>Subnet</td><td><code class="clickable-code" onclick="insertFilter('objectCategory=subnet')">subnet</code></td></tr>
+										<tr><td>Site</td><td><code class="clickable-code" onclick="insertFilter('objectCategory=site')">site</code></td></tr>
+										<tr><td>Print Queue</td><td><code class="clickable-code" onclick="insertFilter('objectCategory=printQueue')">printQueue</code></td></tr>
+										<tr><td>Contact</td><td><code class="clickable-code" onclick="insertFilter('objectCategory=contact')">contact</code></td></tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+
+					<!-- primaryGroupID Values -->
+					<div class="card">
+						<div class="card-header" data-toggle="collapse" href="#primaryGroupCollapse">
+							<i class="fas fa-users-cog"></i> primaryGroupID (RID) <i class="fas fa-chevron-down float-right"></i>
+						</div>
+						<div id="primaryGroupCollapse" class="collapse">
+							<div class="card-body">
+								<table class="table table-sm uac-table">
+									<thead><tr><th>Group</th><th>RID</th></tr></thead>
+									<tbody>
+										<tr><td>Domain Users</td><td><code class="clickable-code" onclick="insertFilter('primaryGroupID=513')">513</code></td></tr>
+										<tr><td>Domain Admins</td><td><code class="clickable-code" onclick="insertFilter('primaryGroupID=512')">512</code></td></tr>
+										<tr><td>Domain Computers</td><td><code class="clickable-code" onclick="insertFilter('primaryGroupID=515')">515</code></td></tr>
+										<tr><td>Domain Controllers</td><td><code class="clickable-code" onclick="insertFilter('primaryGroupID=516')">516</code></td></tr>
+										<tr><td>Domain Guests</td><td><code class="clickable-code" onclick="insertFilter('primaryGroupID=514')">514</code></td></tr>
+										<tr><td>Schema Admins</td><td><code class="clickable-code" onclick="insertFilter('primaryGroupID=518')">518</code></td></tr>
+										<tr><td>Enterprise Admins</td><td><code class="clickable-code" onclick="insertFilter('primaryGroupID=519')">519</code></td></tr>
+										<tr><td>Group Policy Creator</td><td><code class="clickable-code" onclick="insertFilter('primaryGroupID=520')">520</code></td></tr>
+										<tr><td>Read-only Domain Controllers</td><td><code class="clickable-code" onclick="insertFilter('primaryGroupID=521')">521</code></td></tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+
 					<!-- UAC Flags Reference -->
 					<div class="card">
 						<div class="card-header" data-toggle="collapse" href="#uacCollapse">
 							<i class="fas fa-flag"></i> UserAccountControl Flags <i class="fas fa-chevron-down float-right"></i>
 						</div>
 						<div id="uacCollapse" class="collapse">
-							<div class="card-body" style="max-height: 400px; overflow-y: auto;">
+							<div class="card-body" style="max-height: 350px; overflow-y: auto;">
 								<table class="table table-sm uac-table">
-									<thead>
-										<tr><th>Flag</th><th>Value</th></tr>
-									</thead>
+									<thead><tr><th>Flag</th><th>Value</th></tr></thead>
 									<tbody>
-										<tr><td>SCRIPT</td><td>1</td></tr>
-										<tr><td>ACCOUNTDISABLE</td><td>2</td></tr>
-										<tr><td>HOMEDIR_REQUIRED</td><td>8</td></tr>
-										<tr><td>LOCKOUT</td><td>16</td></tr>
-										<tr><td>PASSWD_NOTREQD</td><td>32</td></tr>
-										<tr><td>PASSWD_CANT_CHANGE</td><td>64</td></tr>
-										<tr><td>ENCRYPTED_TEXT_PWD_ALLOWED</td><td>128</td></tr>
-										<tr><td>NORMAL_ACCOUNT</td><td>512</td></tr>
-										<tr><td>INTERDOMAIN_TRUST_ACCOUNT</td><td>2048</td></tr>
-										<tr><td>WORKSTATION_TRUST_ACCOUNT</td><td>4096</td></tr>
-										<tr><td>SERVER_TRUST_ACCOUNT</td><td>8192</td></tr>
-										<tr><td>DONT_EXPIRE_PASSWORD</td><td>65536</td></tr>
-										<tr><td>MNS_LOGON_ACCOUNT</td><td>131072</td></tr>
-										<tr><td>SMARTCARD_REQUIRED</td><td>262144</td></tr>
-										<tr><td>TRUSTED_FOR_DELEGATION</td><td>524288</td></tr>
-										<tr><td>NOT_DELEGATED</td><td>1048576</td></tr>
-										<tr><td>USE_DES_KEY_ONLY</td><td>2097152</td></tr>
-										<tr><td>DONT_REQ_PREAUTH</td><td>4194304</td></tr>
-										<tr><td>PASSWORD_EXPIRED</td><td>8388608</td></tr>
-										<tr><td>TRUSTED_TO_AUTH_FOR_DELEGATION</td><td>16777216</td></tr>
-										<tr><td>PARTIAL_SECRETS_ACCOUNT</td><td>67108864</td></tr>
+										<tr><td>SCRIPT</td><td><code class="clickable-code" onclick="insertUACFilter(1)">1</code></td></tr>
+										<tr><td>ACCOUNTDISABLE</td><td><code class="clickable-code" onclick="insertUACFilter(2)">2</code></td></tr>
+										<tr><td>HOMEDIR_REQUIRED</td><td><code class="clickable-code" onclick="insertUACFilter(8)">8</code></td></tr>
+										<tr><td>LOCKOUT</td><td><code class="clickable-code" onclick="insertUACFilter(16)">16</code></td></tr>
+										<tr><td>PASSWD_NOTREQD</td><td><code class="clickable-code" onclick="insertUACFilter(32)">32</code></td></tr>
+										<tr><td>PASSWD_CANT_CHANGE</td><td><code class="clickable-code" onclick="insertUACFilter(64)">64</code></td></tr>
+										<tr><td>ENCRYPTED_TEXT_PWD</td><td><code class="clickable-code" onclick="insertUACFilter(128)">128</code></td></tr>
+										<tr><td>NORMAL_ACCOUNT</td><td><code class="clickable-code" onclick="insertUACFilter(512)">512</code></td></tr>
+										<tr><td>INTERDOMAIN_TRUST</td><td><code class="clickable-code" onclick="insertUACFilter(2048)">2048</code></td></tr>
+										<tr><td>WORKSTATION_TRUST</td><td><code class="clickable-code" onclick="insertUACFilter(4096)">4096</code></td></tr>
+										<tr><td>SERVER_TRUST (DC)</td><td><code class="clickable-code" onclick="insertUACFilter(8192)">8192</code></td></tr>
+										<tr><td>DONT_EXPIRE_PASSWORD</td><td><code class="clickable-code" onclick="insertUACFilter(65536)">65536</code></td></tr>
+										<tr><td>MNS_LOGON_ACCOUNT</td><td><code class="clickable-code" onclick="insertUACFilter(131072)">131072</code></td></tr>
+										<tr><td>SMARTCARD_REQUIRED</td><td><code class="clickable-code" onclick="insertUACFilter(262144)">262144</code></td></tr>
+										<tr><td>TRUSTED_FOR_DELEGATION</td><td><code class="clickable-code" onclick="insertUACFilter(524288)">524288</code></td></tr>
+										<tr><td>NOT_DELEGATED</td><td><code class="clickable-code" onclick="insertUACFilter(1048576)">1048576</code></td></tr>
+										<tr><td>USE_DES_KEY_ONLY</td><td><code class="clickable-code" onclick="insertUACFilter(2097152)">2097152</code></td></tr>
+										<tr><td>DONT_REQ_PREAUTH</td><td><code class="clickable-code" onclick="insertUACFilter(4194304)">4194304</code></td></tr>
+										<tr><td>PASSWORD_EXPIRED</td><td><code class="clickable-code" onclick="insertUACFilter(8388608)">8388608</code></td></tr>
+										<tr><td>TRUSTED_TO_AUTH</td><td><code class="clickable-code" onclick="insertUACFilter(16777216)">16777216</code></td></tr>
+										<tr><td>PARTIAL_SECRETS</td><td><code class="clickable-code" onclick="insertUACFilter(67108864)">67108864</code></td></tr>
 									</tbody>
 								</table>
+							</div>
+						</div>
+					</div>
+
+					<!-- Group Types -->
+					<div class="card">
+						<div class="card-header" data-toggle="collapse" href="#groupCollapse">
+							<i class="fas fa-layer-group"></i> groupType Values <i class="fas fa-chevron-down float-right"></i>
+						</div>
+						<div id="groupCollapse" class="collapse">
+							<div class="card-body">
+								<table class="table table-sm uac-table">
+									<thead><tr><th>Type</th><th>Value</th></tr></thead>
+									<tbody>
+										<tr><td>Global Distribution</td><td><code class="clickable-code" onclick="insertFilter('groupType=2')">2</code></td></tr>
+										<tr><td>Domain Local Distribution</td><td><code class="clickable-code" onclick="insertFilter('groupType=4')">4</code></td></tr>
+										<tr><td>Universal Distribution</td><td><code class="clickable-code" onclick="insertFilter('groupType=8')">8</code></td></tr>
+										<tr><td>Global Security</td><td><code class="clickable-code" onclick="insertFilter('groupType=-2147483646')">-2147483646</code></td></tr>
+										<tr><td>Domain Local Security</td><td><code class="clickable-code" onclick="insertFilter('groupType=-2147483644')">-2147483644</code></td></tr>
+										<tr><td>Universal Security</td><td><code class="clickable-code" onclick="insertFilter('groupType=-2147483640')">-2147483640</code></td></tr>
+									</tbody>
+								</table>
+								<p class="text-muted mt-2" style="font-size:11px;"><strong>Bit flag:</strong> Security = 0x80000000 (2147483648)</p>
 							</div>
 						</div>
 					</div>
@@ -568,30 +717,63 @@
 								<span class="filter-tag">operatingSystem</span>
 								<span class="filter-tag">operatingSystemVersion</span>
 								<span class="filter-tag">dNSHostName</span>
+								<span class="filter-tag">nTSecurityDescriptor</span>
 								<span class="filter-tag">ms-Mcs-AdmPwd</span>
 								<span class="filter-tag">ms-Mcs-AdmPwdExpirationTime</span>
+								<span class="filter-tag">msDS-KeyCredentialLink</span>
+								<span class="filter-tag">msDS-AllowedToActOnBehalfOfOtherIdentity</span>
 							</div>
 						</div>
 					</div>
 
-					<!-- Group Types -->
+					<!-- Matching Rules (OIDs) -->
 					<div class="card">
-						<div class="card-header" data-toggle="collapse" href="#groupCollapse">
-							<i class="fas fa-users"></i> Group Type Values <i class="fas fa-chevron-down float-right"></i>
+						<div class="card-header" data-toggle="collapse" href="#oidCollapse">
+							<i class="fas fa-filter"></i> Matching Rules (OIDs) <i class="fas fa-chevron-down float-right"></i>
 						</div>
-						<div id="groupCollapse" class="collapse">
-							<div class="card-body">
-								<table class="table table-sm">
-									<thead><tr><th>Type</th><th>Value</th></tr></thead>
-									<tbody>
-										<tr><td>Global Distribution</td><td>2</td></tr>
-										<tr><td>Domain Local Distribution</td><td>4</td></tr>
-										<tr><td>Universal Distribution</td><td>8</td></tr>
-										<tr><td>Global Security</td><td>-2147483646</td></tr>
-										<tr><td>Domain Local Security</td><td>-2147483644</td></tr>
-										<tr><td>Universal Security</td><td>-2147483640</td></tr>
-									</tbody>
-								</table>
+						<div id="oidCollapse" class="collapse">
+							<div class="card-body" style="font-size: 12px;">
+								<p><strong>LDAP_MATCHING_RULE_BIT_AND</strong><br>
+								<code>1.2.840.113556.1.4.803</code><br>
+								<small>Bitwise AND - matches if ALL bits set</small></p>
+
+								<p><strong>LDAP_MATCHING_RULE_BIT_OR</strong><br>
+								<code>1.2.840.113556.1.4.804</code><br>
+								<small>Bitwise OR - matches if ANY bit set</small></p>
+
+								<p><strong>LDAP_MATCHING_RULE_IN_CHAIN</strong><br>
+								<code>1.2.840.113556.1.4.1941</code><br>
+								<small>Recursive search (nested groups)</small></p>
+
+								<div class="mt-3 p-2" style="background:#f8f9fa; border-radius:5px;">
+									<strong>Example Usage:</strong><br>
+									<code style="font-size:11px;">(userAccountControl:1.2.840.113556.1.4.803:=2)</code>
+									<br><small>Find disabled accounts (UAC bit 2)</small>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Quick Combined Queries -->
+					<div class="card">
+						<div class="card-header" data-toggle="collapse" href="#quickCombinedCollapse">
+							<i class="fas fa-magic"></i> Example Combined Queries <i class="fas fa-chevron-down float-right"></i>
+						</div>
+						<div id="quickCombinedCollapse" class="collapse">
+							<div class="card-body" style="font-size: 11px;">
+								<p><strong>All Principal Objects (ACL enum):</strong></p>
+								<code class="d-block p-2 mb-2" style="background:#1a1a2e; color:#00ff00; border-radius:4px; cursor:pointer;" onclick="setCustomQuery('(|(objectClass=domain)(objectClass=organizationalUnit)(objectClass=groupPolicyContainer))')">(|(objectClass=domain)(objectClass=organizationalUnit)(objectClass=groupPolicyContainer))</code>
+
+								<p><strong>All Accounts with SPN:</strong></p>
+								<code class="d-block p-2 mb-2" style="background:#1a1a2e; color:#00ff00; border-radius:4px; cursor:pointer;" onclick="setCustomQuery('(|(samAccountType=805306368)(samAccountType=805306369)(samAccountType=268435456))')">(|(samAccountType=805306368)(samAccountType=805306369)(samAccountType=268435456))</code>
+
+								<p><strong>Users + Computers:</strong></p>
+								<code class="d-block p-2 mb-2" style="background:#1a1a2e; color:#00ff00; border-radius:4px; cursor:pointer;" onclick="setCustomQuery('(|(sAMAccountType=805306368)(sAMAccountType=805306369))')">(|(sAMAccountType=805306368)(sAMAccountType=805306369))</code>
+
+								<p><strong>Nested Group Members:</strong></p>
+								<code class="d-block p-2 mb-2" style="background:#1a1a2e; color:#00ff00; border-radius:4px; cursor:pointer;" onclick="setCustomQuery('(memberOf:1.2.840.113556.1.4.1941:=CN=Domain Admins,CN=Users,DC=domain,DC=com)')">(memberOf:1.2.840.113556.1.4.1941:=CN=Domain Admins,...)</code>
+
+								<small class="text-muted">Click to use query</small>
 							</div>
 						</div>
 					</div>
@@ -847,6 +1029,26 @@
 					btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
 				}, 2000);
 			});
+		}
+
+		// Insert filter from reference sidebar
+		function insertFilter(filter) {
+			const query = `(${filter})`;
+			document.getElementById('ldapQuery').textContent = query;
+			updateAllOutputs(query);
+		}
+
+		// Insert UAC filter with proper OID syntax
+		function insertUACFilter(value) {
+			const query = `(userAccountControl:1.2.840.113556.1.4.803:=${value})`;
+			document.getElementById('ldapQuery').textContent = query;
+			updateAllOutputs(query);
+		}
+
+		// Set custom query from examples
+		function setCustomQuery(query) {
+			document.getElementById('ldapQuery').textContent = query;
+			updateAllOutputs(query);
 		}
 
 		// Initialize
