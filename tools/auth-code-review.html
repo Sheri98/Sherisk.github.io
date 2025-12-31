@@ -1205,8 +1205,12 @@ def login():
                     </ul>
                 </div>
                 <div class="code-review-section">
-                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
-                    <div class="code-container">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Code Review</h3>
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab3"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab3"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab3-vulnerable">
                         <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py</span></div></div>
                         <div class="code-block">
                             <pre><code class="language-python">@app.route('/login', methods=['POST'])
@@ -1224,6 +1228,30 @@ def login():
 <span class="vuln-line">    # Only executed for valid usernames!</span>
 <span class="vuln-line">    if not bcrypt.check_password_hash(user.password, password):</span>
         return error_response('Invalid credentials')
+
+    return success_response(user)</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab3-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/login', methods=['POST'])
+def login():
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+    user = User.query.filter_by(username=username).first()
+
+<span class="secure-line">    # ✅ Always perform hash check to ensure consistent timing</span>
+<span class="secure-line">    if user:</span>
+<span class="secure-line">        valid = bcrypt.check_password_hash(user.password, password)</span>
+<span class="secure-line">    else:</span>
+<span class="secure-line">        # Dummy hash to prevent timing attack</span>
+<span class="secure-line">        bcrypt.check_password_hash(DUMMY_HASH, password)</span>
+<span class="secure-line">        valid = False</span>
+
+<span class="secure-line">    if not user or not valid:</span>
+<span class="secure-line">        return error_response('Invalid credentials')</span>
 
     return success_response(user)</code></pre>
                         </div>
@@ -1274,8 +1302,12 @@ username=§admin§&password=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA...
                     </ul>
                 </div>
                 <div class="code-review-section">
-                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
-                    <div class="code-container">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Code Review</h3>
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab4"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab4"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab4-vulnerable">
                         <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py</span></div></div>
                         <div class="code-block">
                             <pre><code class="language-python">@app.route('/login', methods=['POST'])
@@ -1298,6 +1330,34 @@ def login():
         return error('Invalid credentials')
 
     user.failed_attempts = 0
+    return success(user)</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab4-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/login', methods=['POST'])
+def login():
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+<span class="secure-line">    # ✅ Check lockout BEFORE revealing if user exists</span>
+<span class="secure-line">    if is_ip_locked(request.remote_addr):</span>
+<span class="secure-line">        return error('Too many attempts. Try again later.')</span>
+
+    user = User.query.filter_by(username=username).first()
+
+<span class="secure-line">    # ✅ Generic lockout check - doesn't reveal user existence</span>
+<span class="secure-line">    if user:</span>
+<span class="secure-line">        valid = verify_password(user.password, password)</span>
+<span class="secure-line">    else:</span>
+<span class="secure-line">        verify_password(DUMMY_HASH, password)</span>
+<span class="secure-line">        valid = False</span>
+
+<span class="secure-line">    if not valid:</span>
+<span class="secure-line">        increment_failed_attempts(request.remote_addr)</span>
+<span class="secure-line">        return error('Invalid credentials')</span>
+
     return success(user)</code></pre>
                         </div>
                     </div>
@@ -1338,8 +1398,12 @@ def login():
                     </ul>
                 </div>
                 <div class="code-review-section">
-                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
-                    <div class="code-container">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Code Review</h3>
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab5"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab5"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab5-vulnerable">
                         <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>rate_limiter.py</span></div></div>
                         <div class="code-block">
                             <pre><code class="language-python">def check_rate_limit(ip_address):
@@ -1356,6 +1420,28 @@ def login(username, password, ip_address):
         return success()
     else:
         increment_failed_attempts(ip_address)
+        return failure()</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab5-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>rate_limiter.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"><span class="secure-line">def check_rate_limit(ip_address, username):</span>
+<span class="secure-line">    # ✅ Track attempts per IP AND per username</span>
+<span class="secure-line">    ip_attempts = get_failed_attempts_by_ip(ip_address)</span>
+<span class="secure-line">    user_attempts = get_failed_attempts_by_user(username)</span>
+<span class="secure-line">    if ip_attempts >= 10 or user_attempts >= 5:</span>
+<span class="secure-line">        raise RateLimitError("Too many failed attempts")</span>
+
+def login(username, password, ip_address):
+    check_rate_limit(ip_address, username)
+
+    if authenticate(username, password):
+<span class="secure-line">        # ✅ Only reset counter for THIS user, not the IP</span>
+<span class="secure-line">        reset_failed_attempts_by_user(username)</span>
+        return success()
+    else:
+<span class="secure-line">        increment_failed_attempts(ip_address, username)</span>
         return failure()</code></pre>
                         </div>
                     </div>
@@ -2617,7 +2703,7 @@ for password in passwords:
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
     <script>
-        // Current state for Lab 14 multi-language support
+        // Lab 14 multi-language state
         let currentLang = 'python';
         let currentView = 'vulnerable';
 
@@ -2627,70 +2713,74 @@ for password in passwords:
                 document.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
                 currentLang = tab.dataset.lang;
-                updateLab14CodeDisplay();
+                updateLab14Code();
             });
         });
 
-        // Lab 14 code view toggle
-        function updateLab14CodeDisplay() {
-            // Only for Lab 14's multi-language code blocks
-            const containers = document.querySelectorAll('[id^="code-python"], [id^="code-php"], [id^="code-nodejs"], [id^="code-java"]');
-            containers.forEach(container => {
-                container.classList.add('hidden');
+        // Lab 14 specific code display
+        function updateLab14Code() {
+            // Only hide/show Lab 14's language-specific containers
+            ['python', 'php', 'nodejs', 'java'].forEach(lang => {
+                ['vulnerable', 'secure'].forEach(view => {
+                    const el = document.getElementById(`code-${lang}-${view}`);
+                    if (el) {
+                        if (lang === currentLang && view === currentView) {
+                            el.classList.remove('hidden');
+                        } else {
+                            el.classList.add('hidden');
+                        }
+                    }
+                });
             });
-
-            const containerId = `code-${currentLang}-${currentView}`;
-            const container = document.getElementById(containerId);
-            if (container) {
-                container.classList.remove('hidden');
-            }
         }
 
-        // Code tab handling for ALL labs (vulnerable/secure toggle)
+        // Handle code tab clicks for ALL labs
         document.querySelectorAll('.code-tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                const parent = this.closest('.code-review-section');
-                const labAttr = this.dataset.lab;
+            tab.addEventListener('click', function(e) {
+                e.preventDefault();
+                const section = this.closest('.code-review-section');
                 const view = this.dataset.view;
+                const labId = this.dataset.lab;
 
-                // Update active state for tabs in this section
-                parent.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
+                // Update active tab in this section
+                section.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
                 this.classList.add('active');
 
-                // Handle Labs 1-13 (simple toggle)
-                if (labAttr && labAttr.startsWith('lab')) {
-                    const vulnContainer = document.getElementById(`${labAttr}-vulnerable`);
-                    const secureContainer = document.getElementById(`${labAttr}-secure`);
+                if (labId && labId.startsWith('lab')) {
+                    // Labs 1-13: Simple toggle
+                    const vulnEl = document.getElementById(`${labId}-vulnerable`);
+                    const secureEl = document.getElementById(`${labId}-secure`);
 
-                    if (vulnContainer && secureContainer) {
+                    if (vulnEl && secureEl) {
                         if (view === 'vulnerable') {
-                            vulnContainer.classList.remove('hidden');
-                            secureContainer.classList.add('hidden');
+                            vulnEl.classList.remove('hidden');
+                            secureEl.classList.add('hidden');
                         } else {
-                            vulnContainer.classList.add('hidden');
-                            secureContainer.classList.remove('hidden');
+                            vulnEl.classList.add('hidden');
+                            secureEl.classList.remove('hidden');
                         }
                     }
                 } else {
-                    // Handle Lab 14 (multi-language)
+                    // Lab 14: Multi-language
                     currentView = view;
-                    updateLab14CodeDisplay();
+                    updateLab14Code();
                 }
             });
         });
 
-        // Lab item selection (sidebar navigation)
+        // Lab sidebar navigation
         document.querySelectorAll('.lab-item:not(.coming-soon)').forEach(item => {
             item.addEventListener('click', () => {
-                // Update active sidebar item
+                // Update active state
                 document.querySelectorAll('.lab-item').forEach(i => i.classList.remove('active'));
                 item.classList.add('active');
 
-                // Show corresponding lab content
+                // Show selected lab content
                 const labId = item.dataset.lab;
                 document.querySelectorAll('.lab-content').forEach(content => {
                     content.classList.add('hidden');
                 });
+
                 const labContent = document.getElementById(labId);
                 if (labContent) {
                     labContent.classList.remove('hidden');
@@ -2698,30 +2788,23 @@ for password in passwords:
             });
         });
 
-        // Copy code functionality
+        // Copy code
         function copyCode(codeId) {
-            const codeElement = document.getElementById(codeId);
-            if (codeElement) {
-                const text = codeElement.innerText;
-                navigator.clipboard.writeText(text).then(() => {
-                    const btn = event.target.closest('.code-action-btn');
-                    const originalText = btn.innerHTML;
-                    btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                    setTimeout(() => {
-                        btn.innerHTML = originalText;
-                    }, 2000);
-                });
+            const el = document.getElementById(codeId);
+            if (el) {
+                navigator.clipboard.writeText(el.innerText);
+                alert('Copied!');
             }
         }
 
-        // Initialize - show first lab by default
+        // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {
-            // Show first non-coming-soon lab
+            // Click first available lab
             const firstLab = document.querySelector('.lab-item:not(.coming-soon)');
-            if (firstLab) {
-                firstLab.click();
-            }
-            updateLab14CodeDisplay();
+            if (firstLab) firstLab.click();
+
+            // Init Lab 14 code display
+            updateLab14Code();
         });
     </script>
 </body>
