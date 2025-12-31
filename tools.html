@@ -7,133 +7,142 @@
 	<meta name="description" content="Free security tools for penetration testers and red teamers - LDAP Query Generator, BloodHound Cypher Generator, and more.">
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 	<style>
+		:root {
+			--bg-primary: #fafafa;
+			--bg-secondary: #fff;
+			--text-primary: #171717;
+			--text-secondary: #525252;
+			--text-muted: #a3a3a3;
+			--border-color: #e5e5e5;
+			--accent: #171717;
+			--accent-hover: #404040;
+		}
+
 		* {
 			box-sizing: border-box;
 		}
 
 		body {
-			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-			background-color: #f8f9fa;
+			font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+			background-color: var(--bg-primary);
+			color: var(--text-primary);
 			margin: 0;
 			padding: 0;
 			line-height: 1.6;
+			-webkit-font-smoothing: antialiased;
 		}
 
 		.navbar {
-			background-color: #1a1a2e !important;
-			padding: 15px 0;
-			box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+			background-color: var(--bg-secondary);
+			padding: 16px 0;
+			border-bottom: 1px solid var(--border-color);
 		}
 
 		.navbar-brand {
-			color: #fff !important;
-			font-size: 22px;
+			color: var(--text-primary) !important;
+			font-size: 15px;
 			font-weight: 600;
+			letter-spacing: -0.01em;
 		}
 
 		.nav-link {
-			color: rgba(255,255,255,0.9) !important;
-			font-size: 16px;
-			margin-left: 20px;
-			transition: color 0.3s;
+			color: var(--text-secondary) !important;
+			font-size: 14px;
+			font-weight: 500;
+			margin-left: 24px;
+			transition: color 0.15s;
 		}
 
 		.nav-link:hover {
-			color: #4a9eff !important;
+			color: var(--text-primary) !important;
+		}
+
+		.nav-link.active {
+			color: var(--text-primary) !important;
 		}
 
 		.hero-section {
-			background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-			color: #fff;
-			padding: 60px 0;
-			text-align: center;
+			background: var(--bg-secondary);
+			border-bottom: 1px solid var(--border-color);
+			padding: 64px 0;
 		}
 
 		.hero-section h1 {
-			font-size: 42px;
+			font-size: 32px;
 			font-weight: 700;
-			margin-bottom: 15px;
+			letter-spacing: -0.02em;
+			margin-bottom: 12px;
+			color: var(--text-primary);
 		}
 
 		.hero-section p {
-			font-size: 18px;
-			opacity: 0.85;
-			max-width: 600px;
-			margin: 0 auto;
+			font-size: 16px;
+			color: var(--text-secondary);
+			max-width: 520px;
 		}
 
 		.main-content {
-			padding: 60px 0;
+			padding: 48px 0 80px;
 		}
 
-		.section-title {
-			font-size: 32px;
-			font-weight: 700;
-			color: #1a1a2e;
-			margin-bottom: 30px;
-			text-align: center;
+		.section-label {
+			font-size: 12px;
+			font-weight: 600;
+			letter-spacing: 0.05em;
+			text-transform: uppercase;
+			color: var(--text-muted);
+			margin-bottom: 24px;
 		}
 
 		.tool-card {
-			background: #fff;
-			border-radius: 12px;
-			overflow: hidden;
-			box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-			transition: transform 0.3s, box-shadow 0.3s;
-			border: none;
-			margin-bottom: 30px;
+			background: var(--bg-secondary);
+			border: 1px solid var(--border-color);
+			border-radius: 8px;
+			padding: 24px;
 			height: 100%;
+			transition: border-color 0.15s, box-shadow 0.15s;
 		}
 
 		.tool-card:hover {
-			transform: translateY(-5px);
-			box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+			border-color: #d4d4d4;
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 		}
 
 		.tool-icon {
-			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-			padding: 40px;
-			text-align: center;
+			width: 40px;
+			height: 40px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background: var(--bg-primary);
+			border: 1px solid var(--border-color);
+			border-radius: 8px;
+			margin-bottom: 16px;
 		}
 
 		.tool-icon i {
-			font-size: 48px;
-			color: #fff;
+			font-size: 18px;
+			color: var(--text-primary);
 		}
 
-		.tool-card .card-body {
-			padding: 25px;
-		}
-
-		.tool-card .card-title {
-			font-size: 22px;
-			font-weight: 700;
-			color: #1a1a2e;
-			margin-bottom: 12px;
-		}
-
-		.tool-card .card-text {
-			color: #6c757d;
-			font-size: 15px;
-			margin-bottom: 20px;
-		}
-
-		.tool-card .btn-primary {
-			background: linear-gradient(135deg, #4a9eff 0%, #00d2ff 100%);
-			border: none;
-			padding: 10px 25px;
+		.tool-card h4 {
+			font-size: 16px;
 			font-weight: 600;
-			border-radius: 25px;
-			transition: transform 0.3s, box-shadow 0.3s;
+			color: var(--text-primary);
+			margin-bottom: 8px;
+			letter-spacing: -0.01em;
 		}
 
-		.tool-card .btn-primary:hover {
-			transform: translateY(-2px);
-			box-shadow: 0 5px 20px rgba(74, 158, 255, 0.4);
+		.tool-card p {
+			font-size: 14px;
+			color: var(--text-secondary);
+			margin-bottom: 16px;
+			line-height: 1.5;
 		}
 
 		.feature-list {
@@ -143,38 +152,76 @@
 		}
 
 		.feature-list li {
-			padding: 5px 0;
-			color: #495057;
-			font-size: 14px;
+			padding: 4px 0;
+			color: var(--text-secondary);
+			font-size: 13px;
+			display: flex;
+			align-items: center;
+			gap: 8px;
 		}
 
-		.feature-list li i {
-			color: #4a9eff;
-			margin-right: 8px;
+		.feature-list li::before {
+			content: "";
+			width: 4px;
+			height: 4px;
+			background: var(--text-muted);
+			border-radius: 50%;
+			flex-shrink: 0;
+		}
+
+		.btn-tool {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			background: var(--accent);
+			color: #fff;
+			padding: 8px 14px;
+			font-size: 13px;
+			font-weight: 500;
+			border-radius: 6px;
+			text-decoration: none;
+			transition: background 0.15s;
+		}
+
+		.btn-tool:hover {
+			background: var(--accent-hover);
+			color: #fff;
+			text-decoration: none;
+		}
+
+		.btn-tool i {
+			font-size: 11px;
 		}
 
 		footer {
-			background: #1a1a2e;
-			color: #fff;
-			padding: 30px 0;
-			text-align: center;
+			background: var(--bg-secondary);
+			border-top: 1px solid var(--border-color);
+			padding: 24px 0;
 		}
 
 		footer p {
 			margin: 0;
-			opacity: 0.8;
+			font-size: 13px;
+			color: var(--text-muted);
 		}
 
 		@media (max-width: 768px) {
+			.hero-section {
+				padding: 40px 0;
+			}
+
 			.hero-section h1 {
-				font-size: 32px;
+				font-size: 24px;
+			}
+
+			.main-content {
+				padding: 32px 0 60px;
 			}
 		}
 	</style>
 </head>
 <body>
-	<!-- Navigation Bar -->
-	<nav class="navbar navbar-expand-lg navbar-dark">
+	<nav class="navbar navbar-expand-lg">
 		<div class="container">
 			<a class="navbar-brand" href="index.html">Shravan Kumar Sheri</a>
 			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
@@ -188,86 +235,76 @@
 					<li class="nav-item">
 						<a class="nav-link" href="blog.html">Blog</a>
 					</li>
-					<li class="nav-item active">
-						<a class="nav-link" href="tools.html">Tools</a>
+					<li class="nav-item">
+						<a class="nav-link active" href="tools.html">Tools</a>
 					</li>
 				</ul>
 			</div>
 		</div>
 	</nav>
 
-	<!-- Hero Section -->
 	<section class="hero-section">
 		<div class="container">
-			<h1><i class="fas fa-tools"></i> Security Tools</h1>
-			<p>Free browser-based tools for penetration testers, red teamers, and security professionals. No installation required.</p>
+			<h1>Security Tools</h1>
+			<p>Browser-based utilities for penetration testers and security professionals. No installation required.</p>
 		</div>
 	</section>
 
-	<!-- Main Content -->
 	<section class="main-content">
 		<div class="container">
+			<p class="section-label">Available Tools</p>
 			<div class="row">
-				<!-- LDAP Query Generator -->
-				<div class="col-lg-6 mb-4">
+				<div class="col-lg-4 col-md-6 mb-4">
 					<div class="tool-card">
 						<div class="tool-icon">
 							<i class="fas fa-sitemap"></i>
 						</div>
-						<div class="card-body">
-							<h4 class="card-title">LDAP Query Generator</h4>
-							<p class="card-text">Build complex LDAP queries for Active Directory enumeration without memorizing syntax.</p>
-							<ul class="feature-list">
-								<li><i class="fas fa-check"></i> User, Group, Computer queries</li>
-								<li><i class="fas fa-check"></i> Privileged account enumeration</li>
-								<li><i class="fas fa-check"></i> Kerberoastable & AS-REP roastable</li>
-								<li><i class="fas fa-check"></i> UserAccountControl flags</li>
-								<li><i class="fas fa-check"></i> Custom filter builder</li>
-							</ul>
-							<a href="tools/ldap-generator.html" class="btn btn-primary"><i class="fas fa-arrow-right"></i> Launch Tool</a>
-						</div>
+						<h4>LDAP Query Generator</h4>
+						<p>Build complex LDAP queries for Active Directory enumeration without memorizing syntax.</p>
+						<ul class="feature-list">
+							<li>User, group, computer queries</li>
+							<li>Privileged account enumeration</li>
+							<li>Kerberoastable & AS-REP roastable</li>
+							<li>UserAccountControl flags</li>
+							<li>Custom filter builder</li>
+						</ul>
+						<a href="tools/ldap-generator.html" class="btn-tool">Open Tool <i class="fas fa-arrow-right"></i></a>
 					</div>
 				</div>
 
-				<!-- BloodHound Cypher Generator -->
-				<div class="col-lg-6 mb-4">
+				<div class="col-lg-4 col-md-6 mb-4">
 					<div class="tool-card">
-						<div class="tool-icon" style="background: linear-gradient(135deg, #e53935 0%, #d32f2f 100%);">
+						<div class="tool-icon">
 							<i class="fas fa-project-diagram"></i>
 						</div>
-						<div class="card-body">
-							<h4 class="card-title">BloodHound Cypher Generator</h4>
-							<p class="card-text">Generate Cypher queries for BloodHound/Neo4j to analyze Active Directory attack paths.</p>
-							<ul class="feature-list">
-								<li><i class="fas fa-check"></i> Shortest path to Domain Admin</li>
-								<li><i class="fas fa-check"></i> Kerberos delegation queries</li>
-								<li><i class="fas fa-check"></i> ACL abuse detection</li>
-								<li><i class="fas fa-check"></i> Session & credential paths</li>
-								<li><i class="fas fa-check"></i> Custom node targeting</li>
-							</ul>
-							<a href="tools/bloodhound-cypher.html" class="btn btn-primary"><i class="fas fa-arrow-right"></i> Launch Tool</a>
-						</div>
+						<h4>BloodHound Cypher Generator</h4>
+						<p>Generate Cypher queries for BloodHound/Neo4j to analyze Active Directory attack paths.</p>
+						<ul class="feature-list">
+							<li>Shortest path to Domain Admin</li>
+							<li>Kerberos delegation queries</li>
+							<li>ACL abuse detection</li>
+							<li>Session & credential paths</li>
+							<li>Custom node targeting</li>
+						</ul>
+						<a href="tools/bloodhound-cypher.html" class="btn-tool">Open Tool <i class="fas fa-arrow-right"></i></a>
 					</div>
 				</div>
 
-				<!-- Semgrep Rule Generator -->
-				<div class="col-lg-6 mb-4">
+				<div class="col-lg-4 col-md-6 mb-4">
 					<div class="tool-card">
-						<div class="tool-icon" style="background: linear-gradient(135deg, #00897b 0%, #00695c 100%);">
+						<div class="tool-icon">
 							<i class="fas fa-search-plus"></i>
 						</div>
-						<div class="card-body">
-							<h4 class="card-title">Semgrep Rule Generator</h4>
-							<p class="card-text">Generate custom Semgrep SAST rules for security vulnerability detection in source code.</p>
-							<ul class="feature-list">
-								<li><i class="fas fa-check"></i> SQL injection, XSS, command injection</li>
-								<li><i class="fas fa-check"></i> Hardcoded secrets & credentials</li>
-								<li><i class="fas fa-check"></i> Weak crypto & insecure random</li>
-								<li><i class="fas fa-check"></i> Multi-language support</li>
-								<li><i class="fas fa-check"></i> OWASP & CWE mapping</li>
-							</ul>
-							<a href="tools/semgrep-generator.html" class="btn btn-primary"><i class="fas fa-arrow-right"></i> Launch Tool</a>
-						</div>
+						<h4>Semgrep Rule Generator</h4>
+						<p>Generate custom Semgrep SAST rules for security vulnerability detection in source code.</p>
+						<ul class="feature-list">
+							<li>SQL injection, XSS, command injection</li>
+							<li>Hardcoded secrets & credentials</li>
+							<li>Weak crypto & insecure random</li>
+							<li>Multi-language support</li>
+							<li>OWASP & CWE mapping</li>
+						</ul>
+						<a href="tools/semgrep-generator.html" class="btn-tool">Open Tool <i class="fas fa-arrow-right"></i></a>
 					</div>
 				</div>
 
@@ -288,6 +325,25 @@
 								<li><i class="fas fa-check"></i> Delegation attacks explained</li>
 							</ul>
 							<a href="tools/ad-kerberos-flowchart.html" class="btn btn-primary"><i class="fas fa-arrow-right"></i> Launch Tool</a>
+						</div>
+					</div>
+				</div>
+				<div class="col-lg-6 mb-4">
+					<div class="tool-card">
+						<div class="tool-icon" style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);">
+							<i class="fas fa-project-diagram"></i>
+						</div>
+						<div class="card-body">
+							<h4 class="card-title">AD Kerberos Flowchart</h4>
+							<p class="card-text">Interactive animated visualization of Kerberos authentication and attack techniques.</p>
+							<ul class="feature-list">
+								<li><i class="fas fa-check"></i> Complete Kerberos auth flow with packets</li>
+								<li><i class="fas fa-check"></i> AS-REP Roasting & Kerberoasting</li>
+								<li><i class="fas fa-check"></i> Golden Ticket & Silver Ticket</li>
+								<li><i class="fas fa-check"></i> Pass-the-Ticket & Overpass-the-Hash</li>
+								<li><i class="fas fa-check"></i> Delegation attacks explained</li>
+							</ul>
+							<a href="tools/auth.html" class="btn btn-primary"><i class="fas fa-arrow-right"></i> Launch Tool</a>
 						</div>
 					</div>
 				</div>
@@ -318,7 +374,7 @@
 
 	<footer>
 		<div class="container">
-			<p>&copy; 2025 Shravan Kumar Sheri - All Rights Reserved</p>
+			<p>&copy; 2025 Shravan Kumar Sheri</p>
 		</div>
 	</footer>
 </body>

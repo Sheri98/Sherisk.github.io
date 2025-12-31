@@ -7,237 +7,332 @@
 	<meta name="description" content="Generate LDAP queries for Active Directory enumeration - find users, groups, computers, privileged accounts, and more.">
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 	<style>
+		:root {
+			--bg-primary: #fafafa;
+			--bg-secondary: #fff;
+			--bg-code: #18181b;
+			--text-primary: #171717;
+			--text-secondary: #525252;
+			--text-muted: #a3a3a3;
+			--border-color: #e5e5e5;
+			--accent: #171717;
+			--accent-hover: #404040;
+			--code-text: #a1a1aa;
+		}
+
 		* { box-sizing: border-box; }
 
 		body {
-			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-			background-color: #f8f9fa;
+			font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+			background-color: var(--bg-primary);
+			color: var(--text-primary);
 			margin: 0;
 			padding: 0;
 			line-height: 1.6;
+			-webkit-font-smoothing: antialiased;
 		}
 
 		.navbar {
-			background-color: #1a1a2e !important;
-			padding: 15px 0;
-			box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+			background-color: var(--bg-secondary);
+			padding: 16px 0;
+			border-bottom: 1px solid var(--border-color);
 		}
 
-		.navbar-brand { color: #fff !important; font-size: 22px; font-weight: 600; }
-		.nav-link { color: rgba(255,255,255,0.9) !important; font-size: 16px; margin-left: 20px; transition: color 0.3s; }
-		.nav-link:hover { color: #4a9eff !important; }
+		.navbar-brand { color: var(--text-primary) !important; font-size: 15px; font-weight: 600; }
+		.nav-link { color: var(--text-secondary) !important; font-size: 14px; font-weight: 500; margin-left: 24px; }
+		.nav-link:hover, .nav-link.active { color: var(--text-primary) !important; }
 
-		.hero-section {
-			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-			color: #fff;
-			padding: 40px 0;
-			text-align: center;
+		.page-header {
+			background: var(--bg-secondary);
+			border-bottom: 1px solid var(--border-color);
+			padding: 32px 0;
 		}
 
-		.hero-section h1 { font-size: 36px; font-weight: 700; margin-bottom: 10px; }
-		.hero-section p { font-size: 16px; opacity: 0.9; }
+		.page-header h1 {
+			font-size: 24px;
+			font-weight: 700;
+			letter-spacing: -0.02em;
+			margin: 0;
+		}
 
-		.main-content { padding: 40px 0; }
+		.page-header p {
+			font-size: 14px;
+			color: var(--text-secondary);
+			margin: 8px 0 0 0;
+		}
+
+		.main-content { padding: 32px 0 64px; }
 
 		.card {
-			background: #fff;
-			border-radius: 12px;
-			box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-			border: none;
-			margin-bottom: 25px;
+			background: var(--bg-secondary);
+			border: 1px solid var(--border-color);
+			border-radius: 8px;
+			margin-bottom: 20px;
 		}
 
 		.card-header {
-			background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-			color: #fff;
+			background: transparent;
+			border-bottom: 1px solid var(--border-color);
+			padding: 14px 20px;
+			font-size: 13px;
 			font-weight: 600;
-			border-radius: 12px 12px 0 0 !important;
-			padding: 15px 20px;
+			color: var(--text-primary);
+			display: flex;
+			align-items: center;
+			gap: 8px;
 		}
 
-		.card-body { padding: 25px; }
+		.card-header i { color: var(--text-muted); font-size: 12px; }
+		.card-header[data-toggle="collapse"] { cursor: pointer; }
+		.card-header .float-right { margin-left: auto; }
 
-		.form-group label { font-weight: 600; color: #1a1a2e; margin-bottom: 8px; }
-		.form-control { border-radius: 8px; border: 2px solid #e9ecef; padding: 10px 15px; }
-		.form-control:focus { border-color: #4a9eff; box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.1); }
+		.card-body { padding: 20px; }
 
-		.btn-primary {
-			background: linear-gradient(135deg, #4a9eff 0%, #00d2ff 100%);
-			border: none;
-			padding: 10px 25px;
+		.section-label {
+			font-size: 11px;
 			font-weight: 600;
-			border-radius: 8px;
-			transition: transform 0.3s, box-shadow 0.3s;
+			letter-spacing: 0.05em;
+			text-transform: uppercase;
+			color: var(--text-muted);
+			margin: 16px 0 12px 0;
 		}
 
-		.btn-primary:hover {
-			transform: translateY(-2px);
-			box-shadow: 0 5px 20px rgba(74, 158, 255, 0.4);
-		}
-
-		.btn-secondary {
-			background: #6c757d;
-			border: none;
-			padding: 10px 25px;
-			font-weight: 600;
-			border-radius: 8px;
-		}
-
-		.output-area {
-			background: #1a1a2e;
-			color: #00ff00;
-			font-family: 'Consolas', 'Monaco', monospace;
-			padding: 20px;
-			border-radius: 8px;
-			font-size: 14px;
-			white-space: pre-wrap;
-			word-break: break-all;
-			min-height: 100px;
-			position: relative;
-		}
-
-		.copy-btn {
-			position: absolute;
-			top: 10px;
-			right: 10px;
-			background: #4a9eff;
-			border: none;
-			color: #fff;
-			padding: 5px 15px;
-			border-radius: 5px;
-			cursor: pointer;
-			font-size: 12px;
-		}
-
-		.copy-btn:hover { background: #357abd; }
+		.section-label:first-child { margin-top: 0; }
 
 		.preset-btn {
+			display: inline-block;
 			margin: 3px;
-			font-size: 13px;
-			padding: 6px 12px;
-			border-radius: 20px;
-			border: 2px solid #4a9eff;
-			background: transparent;
-			color: #4a9eff;
+			font-size: 12px;
+			padding: 5px 10px;
+			border-radius: 4px;
+			border: 1px solid var(--border-color);
+			background: var(--bg-secondary);
+			color: var(--text-secondary);
 			cursor: pointer;
-			transition: all 0.3s;
+			transition: all 0.15s;
+			font-family: 'Inter', sans-serif;
 		}
 
 		.preset-btn:hover {
-			background: #4a9eff;
-			color: #fff;
+			border-color: var(--text-muted);
+			color: var(--text-primary);
 		}
 
 		.preset-btn.active {
-			background: #4a9eff;
+			background: var(--accent);
+			border-color: var(--accent);
 			color: #fff;
 		}
 
-		.category-title {
-			font-weight: 700;
-			color: #1a1a2e;
-			margin: 20px 0 10px 0;
-			padding-bottom: 5px;
-			border-bottom: 2px solid #4a9eff;
+		.form-group label {
+			font-size: 13px;
+			font-weight: 500;
+			color: var(--text-primary);
+			margin-bottom: 6px;
 		}
 
-		.filter-tag {
-			display: inline-block;
-			background: #e3f2fd;
-			color: #1976d2;
-			padding: 4px 10px;
-			border-radius: 15px;
+		.form-control {
+			font-family: 'Inter', sans-serif;
+			font-size: 13px;
+			border: 1px solid var(--border-color);
+			border-radius: 6px;
+			padding: 8px 12px;
+			transition: border-color 0.15s;
+		}
+
+		.form-control:focus {
+			border-color: var(--text-muted);
+			box-shadow: none;
+			outline: none;
+		}
+
+		.btn-primary {
+			background: var(--accent);
+			border: none;
+			padding: 8px 16px;
+			font-size: 13px;
+			font-weight: 500;
+			border-radius: 6px;
+		}
+
+		.btn-primary:hover { background: var(--accent-hover); }
+
+		.btn-secondary {
+			background: var(--bg-primary);
+			border: 1px solid var(--border-color);
+			color: var(--text-primary);
+			padding: 6px 12px;
 			font-size: 12px;
-			margin: 2px;
+			font-weight: 500;
+			border-radius: 6px;
 		}
 
-		.accordion .card-header {
+		.btn-secondary:hover {
+			background: var(--border-color);
+			border-color: var(--border-color);
+			color: var(--text-primary);
+		}
+
+		.output-area {
+			background: var(--bg-code);
+			color: #22c55e;
+			font-family: 'JetBrains Mono', monospace;
+			padding: 16px;
+			border-radius: 6px;
+			font-size: 13px;
+			white-space: pre-wrap;
+			word-break: break-all;
+			min-height: 80px;
+			position: relative;
+		}
+
+		.output-area.ps { color: #60a5fa; }
+		.output-area.tool { color: #fbbf24; }
+
+		.copy-btn {
+			position: absolute;
+			top: 8px;
+			right: 8px;
+			background: rgba(255,255,255,0.1);
+			border: none;
+			color: var(--code-text);
+			padding: 4px 10px;
+			border-radius: 4px;
 			cursor: pointer;
-			padding: 12px 20px;
+			font-size: 11px;
+			font-family: 'Inter', sans-serif;
 		}
 
-		.accordion .card-header:hover {
-			opacity: 0.9;
+		.copy-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+		.nav-tabs {
+			border-bottom: 1px solid var(--border-color);
 		}
 
 		.nav-tabs .nav-link {
-			color: #1a1a2e !important;
-			font-weight: 600;
-			margin-left: 0;
+			border: none;
+			border-bottom: 2px solid transparent;
+			color: var(--text-muted) !important;
+			font-size: 13px;
+			font-weight: 500;
+			padding: 10px 16px;
+			margin: 0;
+			margin-bottom: -1px;
+		}
+
+		.nav-tabs .nav-link:hover {
+			border-color: transparent;
+			color: var(--text-primary) !important;
 		}
 
 		.nav-tabs .nav-link.active {
-			color: #4a9eff !important;
-			border-color: #4a9eff #4a9eff #fff;
+			border-bottom-color: var(--accent);
+			color: var(--text-primary) !important;
+			background: transparent;
 		}
 
 		.tab-content {
 			padding: 20px;
-			border: 1px solid #dee2e6;
+			border: 1px solid var(--border-color);
 			border-top: none;
-			border-radius: 0 0 8px 8px;
-			background: #fff;
+			border-radius: 0 0 6px 6px;
+			background: var(--bg-secondary);
 		}
 
-		.powershell-output {
-			background: #012456;
+		.ref-table {
+			font-size: 12px;
+			width: 100%;
+		}
+
+		.ref-table th {
+			background: var(--bg-primary);
+			font-weight: 600;
+			padding: 8px 10px;
+			border-bottom: 1px solid var(--border-color);
+			color: var(--text-primary);
+		}
+
+		.ref-table td {
+			padding: 6px 10px;
+			border-bottom: 1px solid var(--border-color);
+			color: var(--text-secondary);
+		}
+
+		.ref-table code {
+			font-family: 'JetBrains Mono', monospace;
+			font-size: 11px;
+			background: var(--bg-primary);
+			padding: 2px 6px;
+			border-radius: 3px;
+			color: var(--text-primary);
+			cursor: pointer;
+			transition: background 0.15s;
+		}
+
+		.ref-table code:hover {
+			background: var(--accent);
 			color: #fff;
 		}
 
-		.tool-command {
-			background: #2d2d2d;
-			color: #f8f8f2;
+		.ref-scroll {
+			max-height: 280px;
+			overflow-y: auto;
+		}
+
+		.filter-tag {
+			display: inline-block;
+			font-family: 'JetBrains Mono', monospace;
+			font-size: 11px;
+			background: var(--bg-primary);
+			border: 1px solid var(--border-color);
+			padding: 3px 8px;
+			border-radius: 4px;
+			margin: 2px;
+			color: var(--text-secondary);
+		}
+
+		.example-query {
+			font-family: 'JetBrains Mono', monospace;
+			font-size: 11px;
+			background: var(--bg-code);
+			color: #22c55e;
+			padding: 8px 10px;
+			border-radius: 4px;
+			margin: 8px 0;
+			cursor: pointer;
+			word-break: break-all;
+		}
+
+		.example-query:hover { opacity: 0.9; }
+
+		.help-text {
+			font-size: 11px;
+			color: var(--text-muted);
+			margin-top: 4px;
 		}
 
 		footer {
-			background: #1a1a2e;
-			color: #fff;
-			padding: 30px 0;
-			text-align: center;
+			background: var(--bg-secondary);
+			border-top: 1px solid var(--border-color);
+			padding: 24px 0;
 		}
 
-		footer p { margin: 0; opacity: 0.8; }
+		footer p { margin: 0; font-size: 13px; color: var(--text-muted); }
 
-		.info-icon {
-			color: #4a9eff;
-			cursor: pointer;
-			margin-left: 5px;
-		}
+		.form-check-label { font-size: 13px; color: var(--text-secondary); }
 
-		.uac-table {
-			font-size: 13px;
-		}
-
-		.uac-table th {
-			background: #1a1a2e;
-			color: #fff;
-		}
-
-		.clickable-code {
-			cursor: pointer;
-			background: #e3f2fd;
-			padding: 2px 6px;
-			border-radius: 3px;
-			transition: all 0.2s;
-		}
-
-		.clickable-code:hover {
-			background: #4a9eff;
-			color: #fff;
-		}
-
-		.uac-table code {
-			font-size: 11px;
+		@media (max-width: 992px) {
+			.main-content { padding: 24px 0 48px; }
 		}
 	</style>
 </head>
 <body>
-	<!-- Navigation Bar -->
-	<nav class="navbar navbar-expand-lg navbar-dark">
+	<nav class="navbar navbar-expand-lg">
 		<div class="container">
 			<a class="navbar-brand" href="../index.html">Shravan Kumar Sheri</a>
 			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
@@ -247,33 +342,28 @@
 				<ul class="navbar-nav ml-auto">
 					<li class="nav-item"><a class="nav-link" href="../index.html">Home</a></li>
 					<li class="nav-item"><a class="nav-link" href="../blog.html">Blog</a></li>
-					<li class="nav-item active"><a class="nav-link" href="../tools.html">Tools</a></li>
+					<li class="nav-item"><a class="nav-link active" href="../tools.html">Tools</a></li>
 				</ul>
 			</div>
 		</div>
 	</nav>
 
-	<!-- Hero Section -->
-	<section class="hero-section">
+	<section class="page-header">
 		<div class="container">
-			<h1><i class="fas fa-sitemap"></i> LDAP Query Generator</h1>
+			<h1>LDAP Query Generator</h1>
 			<p>Build complex LDAP queries for Active Directory enumeration</p>
 		</div>
 	</section>
 
-	<!-- Main Content -->
 	<section class="main-content">
 		<div class="container">
 			<div class="row">
-				<!-- Left Column - Query Builder -->
 				<div class="col-lg-8">
 					<!-- Quick Presets -->
 					<div class="card">
-						<div class="card-header">
-							<i class="fas fa-bolt"></i> Quick Presets
-						</div>
+						<div class="card-header"><i class="fas fa-bolt"></i> Quick Presets</div>
 						<div class="card-body">
-							<p class="category-title"><i class="fas fa-user"></i> Users</p>
+							<p class="section-label">Users</p>
 							<button class="preset-btn" onclick="setPreset('allUsers')">All Users</button>
 							<button class="preset-btn" onclick="setPreset('enabledUsers')">Enabled Users</button>
 							<button class="preset-btn" onclick="setPreset('disabledUsers')">Disabled Users</button>
@@ -294,7 +384,7 @@
 							<button class="preset-btn" onclick="setPreset('neverLoggedIn')">Never Logged In</button>
 							<button class="preset-btn" onclick="setPreset('staleUsers')">Stale Users (90 days)</button>
 
-							<p class="category-title"><i class="fas fa-users"></i> Groups</p>
+							<p class="section-label">Groups</p>
 							<button class="preset-btn" onclick="setPreset('allGroups')">All Groups</button>
 							<button class="preset-btn" onclick="setPreset('securityGroups')">Security Groups</button>
 							<button class="preset-btn" onclick="setPreset('distributionGroups')">Distribution Groups</button>
@@ -304,7 +394,7 @@
 							<button class="preset-btn" onclick="setPreset('protectedGroups')">Protected Groups</button>
 							<button class="preset-btn" onclick="setPreset('emptyGroups')">Empty Groups</button>
 
-							<p class="category-title"><i class="fas fa-desktop"></i> Computers</p>
+							<p class="section-label">Computers</p>
 							<button class="preset-btn" onclick="setPreset('allComputers')">All Computers</button>
 							<button class="preset-btn" onclick="setPreset('domainControllers')">Domain Controllers</button>
 							<button class="preset-btn" onclick="setPreset('servers')">Servers</button>
@@ -319,7 +409,7 @@
 							<button class="preset-btn" onclick="setPreset('trustedForDelegation')">Trusted for Delegation</button>
 							<button class="preset-btn" onclick="setPreset('staleComputers')">Stale Computers</button>
 
-							<p class="category-title"><i class="fas fa-shield-alt"></i> Security Objects</p>
+							<p class="section-label">Security Objects</p>
 							<button class="preset-btn" onclick="setPreset('gpos')">All GPOs</button>
 							<button class="preset-btn" onclick="setPreset('ous')">All OUs</button>
 							<button class="preset-btn" onclick="setPreset('trusts')">Domain Trusts</button>
@@ -331,9 +421,7 @@
 
 					<!-- Custom Query Builder -->
 					<div class="card">
-						<div class="card-header">
-							<i class="fas fa-cogs"></i> Custom Query Builder
-						</div>
+						<div class="card-header"><i class="fas fa-cogs"></i> Custom Query Builder</div>
 						<div class="card-body">
 							<ul class="nav nav-tabs" id="builderTabs" role="tablist">
 								<li class="nav-item">
@@ -344,7 +432,6 @@
 								</li>
 							</ul>
 							<div class="tab-content" id="builderTabsContent">
-								<!-- Simple Builder -->
 								<div class="tab-pane fade show active" id="simple" role="tabpanel">
 									<div class="form-group">
 										<label>Object Type</label>
@@ -397,7 +484,6 @@
 										</div>
 									</div>
 								</div>
-								<!-- Advanced Builder -->
 								<div class="tab-pane fade" id="advanced" role="tabpanel">
 									<div class="form-group">
 										<label>Base Object Class</label>
@@ -440,7 +526,7 @@
 									</div>
 									<button class="btn btn-secondary btn-sm mt-2" onclick="addFilter()"><i class="fas fa-plus"></i> Add Filter</button>
 									<button class="btn btn-secondary btn-sm mt-2" onclick="removeFilter()"><i class="fas fa-minus"></i> Remove Filter</button>
-									<button class="btn btn-primary btn-sm mt-2 ml-2" onclick="buildAdvancedQuery()"><i class="fas fa-hammer"></i> Build Query</button>
+									<button class="btn btn-primary btn-sm mt-2 ml-2" onclick="buildAdvancedQuery()">Build Query</button>
 								</div>
 							</div>
 						</div>
@@ -448,9 +534,7 @@
 
 					<!-- Output -->
 					<div class="card">
-						<div class="card-header">
-							<i class="fas fa-terminal"></i> Generated Query
-						</div>
+						<div class="card-header"><i class="fas fa-terminal"></i> Generated Query</div>
 						<div class="card-body">
 							<ul class="nav nav-tabs" id="outputTabs" role="tablist">
 								<li class="nav-item">
@@ -474,19 +558,19 @@
 									</div>
 								</div>
 								<div class="tab-pane fade" id="psOutput" role="tabpanel">
-									<div class="output-area powershell-output" id="psQueryOutput">
+									<div class="output-area ps" id="psQueryOutput">
 										<button class="copy-btn" onclick="copyQuery('psQueryOutput')"><i class="fas fa-copy"></i> Copy</button>
 										<span id="psQuery">Get-ADUser -LDAPFilter "(objectClass=user)"</span>
 									</div>
 								</div>
 								<div class="tab-pane fade" id="ldapsearchOutput" role="tabpanel">
-									<div class="output-area tool-command" id="ldapsearchQueryOutput">
+									<div class="output-area tool" id="ldapsearchQueryOutput">
 										<button class="copy-btn" onclick="copyQuery('ldapsearchQueryOutput')"><i class="fas fa-copy"></i> Copy</button>
 										<span id="ldapsearchQuery">ldapsearch -x -H ldap://DC -b "DC=domain,DC=com" "(objectClass=user)"</span>
 									</div>
 								</div>
 								<div class="tab-pane fade" id="adfindOutput" role="tabpanel">
-									<div class="output-area tool-command" id="adfindQueryOutput">
+									<div class="output-area tool" id="adfindQueryOutput">
 										<button class="copy-btn" onclick="copyQuery('adfindQueryOutput')"><i class="fas fa-copy"></i> Copy</button>
 										<span id="adfindQuery">adfind -f "(objectClass=user)"</span>
 									</div>
@@ -496,19 +580,16 @@
 					</div>
 				</div>
 
-				<!-- Right Column - Reference -->
 				<div class="col-lg-4">
 					<!-- Domain Settings -->
 					<div class="card">
-						<div class="card-header">
-							<i class="fas fa-server"></i> Domain Settings
-						</div>
+						<div class="card-header"><i class="fas fa-server"></i> Domain Settings</div>
 						<div class="card-body">
 							<div class="form-group">
 								<label>Domain Controller</label>
 								<input type="text" class="form-control" id="dcHost" placeholder="dc01.domain.com" value="DC">
 							</div>
-							<div class="form-group">
+							<div class="form-group mb-0">
 								<label>Base DN</label>
 								<input type="text" class="form-control" id="baseDN" placeholder="DC=domain,DC=com" value="DC=domain,DC=com">
 							</div>
@@ -521,212 +602,114 @@
 							<i class="fas fa-cube"></i> objectClass Values <i class="fas fa-chevron-down float-right"></i>
 						</div>
 						<div id="objectClassCollapse" class="collapse show">
-							<div class="card-body" style="max-height: 350px; overflow-y: auto;">
-								<table class="table table-sm uac-table">
-									<thead><tr><th>Object Type</th><th>objectClass</th></tr></thead>
-									<tbody>
-										<tr><td>User Account</td><td><code class="clickable-code" onclick="insertFilter('objectClass=user')">user</code></td></tr>
-										<tr><td>Person</td><td><code class="clickable-code" onclick="insertFilter('objectClass=person')">person</code></td></tr>
-										<tr><td>Computer</td><td><code class="clickable-code" onclick="insertFilter('objectClass=computer')">computer</code></td></tr>
-										<tr><td>Group</td><td><code class="clickable-code" onclick="insertFilter('objectClass=group')">group</code></td></tr>
-										<tr><td>OU</td><td><code class="clickable-code" onclick="insertFilter('objectClass=organizationalUnit')">organizationalUnit</code></td></tr>
-										<tr><td>Domain</td><td><code class="clickable-code" onclick="insertFilter('objectClass=domain')">domain</code></td></tr>
-										<tr><td>GPO</td><td><code class="clickable-code" onclick="insertFilter('objectClass=groupPolicyContainer')">groupPolicyContainer</code></td></tr>
-										<tr><td>Container</td><td><code class="clickable-code" onclick="insertFilter('objectClass=container')">container</code></td></tr>
-										<tr><td>Domain Trust</td><td><code class="clickable-code" onclick="insertFilter('objectClass=trustedDomain')">trustedDomain</code></td></tr>
-										<tr><td>gMSA</td><td><code class="clickable-code" onclick="insertFilter('objectClass=msDS-GroupManagedServiceAccount')">msDS-GroupManagedServiceAccount</code></td></tr>
-										<tr><td>MSA</td><td><code class="clickable-code" onclick="insertFilter('objectClass=msDS-ManagedServiceAccount')">msDS-ManagedServiceAccount</code></td></tr>
-										<tr><td>Foreign Security Principal</td><td><code class="clickable-code" onclick="insertFilter('objectClass=foreignSecurityPrincipal')">foreignSecurityPrincipal</code></td></tr>
-										<tr><td>Subnet</td><td><code class="clickable-code" onclick="insertFilter('objectClass=subnet')">subnet</code></td></tr>
-										<tr><td>Site</td><td><code class="clickable-code" onclick="insertFilter('objectClass=site')">site</code></td></tr>
-										<tr><td>Site Link</td><td><code class="clickable-code" onclick="insertFilter('objectClass=siteLink')">siteLink</code></td></tr>
-										<tr><td>DNS Zone</td><td><code class="clickable-code" onclick="insertFilter('objectClass=dnsZone')">dnsZone</code></td></tr>
-										<tr><td>DNS Node</td><td><code class="clickable-code" onclick="insertFilter('objectClass=dnsNode')">dnsNode</code></td></tr>
-										<tr><td>Print Queue</td><td><code class="clickable-code" onclick="insertFilter('objectClass=printQueue')">printQueue</code></td></tr>
-										<tr><td>Contact</td><td><code class="clickable-code" onclick="insertFilter('objectClass=contact')">contact</code></td></tr>
-									</tbody>
-								</table>
-							</div>
-						</div>
-					</div>
-
-					<!-- sAMAccountType Values -->
-					<div class="card">
-						<div class="card-header" data-toggle="collapse" href="#samAccountCollapse">
-							<i class="fas fa-id-card"></i> sAMAccountType Values <i class="fas fa-chevron-down float-right"></i>
-						</div>
-						<div id="samAccountCollapse" class="collapse">
-							<div class="card-body">
-								<table class="table table-sm uac-table">
+							<div class="card-body ref-scroll p-0">
+								<table class="ref-table">
 									<thead><tr><th>Type</th><th>Value</th></tr></thead>
 									<tbody>
-										<tr><td>Domain Object</td><td><code class="clickable-code" onclick="insertFilter('sAMAccountType=0')">0</code></td></tr>
-										<tr><td>Group Object</td><td><code class="clickable-code" onclick="insertFilter('sAMAccountType=268435456')">268435456</code></td></tr>
-										<tr><td>Non-Security Group</td><td><code class="clickable-code" onclick="insertFilter('sAMAccountType=268435457')">268435457</code></td></tr>
-										<tr><td>Alias Object</td><td><code class="clickable-code" onclick="insertFilter('sAMAccountType=536870912')">536870912</code></td></tr>
-										<tr><td>Non-Security Alias</td><td><code class="clickable-code" onclick="insertFilter('sAMAccountType=536870913')">536870913</code></td></tr>
-										<tr><td><strong>User Account</strong></td><td><code class="clickable-code" onclick="insertFilter('sAMAccountType=805306368')">805306368</code></td></tr>
-										<tr><td><strong>Computer Account</strong></td><td><code class="clickable-code" onclick="insertFilter('sAMAccountType=805306369')">805306369</code></td></tr>
-										<tr><td>Trust Account</td><td><code class="clickable-code" onclick="insertFilter('sAMAccountType=805306370')">805306370</code></td></tr>
+										<tr><td>User</td><td><code onclick="insertFilter('objectClass=user')">user</code></td></tr>
+										<tr><td>Person</td><td><code onclick="insertFilter('objectClass=person')">person</code></td></tr>
+										<tr><td>Computer</td><td><code onclick="insertFilter('objectClass=computer')">computer</code></td></tr>
+										<tr><td>Group</td><td><code onclick="insertFilter('objectClass=group')">group</code></td></tr>
+										<tr><td>OU</td><td><code onclick="insertFilter('objectClass=organizationalUnit')">organizationalUnit</code></td></tr>
+										<tr><td>Domain</td><td><code onclick="insertFilter('objectClass=domain')">domain</code></td></tr>
+										<tr><td>GPO</td><td><code onclick="insertFilter('objectClass=groupPolicyContainer')">groupPolicyContainer</code></td></tr>
+										<tr><td>Container</td><td><code onclick="insertFilter('objectClass=container')">container</code></td></tr>
+										<tr><td>Trust</td><td><code onclick="insertFilter('objectClass=trustedDomain')">trustedDomain</code></td></tr>
+										<tr><td>gMSA</td><td><code onclick="insertFilter('objectClass=msDS-GroupManagedServiceAccount')">msDS-GroupManagedServiceAccount</code></td></tr>
+										<tr><td>MSA</td><td><code onclick="insertFilter('objectClass=msDS-ManagedServiceAccount')">msDS-ManagedServiceAccount</code></td></tr>
+										<tr><td>FSP</td><td><code onclick="insertFilter('objectClass=foreignSecurityPrincipal')">foreignSecurityPrincipal</code></td></tr>
+										<tr><td>Subnet</td><td><code onclick="insertFilter('objectClass=subnet')">subnet</code></td></tr>
+										<tr><td>Site</td><td><code onclick="insertFilter('objectClass=site')">site</code></td></tr>
+										<tr><td>DNS Zone</td><td><code onclick="insertFilter('objectClass=dnsZone')">dnsZone</code></td></tr>
+										<tr><td>Contact</td><td><code onclick="insertFilter('objectClass=contact')">contact</code></td></tr>
 									</tbody>
 								</table>
-								<small class="text-muted">Click value to insert filter</small>
 							</div>
 						</div>
 					</div>
 
-					<!-- objectCategory Values -->
+					<!-- sAMAccountType -->
 					<div class="card">
-						<div class="card-header" data-toggle="collapse" href="#objectCatCollapse">
-							<i class="fas fa-folder"></i> objectCategory Values <i class="fas fa-chevron-down float-right"></i>
+						<div class="card-header" data-toggle="collapse" href="#samAccountCollapse">
+							<i class="fas fa-id-card"></i> sAMAccountType <i class="fas fa-chevron-down float-right"></i>
 						</div>
-						<div id="objectCatCollapse" class="collapse">
-							<div class="card-body">
-								<table class="table table-sm uac-table">
-									<thead><tr><th>Object</th><th>objectCategory</th></tr></thead>
+						<div id="samAccountCollapse" class="collapse">
+							<div class="card-body p-0">
+								<table class="ref-table">
+									<thead><tr><th>Type</th><th>Value</th></tr></thead>
 									<tbody>
-										<tr><td>User</td><td><code class="clickable-code" onclick="insertFilter('objectCategory=person')">person</code></td></tr>
-										<tr><td>Computer</td><td><code class="clickable-code" onclick="insertFilter('objectCategory=computer')">computer</code></td></tr>
-										<tr><td>Group</td><td><code class="clickable-code" onclick="insertFilter('objectCategory=group')">group</code></td></tr>
-										<tr><td>OU</td><td><code class="clickable-code" onclick="insertFilter('objectCategory=organizationalUnit')">organizationalUnit</code></td></tr>
-										<tr><td>GPO</td><td><code class="clickable-code" onclick="insertFilter('objectCategory=groupPolicyContainer')">groupPolicyContainer</code></td></tr>
-										<tr><td>Domain</td><td><code class="clickable-code" onclick="insertFilter('objectCategory=domainDNS')">domainDNS</code></td></tr>
-										<tr><td>Subnet</td><td><code class="clickable-code" onclick="insertFilter('objectCategory=subnet')">subnet</code></td></tr>
-										<tr><td>Site</td><td><code class="clickable-code" onclick="insertFilter('objectCategory=site')">site</code></td></tr>
-										<tr><td>Print Queue</td><td><code class="clickable-code" onclick="insertFilter('objectCategory=printQueue')">printQueue</code></td></tr>
-										<tr><td>Contact</td><td><code class="clickable-code" onclick="insertFilter('objectCategory=contact')">contact</code></td></tr>
+										<tr><td>Domain Object</td><td><code onclick="insertFilter('sAMAccountType=0')">0</code></td></tr>
+										<tr><td>Group</td><td><code onclick="insertFilter('sAMAccountType=268435456')">268435456</code></td></tr>
+										<tr><td>Non-Sec Group</td><td><code onclick="insertFilter('sAMAccountType=268435457')">268435457</code></td></tr>
+										<tr><td>Alias</td><td><code onclick="insertFilter('sAMAccountType=536870912')">536870912</code></td></tr>
+										<tr><td>User</td><td><code onclick="insertFilter('sAMAccountType=805306368')">805306368</code></td></tr>
+										<tr><td>Computer</td><td><code onclick="insertFilter('sAMAccountType=805306369')">805306369</code></td></tr>
+										<tr><td>Trust</td><td><code onclick="insertFilter('sAMAccountType=805306370')">805306370</code></td></tr>
 									</tbody>
 								</table>
 							</div>
 						</div>
 					</div>
 
-					<!-- primaryGroupID Values -->
+					<!-- primaryGroupID -->
 					<div class="card">
 						<div class="card-header" data-toggle="collapse" href="#primaryGroupCollapse">
 							<i class="fas fa-users-cog"></i> primaryGroupID (RID) <i class="fas fa-chevron-down float-right"></i>
 						</div>
 						<div id="primaryGroupCollapse" class="collapse">
-							<div class="card-body">
-								<table class="table table-sm uac-table">
+							<div class="card-body p-0">
+								<table class="ref-table">
 									<thead><tr><th>Group</th><th>RID</th></tr></thead>
 									<tbody>
-										<tr><td>Domain Users</td><td><code class="clickable-code" onclick="insertFilter('primaryGroupID=513')">513</code></td></tr>
-										<tr><td>Domain Admins</td><td><code class="clickable-code" onclick="insertFilter('primaryGroupID=512')">512</code></td></tr>
-										<tr><td>Domain Computers</td><td><code class="clickable-code" onclick="insertFilter('primaryGroupID=515')">515</code></td></tr>
-										<tr><td>Domain Controllers</td><td><code class="clickable-code" onclick="insertFilter('primaryGroupID=516')">516</code></td></tr>
-										<tr><td>Domain Guests</td><td><code class="clickable-code" onclick="insertFilter('primaryGroupID=514')">514</code></td></tr>
-										<tr><td>Schema Admins</td><td><code class="clickable-code" onclick="insertFilter('primaryGroupID=518')">518</code></td></tr>
-										<tr><td>Enterprise Admins</td><td><code class="clickable-code" onclick="insertFilter('primaryGroupID=519')">519</code></td></tr>
-										<tr><td>Group Policy Creator</td><td><code class="clickable-code" onclick="insertFilter('primaryGroupID=520')">520</code></td></tr>
-										<tr><td>Read-only Domain Controllers</td><td><code class="clickable-code" onclick="insertFilter('primaryGroupID=521')">521</code></td></tr>
+										<tr><td>Domain Users</td><td><code onclick="insertFilter('primaryGroupID=513')">513</code></td></tr>
+										<tr><td>Domain Admins</td><td><code onclick="insertFilter('primaryGroupID=512')">512</code></td></tr>
+										<tr><td>Domain Computers</td><td><code onclick="insertFilter('primaryGroupID=515')">515</code></td></tr>
+										<tr><td>Domain Controllers</td><td><code onclick="insertFilter('primaryGroupID=516')">516</code></td></tr>
+										<tr><td>Domain Guests</td><td><code onclick="insertFilter('primaryGroupID=514')">514</code></td></tr>
+										<tr><td>Schema Admins</td><td><code onclick="insertFilter('primaryGroupID=518')">518</code></td></tr>
+										<tr><td>Enterprise Admins</td><td><code onclick="insertFilter('primaryGroupID=519')">519</code></td></tr>
+										<tr><td>RODC</td><td><code onclick="insertFilter('primaryGroupID=521')">521</code></td></tr>
 									</tbody>
 								</table>
 							</div>
 						</div>
 					</div>
 
-					<!-- UAC Flags Reference -->
+					<!-- UAC Flags -->
 					<div class="card">
 						<div class="card-header" data-toggle="collapse" href="#uacCollapse">
 							<i class="fas fa-flag"></i> UserAccountControl Flags <i class="fas fa-chevron-down float-right"></i>
 						</div>
 						<div id="uacCollapse" class="collapse">
-							<div class="card-body" style="max-height: 350px; overflow-y: auto;">
-								<table class="table table-sm uac-table">
+							<div class="card-body ref-scroll p-0">
+								<table class="ref-table">
 									<thead><tr><th>Flag</th><th>Value</th></tr></thead>
 									<tbody>
-										<tr><td>SCRIPT</td><td><code class="clickable-code" onclick="insertUACFilter(1)">1</code></td></tr>
-										<tr><td>ACCOUNTDISABLE</td><td><code class="clickable-code" onclick="insertUACFilter(2)">2</code></td></tr>
-										<tr><td>HOMEDIR_REQUIRED</td><td><code class="clickable-code" onclick="insertUACFilter(8)">8</code></td></tr>
-										<tr><td>LOCKOUT</td><td><code class="clickable-code" onclick="insertUACFilter(16)">16</code></td></tr>
-										<tr><td>PASSWD_NOTREQD</td><td><code class="clickable-code" onclick="insertUACFilter(32)">32</code></td></tr>
-										<tr><td>PASSWD_CANT_CHANGE</td><td><code class="clickable-code" onclick="insertUACFilter(64)">64</code></td></tr>
-										<tr><td>ENCRYPTED_TEXT_PWD</td><td><code class="clickable-code" onclick="insertUACFilter(128)">128</code></td></tr>
-										<tr><td>NORMAL_ACCOUNT</td><td><code class="clickable-code" onclick="insertUACFilter(512)">512</code></td></tr>
-										<tr><td>INTERDOMAIN_TRUST</td><td><code class="clickable-code" onclick="insertUACFilter(2048)">2048</code></td></tr>
-										<tr><td>WORKSTATION_TRUST</td><td><code class="clickable-code" onclick="insertUACFilter(4096)">4096</code></td></tr>
-										<tr><td>SERVER_TRUST (DC)</td><td><code class="clickable-code" onclick="insertUACFilter(8192)">8192</code></td></tr>
-										<tr><td>DONT_EXPIRE_PASSWORD</td><td><code class="clickable-code" onclick="insertUACFilter(65536)">65536</code></td></tr>
-										<tr><td>MNS_LOGON_ACCOUNT</td><td><code class="clickable-code" onclick="insertUACFilter(131072)">131072</code></td></tr>
-										<tr><td>SMARTCARD_REQUIRED</td><td><code class="clickable-code" onclick="insertUACFilter(262144)">262144</code></td></tr>
-										<tr><td>TRUSTED_FOR_DELEGATION</td><td><code class="clickable-code" onclick="insertUACFilter(524288)">524288</code></td></tr>
-										<tr><td>NOT_DELEGATED</td><td><code class="clickable-code" onclick="insertUACFilter(1048576)">1048576</code></td></tr>
-										<tr><td>USE_DES_KEY_ONLY</td><td><code class="clickable-code" onclick="insertUACFilter(2097152)">2097152</code></td></tr>
-										<tr><td>DONT_REQ_PREAUTH</td><td><code class="clickable-code" onclick="insertUACFilter(4194304)">4194304</code></td></tr>
-										<tr><td>PASSWORD_EXPIRED</td><td><code class="clickable-code" onclick="insertUACFilter(8388608)">8388608</code></td></tr>
-										<tr><td>TRUSTED_TO_AUTH</td><td><code class="clickable-code" onclick="insertUACFilter(16777216)">16777216</code></td></tr>
-										<tr><td>PARTIAL_SECRETS</td><td><code class="clickable-code" onclick="insertUACFilter(67108864)">67108864</code></td></tr>
+										<tr><td>SCRIPT</td><td><code onclick="insertUACFilter(1)">1</code></td></tr>
+										<tr><td>ACCOUNTDISABLE</td><td><code onclick="insertUACFilter(2)">2</code></td></tr>
+										<tr><td>HOMEDIR_REQUIRED</td><td><code onclick="insertUACFilter(8)">8</code></td></tr>
+										<tr><td>LOCKOUT</td><td><code onclick="insertUACFilter(16)">16</code></td></tr>
+										<tr><td>PASSWD_NOTREQD</td><td><code onclick="insertUACFilter(32)">32</code></td></tr>
+										<tr><td>PASSWD_CANT_CHANGE</td><td><code onclick="insertUACFilter(64)">64</code></td></tr>
+										<tr><td>ENCRYPTED_TEXT_PWD</td><td><code onclick="insertUACFilter(128)">128</code></td></tr>
+										<tr><td>NORMAL_ACCOUNT</td><td><code onclick="insertUACFilter(512)">512</code></td></tr>
+										<tr><td>INTERDOMAIN_TRUST</td><td><code onclick="insertUACFilter(2048)">2048</code></td></tr>
+										<tr><td>WORKSTATION_TRUST</td><td><code onclick="insertUACFilter(4096)">4096</code></td></tr>
+										<tr><td>SERVER_TRUST</td><td><code onclick="insertUACFilter(8192)">8192</code></td></tr>
+										<tr><td>DONT_EXPIRE_PASSWORD</td><td><code onclick="insertUACFilter(65536)">65536</code></td></tr>
+										<tr><td>SMARTCARD_REQUIRED</td><td><code onclick="insertUACFilter(262144)">262144</code></td></tr>
+										<tr><td>TRUSTED_FOR_DELEGATION</td><td><code onclick="insertUACFilter(524288)">524288</code></td></tr>
+										<tr><td>NOT_DELEGATED</td><td><code onclick="insertUACFilter(1048576)">1048576</code></td></tr>
+										<tr><td>DONT_REQ_PREAUTH</td><td><code onclick="insertUACFilter(4194304)">4194304</code></td></tr>
+										<tr><td>PASSWORD_EXPIRED</td><td><code onclick="insertUACFilter(8388608)">8388608</code></td></tr>
+										<tr><td>TRUSTED_TO_AUTH</td><td><code onclick="insertUACFilter(16777216)">16777216</code></td></tr>
 									</tbody>
 								</table>
 							</div>
 						</div>
 					</div>
 
-					<!-- Group Types -->
-					<div class="card">
-						<div class="card-header" data-toggle="collapse" href="#groupCollapse">
-							<i class="fas fa-layer-group"></i> groupType Values <i class="fas fa-chevron-down float-right"></i>
-						</div>
-						<div id="groupCollapse" class="collapse">
-							<div class="card-body">
-								<table class="table table-sm uac-table">
-									<thead><tr><th>Type</th><th>Value</th></tr></thead>
-									<tbody>
-										<tr><td>Global Distribution</td><td><code class="clickable-code" onclick="insertFilter('groupType=2')">2</code></td></tr>
-										<tr><td>Domain Local Distribution</td><td><code class="clickable-code" onclick="insertFilter('groupType=4')">4</code></td></tr>
-										<tr><td>Universal Distribution</td><td><code class="clickable-code" onclick="insertFilter('groupType=8')">8</code></td></tr>
-										<tr><td>Global Security</td><td><code class="clickable-code" onclick="insertFilter('groupType=-2147483646')">-2147483646</code></td></tr>
-										<tr><td>Domain Local Security</td><td><code class="clickable-code" onclick="insertFilter('groupType=-2147483644')">-2147483644</code></td></tr>
-										<tr><td>Universal Security</td><td><code class="clickable-code" onclick="insertFilter('groupType=-2147483640')">-2147483640</code></td></tr>
-									</tbody>
-								</table>
-								<p class="text-muted mt-2" style="font-size:11px;"><strong>Bit flag:</strong> Security = 0x80000000 (2147483648)</p>
-							</div>
-						</div>
-					</div>
-
-					<!-- Common Attributes -->
-					<div class="card">
-						<div class="card-header" data-toggle="collapse" href="#attrCollapse">
-							<i class="fas fa-list"></i> Common Attributes <i class="fas fa-chevron-down float-right"></i>
-						</div>
-						<div id="attrCollapse" class="collapse">
-							<div class="card-body" style="max-height: 300px; overflow-y: auto;">
-								<span class="filter-tag">sAMAccountName</span>
-								<span class="filter-tag">cn</span>
-								<span class="filter-tag">displayName</span>
-								<span class="filter-tag">distinguishedName</span>
-								<span class="filter-tag">mail</span>
-								<span class="filter-tag">memberOf</span>
-								<span class="filter-tag">member</span>
-								<span class="filter-tag">description</span>
-								<span class="filter-tag">userAccountControl</span>
-								<span class="filter-tag">adminCount</span>
-								<span class="filter-tag">servicePrincipalName</span>
-								<span class="filter-tag">msDS-AllowedToDelegateTo</span>
-								<span class="filter-tag">msDS-AllowedToActOnBehalfOfOtherIdentity</span>
-								<span class="filter-tag">userPrincipalName</span>
-								<span class="filter-tag">pwdLastSet</span>
-								<span class="filter-tag">lastLogon</span>
-								<span class="filter-tag">lastLogonTimestamp</span>
-								<span class="filter-tag">whenCreated</span>
-								<span class="filter-tag">whenChanged</span>
-								<span class="filter-tag">objectSid</span>
-								<span class="filter-tag">primaryGroupID</span>
-								<span class="filter-tag">operatingSystem</span>
-								<span class="filter-tag">operatingSystemVersion</span>
-								<span class="filter-tag">dNSHostName</span>
-								<span class="filter-tag">nTSecurityDescriptor</span>
-								<span class="filter-tag">ms-Mcs-AdmPwd</span>
-								<span class="filter-tag">ms-Mcs-AdmPwdExpirationTime</span>
-								<span class="filter-tag">msDS-KeyCredentialLink</span>
-								<span class="filter-tag">msDS-AllowedToActOnBehalfOfOtherIdentity</span>
-							</div>
-						</div>
-					</div>
-
-					<!-- Matching Rules (OIDs) -->
+					<!-- Matching Rules -->
 					<div class="card">
 						<div class="card-header" data-toggle="collapse" href="#oidCollapse">
 							<i class="fas fa-filter"></i> Matching Rules (OIDs) <i class="fas fa-chevron-down float-right"></i>
@@ -734,46 +717,31 @@
 						<div id="oidCollapse" class="collapse">
 							<div class="card-body" style="font-size: 12px;">
 								<p><strong>LDAP_MATCHING_RULE_BIT_AND</strong><br>
-								<code>1.2.840.113556.1.4.803</code><br>
-								<small>Bitwise AND - matches if ALL bits set</small></p>
-
+								<code style="cursor:default;">1.2.840.113556.1.4.803</code><br>
+								<span class="help-text">Bitwise AND - all bits must match</span></p>
 								<p><strong>LDAP_MATCHING_RULE_BIT_OR</strong><br>
-								<code>1.2.840.113556.1.4.804</code><br>
-								<small>Bitwise OR - matches if ANY bit set</small></p>
-
+								<code style="cursor:default;">1.2.840.113556.1.4.804</code><br>
+								<span class="help-text">Bitwise OR - any bit matches</span></p>
 								<p><strong>LDAP_MATCHING_RULE_IN_CHAIN</strong><br>
-								<code>1.2.840.113556.1.4.1941</code><br>
-								<small>Recursive search (nested groups)</small></p>
-
-								<div class="mt-3 p-2" style="background:#f8f9fa; border-radius:5px;">
-									<strong>Example Usage:</strong><br>
-									<code style="font-size:11px;">(userAccountControl:1.2.840.113556.1.4.803:=2)</code>
-									<br><small>Find disabled accounts (UAC bit 2)</small>
-								</div>
+								<code style="cursor:default;">1.2.840.113556.1.4.1941</code><br>
+								<span class="help-text">Recursive search (nested groups)</span></p>
 							</div>
 						</div>
 					</div>
 
-					<!-- Quick Combined Queries -->
+					<!-- Example Queries -->
 					<div class="card">
-						<div class="card-header" data-toggle="collapse" href="#quickCombinedCollapse">
-							<i class="fas fa-magic"></i> Example Combined Queries <i class="fas fa-chevron-down float-right"></i>
+						<div class="card-header" data-toggle="collapse" href="#examplesCollapse">
+							<i class="fas fa-lightbulb"></i> Example Queries <i class="fas fa-chevron-down float-right"></i>
 						</div>
-						<div id="quickCombinedCollapse" class="collapse">
-							<div class="card-body" style="font-size: 11px;">
-								<p><strong>All Principal Objects (ACL enum):</strong></p>
-								<code class="d-block p-2 mb-2" style="background:#1a1a2e; color:#00ff00; border-radius:4px; cursor:pointer;" onclick="setCustomQuery('(|(objectClass=domain)(objectClass=organizationalUnit)(objectClass=groupPolicyContainer))')">(|(objectClass=domain)(objectClass=organizationalUnit)(objectClass=groupPolicyContainer))</code>
-
-								<p><strong>All Accounts with SPN:</strong></p>
-								<code class="d-block p-2 mb-2" style="background:#1a1a2e; color:#00ff00; border-radius:4px; cursor:pointer;" onclick="setCustomQuery('(|(samAccountType=805306368)(samAccountType=805306369)(samAccountType=268435456))')">(|(samAccountType=805306368)(samAccountType=805306369)(samAccountType=268435456))</code>
-
+						<div id="examplesCollapse" class="collapse">
+							<div class="card-body" style="font-size: 12px;">
+								<p><strong>ACL Enumeration Objects:</strong></p>
+								<div class="example-query" onclick="setCustomQuery('(|(objectClass=domain)(objectClass=organizationalUnit)(objectClass=groupPolicyContainer))')">(|(objectClass=domain)(objectClass=organizationalUnit)(objectClass=groupPolicyContainer))</div>
 								<p><strong>Users + Computers:</strong></p>
-								<code class="d-block p-2 mb-2" style="background:#1a1a2e; color:#00ff00; border-radius:4px; cursor:pointer;" onclick="setCustomQuery('(|(sAMAccountType=805306368)(sAMAccountType=805306369))')">(|(sAMAccountType=805306368)(sAMAccountType=805306369))</code>
-
+								<div class="example-query" onclick="setCustomQuery('(|(sAMAccountType=805306368)(sAMAccountType=805306369))')">(|(sAMAccountType=805306368)(sAMAccountType=805306369))</div>
 								<p><strong>Nested Group Members:</strong></p>
-								<code class="d-block p-2 mb-2" style="background:#1a1a2e; color:#00ff00; border-radius:4px; cursor:pointer;" onclick="setCustomQuery('(memberOf:1.2.840.113556.1.4.1941:=CN=Domain Admins,CN=Users,DC=domain,DC=com)')">(memberOf:1.2.840.113556.1.4.1941:=CN=Domain Admins,...)</code>
-
-								<small class="text-muted">Click to use query</small>
+								<div class="example-query" onclick="setCustomQuery('(memberOf:1.2.840.113556.1.4.1941:=CN=Domain Admins,CN=Users,DC=domain,DC=com)')">(memberOf:1.2.840.113556.1.4.1941:=CN=Domain Admins,...)</div>
 							</div>
 						</div>
 					</div>
@@ -784,16 +752,14 @@
 
 	<footer>
 		<div class="container">
-			<p>&copy; 2025 Shravan Kumar Sheri - All Rights Reserved</p>
+			<p>&copy; 2025 Shravan Kumar Sheri</p>
 		</div>
 	</footer>
 
 	<script>
 		let filterCount = 1;
 
-		// Preset queries
 		const presets = {
-			// Users
 			allUsers: '(&(objectCategory=person)(objectClass=user))',
 			enabledUsers: '(&(objectCategory=person)(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))',
 			disabledUsers: '(&(objectCategory=person)(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=2))',
@@ -813,8 +779,6 @@
 			recentlyCreated: '(&(objectCategory=person)(objectClass=user)(whenCreated>=20240101000000.0Z))',
 			neverLoggedIn: '(&(objectCategory=person)(objectClass=user)(!(lastLogon=*))(!(lastLogonTimestamp=*)))',
 			staleUsers: '(&(objectCategory=person)(objectClass=user)(lastLogonTimestamp<=132500000000000000))',
-
-			// Groups
 			allGroups: '(objectCategory=group)',
 			securityGroups: '(&(objectCategory=group)(groupType:1.2.840.113556.1.4.803:=2147483648))',
 			distributionGroups: '(&(objectCategory=group)(!(groupType:1.2.840.113556.1.4.803:=2147483648)))',
@@ -823,8 +787,6 @@
 			universalGroups: '(&(objectCategory=group)(groupType:1.2.840.113556.1.4.803:=8))',
 			protectedGroups: '(&(objectCategory=group)(adminCount=1))',
 			emptyGroups: '(&(objectCategory=group)(!(member=*)))',
-
-			// Computers
 			allComputers: '(objectCategory=computer)',
 			domainControllers: '(&(objectCategory=computer)(userAccountControl:1.2.840.113556.1.4.803:=8192))',
 			servers: '(&(objectCategory=computer)(operatingSystem=*Server*))',
@@ -838,8 +800,6 @@
 			lapsEnabled: '(&(objectCategory=computer)(ms-Mcs-AdmPwdExpirationTime=*))',
 			trustedForDelegation: '(&(objectCategory=computer)(userAccountControl:1.2.840.113556.1.4.803:=524288))',
 			staleComputers: '(&(objectCategory=computer)(lastLogonTimestamp<=132500000000000000))',
-
-			// Security Objects
 			gpos: '(objectCategory=groupPolicyContainer)',
 			ous: '(objectCategory=organizationalUnit)',
 			trusts: '(objectClass=trustedDomain)',
@@ -852,8 +812,6 @@
 			const query = presets[presetName];
 			document.getElementById('ldapQuery').textContent = query;
 			updateAllOutputs(query);
-
-			// Update active state
 			document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
 			event.target.classList.add('active');
 		}
@@ -868,45 +826,27 @@
 
 			let objectFilter = '';
 			switch(objType) {
-				case 'user':
-					objectFilter = '(objectCategory=person)(objectClass=user)';
-					break;
-				case 'group':
-					objectFilter = '(objectCategory=group)';
-					break;
-				case 'computer':
-					objectFilter = '(objectCategory=computer)';
-					break;
-				default:
-					objectFilter = '';
+				case 'user': objectFilter = '(objectCategory=person)(objectClass=user)'; break;
+				case 'group': objectFilter = '(objectCategory=group)'; break;
+				case 'computer': objectFilter = '(objectCategory=computer)'; break;
+				default: objectFilter = '';
 			}
 
 			let attrFilter = '';
 			if (val) {
-				if (op === '=*') {
-					attrFilter = `(${attr}=*${val}*)`;
-				} else if (op === '!') {
-					attrFilter = `(!(${attr}=${val}))`;
-				} else {
-					attrFilter = `(${attr}${op}${val})`;
-				}
+				if (op === '=*') attrFilter = `(${attr}=*${val}*)`;
+				else if (op === '!') attrFilter = `(!(${attr}=${val}))`;
+				else attrFilter = `(${attr}${op}${val})`;
 			}
 
 			let uacFilter = '';
-			if (enabledOnly) {
-				uacFilter = '(!(userAccountControl:1.2.840.113556.1.4.803:=2))';
-			} else if (disabledOnly) {
-				uacFilter = '(userAccountControl:1.2.840.113556.1.4.803:=2)';
-			}
+			if (enabledOnly) uacFilter = '(!(userAccountControl:1.2.840.113556.1.4.803:=2))';
+			else if (disabledOnly) uacFilter = '(userAccountControl:1.2.840.113556.1.4.803:=2)';
 
 			let query = '';
 			if (objectFilter || attrFilter || uacFilter) {
 				const parts = [objectFilter, attrFilter, uacFilter].filter(p => p);
-				if (parts.length > 1) {
-					query = `(&${parts.join('')})`;
-				} else {
-					query = parts[0] || '(objectClass=*)';
-				}
+				query = parts.length > 1 ? `(&${parts.join('')})` : parts[0] || '(objectClass=*)';
 			} else {
 				query = '(objectClass=*)';
 			}
@@ -922,29 +862,11 @@
 			newFilter.id = `filter-${filterCount}`;
 			newFilter.innerHTML = `
 				<div class="row">
-					<div class="col-md-2">
-						<select class="form-control" id="logic-${filterCount}">
-							<option value="AND">AND</option>
-							<option value="OR">OR</option>
-							<option value="NOT">NOT</option>
-						</select>
-					</div>
-					<div class="col-md-4">
-						<input type="text" class="form-control" id="attr-${filterCount}" placeholder="Attribute">
-					</div>
-					<div class="col-md-2">
-						<select class="form-control" id="op-${filterCount}">
-							<option value="=">=</option>
-							<option value=">=">>=</option>
-							<option value="<="><=</option>
-							<option value="~=">~=</option>
-						</select>
-					</div>
-					<div class="col-md-4">
-						<input type="text" class="form-control" id="val-${filterCount}" placeholder="Value">
-					</div>
-				</div>
-			`;
+					<div class="col-md-2"><select class="form-control" id="logic-${filterCount}"><option value="AND">AND</option><option value="OR">OR</option><option value="NOT">NOT</option></select></div>
+					<div class="col-md-4"><input type="text" class="form-control" id="attr-${filterCount}" placeholder="Attribute"></div>
+					<div class="col-md-2"><select class="form-control" id="op-${filterCount}"><option value="=">=</option><option value=">=">>=</option><option value="<="><=</option><option value="~=">~=</option></select></div>
+					<div class="col-md-4"><input type="text" class="form-control" id="val-${filterCount}" placeholder="Value"></div>
+				</div>`;
 			container.appendChild(newFilter);
 			filterCount++;
 		}
@@ -960,35 +882,19 @@
 		function buildAdvancedQuery() {
 			const objClass = document.getElementById('advObjectClass').value;
 			let filters = [];
-
-			if (objClass) {
-				filters.push(`(objectClass=${objClass})`);
-			}
-
+			if (objClass) filters.push(`(objectClass=${objClass})`);
 			for (let i = 0; i < filterCount; i++) {
 				const attr = document.getElementById(`attr-${i}`);
 				const val = document.getElementById(`val-${i}`);
 				const op = document.getElementById(`op-${i}`);
 				const logic = document.getElementById(`logic-${i}`);
-
 				if (attr && val && attr.value && val.value) {
 					let filter = `(${attr.value}${op.value}${val.value})`;
-					if (logic.value === 'NOT') {
-						filter = `(!${filter})`;
-					}
+					if (logic.value === 'NOT') filter = `(!${filter})`;
 					filters.push(filter);
 				}
 			}
-
-			let query = '';
-			if (filters.length > 1) {
-				query = `(&${filters.join('')})`;
-			} else if (filters.length === 1) {
-				query = filters[0];
-			} else {
-				query = '(objectClass=*)';
-			}
-
+			let query = filters.length > 1 ? `(&${filters.join('')})` : filters.length === 1 ? filters[0] : '(objectClass=*)';
 			document.getElementById('ldapQuery').textContent = query;
 			updateAllOutputs(query);
 		}
@@ -996,27 +902,14 @@
 		function updateAllOutputs(query) {
 			const dc = document.getElementById('dcHost').value || 'DC';
 			const baseDN = document.getElementById('baseDN').value || 'DC=domain,DC=com';
-
-			// PowerShell
 			let psCmd = '';
-			if (query.includes('objectCategory=person') || query.includes('objectClass=user')) {
-				psCmd = `Get-ADUser -LDAPFilter "${query}" -Properties *`;
-			} else if (query.includes('objectCategory=group')) {
-				psCmd = `Get-ADGroup -LDAPFilter "${query}" -Properties *`;
-			} else if (query.includes('objectCategory=computer')) {
-				psCmd = `Get-ADComputer -LDAPFilter "${query}" -Properties *`;
-			} else {
-				psCmd = `Get-ADObject -LDAPFilter "${query}" -Properties *`;
-			}
+			if (query.includes('objectCategory=person') || query.includes('objectClass=user')) psCmd = `Get-ADUser -LDAPFilter "${query}" -Properties *`;
+			else if (query.includes('objectCategory=group')) psCmd = `Get-ADGroup -LDAPFilter "${query}" -Properties *`;
+			else if (query.includes('objectCategory=computer')) psCmd = `Get-ADComputer -LDAPFilter "${query}" -Properties *`;
+			else psCmd = `Get-ADObject -LDAPFilter "${query}" -Properties *`;
 			document.getElementById('psQuery').textContent = psCmd;
-
-			// ldapsearch
-			const ldapsearchCmd = `ldapsearch -x -H ldap://${dc} -b "${baseDN}" "${query}"`;
-			document.getElementById('ldapsearchQuery').textContent = ldapsearchCmd;
-
-			// ADFind
-			const adfindCmd = `adfind -h ${dc} -b "${baseDN}" -f "${query}"`;
-			document.getElementById('adfindQuery').textContent = adfindCmd;
+			document.getElementById('ldapsearchQuery').textContent = `ldapsearch -x -H ldap://${dc} -b "${baseDN}" "${query}"`;
+			document.getElementById('adfindQuery').textContent = `adfind -h ${dc} -b "${baseDN}" -f "${query}"`;
 		}
 
 		function copyQuery(elementId) {
@@ -1024,37 +917,29 @@
 			const text = element.querySelector('span').textContent;
 			navigator.clipboard.writeText(text).then(() => {
 				const btn = element.querySelector('.copy-btn');
-				btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-				setTimeout(() => {
-					btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
-				}, 2000);
+				btn.innerHTML = '<i class="fas fa-check"></i> Copied';
+				setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy"></i> Copy'; }, 2000);
 			});
 		}
 
-		// Insert filter from reference sidebar
 		function insertFilter(filter) {
 			const query = `(${filter})`;
 			document.getElementById('ldapQuery').textContent = query;
 			updateAllOutputs(query);
 		}
 
-		// Insert UAC filter with proper OID syntax
 		function insertUACFilter(value) {
 			const query = `(userAccountControl:1.2.840.113556.1.4.803:=${value})`;
 			document.getElementById('ldapQuery').textContent = query;
 			updateAllOutputs(query);
 		}
 
-		// Set custom query from examples
 		function setCustomQuery(query) {
 			document.getElementById('ldapQuery').textContent = query;
 			updateAllOutputs(query);
 		}
 
-		// Initialize
-		document.addEventListener('DOMContentLoaded', function() {
-			updateSimpleQuery();
-		});
+		document.addEventListener('DOMContentLoaded', function() { updateSimpleQuery(); });
 	</script>
 </body>
 </html>
