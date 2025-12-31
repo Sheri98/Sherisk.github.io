@@ -1485,8 +1485,12 @@ wiener:peter
                     </ul>
                 </div>
                 <div class="code-review-section">
-                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
-                    <div class="code-container">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Code Review</h3>
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab6"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab6"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab6-vulnerable">
                         <div class="code-header"><div class="code-filename"><i class="fab fa-node-js"></i><span>auth.js</span></div></div>
                         <div class="code-block">
                             <pre><code class="language-javascript">app.post('/login', rateLimit({ max: 5 }), (req, res) => {
@@ -1500,6 +1504,25 @@ wiener:peter
 <span class="vuln-line">            return res.json({ success: true });</span>
 <span class="vuln-line">        }</span>
 <span class="vuln-line">    }</span>
+
+    res.status(401).json({ error: 'Invalid credentials' });
+});</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab6-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-node-js"></i><span>auth.js (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-javascript">app.post('/login', rateLimit({ max: 5 }), (req, res) => {
+    const { username, password } = req.body;
+
+<span class="secure-line">    // ✅ Validate password is a string, not array</span>
+<span class="secure-line">    if (typeof password !== 'string') {</span>
+<span class="secure-line">        return res.status(400).json({ error: 'Invalid input' });</span>
+<span class="secure-line">    }</span>
+
+<span class="secure-line">    if (authenticate(username, password)) {</span>
+<span class="secure-line">        return res.json({ success: true });</span>
+<span class="secure-line">    }</span>
 
     res.status(401).json({ error: 'Invalid credentials' });
 });</code></pre>
@@ -1548,8 +1571,12 @@ Content-Type: application/json
                     </ul>
                 </div>
                 <div class="code-review-section">
-                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
-                    <div class="code-container">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Code Review</h3>
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab7"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab7"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab7-vulnerable">
                         <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py</span></div></div>
                         <div class="code-block">
                             <pre><code class="language-python">@app.route('/login', methods=['POST'])
@@ -1564,6 +1591,29 @@ def my_account():
 <span class="vuln-line">    if 'user_id' not in session:</span>
 <span class="vuln-line">        return redirect('/login')</span>
     return render_template('account.html')</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab7-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/login', methods=['POST'])
+def login():
+    if authenticate(username, password):
+<span class="secure-line">        session['pending_2fa'] = user.id  # ✅ Pending, not authenticated!</span>
+        return redirect('/login2')
+
+@app.route('/my-account')
+@login_required
+def my_account():
+<span class="secure-line">    # ✅ Decorator checks BOTH user_id AND 2fa_complete</span>
+    return render_template('account.html')
+
+<span class="secure-line">def login_required(f):</span>
+<span class="secure-line">    def wrapper(*args, **kwargs):</span>
+<span class="secure-line">        if 'user_id' not in session or not session.get('2fa_complete'):</span>
+<span class="secure-line">            return redirect('/login')</span>
+<span class="secure-line">        return f(*args, **kwargs)</span>
+<span class="secure-line">    return wrapper</span></code></pre>
                         </div>
                     </div>
                 </div>
@@ -1602,8 +1652,12 @@ def my_account():
                     </ul>
                 </div>
                 <div class="code-review-section">
-                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
-                    <div class="code-container">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Code Review</h3>
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab8"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab8"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab8-vulnerable">
                         <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py</span></div></div>
                         <div class="code-block">
                             <pre><code class="language-python">@app.route('/login2', methods=['POST'])
@@ -1617,6 +1671,28 @@ def verify_2fa():
     if user and user.mfa_code == code:
         session['user_id'] = user.id
 <span class="vuln-line">        session['2fa_complete'] = True  # ❌ Attacker gets access to victim!</span>
+        return redirect('/my-account')
+
+    return error('Invalid code')</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab8-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/login2', methods=['POST'])
+def verify_2fa():
+<span class="secure-line">    # ✅ Get username from SERVER-SIDE session only</span>
+<span class="secure-line">    if 'pending_2fa' not in session:</span>
+<span class="secure-line">        return redirect('/login')</span>
+<span class="secure-line">    user_id = session['pending_2fa']</span>
+    code = request.form.get('mfa-code')
+
+<span class="secure-line">    user = User.query.get(user_id)</span>
+
+    if user and user.mfa_code == code:
+<span class="secure-line">        del session['pending_2fa']</span>
+        session['user_id'] = user.id
+        session['2fa_complete'] = True
         return redirect('/my-account')
 
     return error('Invalid code')</code></pre>
