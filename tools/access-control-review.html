@@ -1,0 +1,1851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access Control Code Review Playground | Security Learning</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #131a2b;
+            --bg-tertiary: #1a2540;
+            --accent-red: #ff4757;
+            --accent-green: #2ed573;
+            --accent-blue: #3742fa;
+            --accent-yellow: #ffa502;
+            --accent-purple: #8b5cf6;
+            --accent-orange: #ff6b35;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --border-color: #2a3a5c;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            padding: 20px 40px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, var(--accent-orange), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-badge { display: flex; gap: 10px; }
+
+        .badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-lab {
+            background: rgba(255, 107, 53, 0.2);
+            color: var(--accent-orange);
+            border: 1px solid var(--accent-orange);
+        }
+
+        .badge-count {
+            background: rgba(139, 92, 246, 0.2);
+            color: var(--accent-purple);
+            border: 1px solid var(--accent-purple);
+        }
+
+        .main-container { display: flex; height: calc(100vh - 80px); }
+
+        .sidebar {
+            width: 340px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+
+        .sidebar-section { margin-bottom: 25px; }
+
+        .sidebar-title {
+            padding: 10px 20px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .lab-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .lab-item:hover {
+            background: var(--bg-tertiary);
+            border-left-color: var(--accent-purple);
+        }
+
+        .lab-item.active {
+            background: var(--bg-tertiary);
+            border-left-color: var(--accent-orange);
+        }
+
+        .lab-item i { font-size: 1.1rem; width: 24px; text-align: center; }
+        .lab-item .lab-name { flex: 1; font-size: 0.85rem; }
+
+        .lab-item .difficulty {
+            font-size: 0.65rem;
+            padding: 3px 8px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .difficulty.apprentice { background: rgba(46, 213, 115, 0.2); color: var(--accent-green); }
+        .difficulty.practitioner { background: rgba(255, 165, 2, 0.2); color: var(--accent-yellow); }
+        .difficulty.expert { background: rgba(255, 71, 87, 0.2); color: var(--accent-red); }
+
+        .content-area { flex: 1; overflow-y: auto; padding: 30px 40px; }
+
+        .lab-header { margin-bottom: 30px; }
+        .lab-header h2 { font-size: 1.6rem; margin-bottom: 10px; color: var(--text-primary); }
+
+        .lab-meta { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 15px; }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .meta-item i { color: var(--accent-purple); }
+
+        .lab-description { color: var(--text-secondary); line-height: 1.7; font-size: 0.95rem; }
+
+        .vuln-section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+        }
+
+        .vuln-section h3 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .vuln-section h3 i { color: var(--accent-red); }
+
+        .vuln-list { list-style: none; padding-left: 0; }
+
+        .vuln-list li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .vuln-list li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: var(--accent-orange);
+        }
+
+        .code-review-section { margin-bottom: 30px; }
+
+        .code-tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+
+        .code-tab {
+            padding: 10px 20px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .code-tab:hover { border-color: var(--accent-purple); }
+
+        .code-tab.active {
+            background: var(--accent-red);
+            border-color: var(--accent-red);
+            color: white;
+        }
+
+        .code-tab.secure.active {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
+        .code-container {
+            position: relative;
+            background: #1e1e1e;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            margin-bottom: 15px;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .code-filename {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .code-filename i { color: var(--accent-yellow); }
+
+        .code-block {
+            padding: 20px;
+            overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .code-block pre {
+            margin: 0;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .vuln-line {
+            background: rgba(255, 71, 87, 0.15);
+            display: block;
+            margin: 0 -20px;
+            padding: 0 20px;
+            border-left: 3px solid var(--accent-red);
+        }
+
+        .secure-line {
+            background: rgba(46, 213, 115, 0.15);
+            display: block;
+            margin: 0 -20px;
+            padding: 0 20px;
+            border-left: 3px solid var(--accent-green);
+        }
+
+        .payload-section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+        }
+
+        .payload-section h3 {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--accent-green);
+        }
+
+        .payload-box {
+            background: #1e1e1e;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            color: var(--accent-yellow);
+            overflow-x: auto;
+            position: relative;
+            white-space: pre;
+        }
+
+        .payload-box .payload-label {
+            position: absolute;
+            top: -10px;
+            left: 15px;
+            background: var(--bg-secondary);
+            padding: 2px 10px;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            border-radius: 4px;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .hidden { display: none !important; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-purple); }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+        }
+
+        .back-link:hover { color: var(--accent-purple); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <a href="../tools.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to Tools</a>
+            <h1><i class="fas fa-user-shield"></i> Access Control Code Review</h1>
+        </div>
+        <div class="header-badge">
+            <span class="badge badge-lab">PortSwigger Labs</span>
+            <span class="badge badge-count">13 Labs</span>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title"><i class="fas fa-lock-open"></i> Vertical Privilege Escalation</div>
+                <div class="lab-item active" data-lab="lab1-unprotected-admin">
+                    <i class="fas fa-user-cog" style="color: var(--accent-orange);"></i>
+                    <span class="lab-name">Unprotected Admin Functionality</span>
+                    <span class="difficulty apprentice">Easy</span>
+                </div>
+                <div class="lab-item" data-lab="lab2-unpredictable-url">
+                    <i class="fas fa-link" style="color: var(--accent-yellow);"></i>
+                    <span class="lab-name">Unpredictable Admin URL</span>
+                    <span class="difficulty apprentice">Easy</span>
+                </div>
+                <div class="lab-item" data-lab="lab3-role-parameter">
+                    <i class="fas fa-user-tag" style="color: var(--accent-red);"></i>
+                    <span class="lab-name">Role Controlled by Parameter</span>
+                    <span class="difficulty apprentice">Easy</span>
+                </div>
+                <div class="lab-item" data-lab="lab4-role-profile">
+                    <i class="fas fa-id-card" style="color: var(--accent-purple);"></i>
+                    <span class="lab-name">Role Modified in Profile</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title"><i class="fas fa-random"></i> Access Control Bypass</div>
+                <div class="lab-item" data-lab="lab5-url-bypass">
+                    <i class="fas fa-route" style="color: var(--accent-blue);"></i>
+                    <span class="lab-name">URL-based AC Bypass</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+                <div class="lab-item" data-lab="lab6-method-bypass">
+                    <i class="fas fa-exchange-alt" style="color: var(--accent-green);"></i>
+                    <span class="lab-name">Method-based AC Bypass</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title"><i class="fas fa-users"></i> Horizontal Privilege Escalation</div>
+                <div class="lab-item" data-lab="lab7-user-id-param">
+                    <i class="fas fa-fingerprint" style="color: var(--accent-yellow);"></i>
+                    <span class="lab-name">User ID in Parameter</span>
+                    <span class="difficulty apprentice">Easy</span>
+                </div>
+                <div class="lab-item" data-lab="lab8-unpredictable-id">
+                    <i class="fas fa-random" style="color: var(--accent-orange);"></i>
+                    <span class="lab-name">Unpredictable User IDs</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+                <div class="lab-item" data-lab="lab9-redirect-leak">
+                    <i class="fas fa-directions" style="color: var(--accent-red);"></i>
+                    <span class="lab-name">Data Leakage in Redirect</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+                <div class="lab-item" data-lab="lab10-password-disclosure">
+                    <i class="fas fa-key" style="color: var(--accent-purple);"></i>
+                    <span class="lab-name">Password Disclosure</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title"><i class="fas fa-file-alt"></i> IDOR & Logic Flaws</div>
+                <div class="lab-item" data-lab="lab11-idor">
+                    <i class="fas fa-folder-open" style="color: var(--accent-green);"></i>
+                    <span class="lab-name">Insecure Direct Object Ref</span>
+                    <span class="difficulty apprentice">Easy</span>
+                </div>
+                <div class="lab-item" data-lab="lab12-multistep">
+                    <i class="fas fa-tasks" style="color: var(--accent-blue);"></i>
+                    <span class="lab-name">Multi-step No AC</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+                <div class="lab-item" data-lab="lab13-referer">
+                    <i class="fas fa-paper-plane" style="color: var(--accent-yellow);"></i>
+                    <span class="lab-name">Referer-based AC</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-area">
+            <!-- Lab 1: Unprotected Admin Functionality -->
+            <div id="lab1-unprotected-admin" class="lab-content">
+                <div class="lab-header">
+                    <h2><i class="fas fa-user-cog"></i> Lab 1: Unprotected Admin Functionality</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Apprentice</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The admin panel is accessible without authentication. The URL can be discovered through robots.txt,
+                        directory brute-forcing, or JavaScript files. No access control is enforced.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Admin panel at predictable URL like <code>/admin</code> or <code>/administrator</code></li>
+                        <li>No authentication check before serving admin content</li>
+                        <li>URL disclosed in <code>robots.txt</code> or JavaScript source</li>
+                        <li>Any user can access administrative functions</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab1"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab1"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab1-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>admin.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/administrator-panel')
+def admin_panel():
+<span class="vuln-line">    # ❌ No authentication check!</span>
+<span class="vuln-line">    # ❌ No authorization check!</span>
+    users = User.query.all()
+    return render_template('admin.html', users=users)
+
+@app.route('/administrator-panel/delete', methods=['POST'])
+def delete_user():
+<span class="vuln-line">    # ❌ Anyone can delete users!</span>
+    username = request.form.get('username')
+    user = User.query.filter_by(username=username).first()
+    db.session.delete(user)
+    db.session.commit()
+    return redirect('/administrator-panel')
+
+# robots.txt exposes the admin URL
+# User-agent: *
+# Disallow: /administrator-panel</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab1-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>admin.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">from functools import wraps
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+<span class="secure-line">        if not current_user.is_authenticated:</span>
+<span class="secure-line">            abort(401)  # ✅ Require authentication</span>
+<span class="secure-line">        if not current_user.is_admin:</span>
+<span class="secure-line">            abort(403)  # ✅ Require admin role</span>
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/admin')
+<span class="secure-line">@login_required</span>
+<span class="secure-line">@admin_required</span>
+def admin_panel():
+<span class="secure-line">    audit_log('admin_access', current_user.id)  # ✅ Log access</span>
+    users = User.query.all()
+    return render_template('admin.html', users=users)
+
+@app.route('/admin/delete', methods=['POST'])
+<span class="secure-line">@login_required</span>
+<span class="secure-line">@admin_required</span>
+<span class="secure-line">@csrf_protect</span>
+def delete_user():
+    username = request.form.get('username')
+<span class="secure-line">    if username == current_user.username:</span>
+<span class="secure-line">        abort(400, "Cannot delete yourself")</span>
+    user = User.query.filter_by(username=username).first()
+    db.session.delete(user)
+    db.session.commit()
+<span class="secure-line">    audit_log('user_deleted', current_user.id, username)</span>
+    return redirect('/admin')</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Discovery via robots.txt</span>
+GET /robots.txt HTTP/1.1
+Host: vulnerable-website.com
+
+# Response reveals:
+User-agent: *
+Disallow: /administrator-panel
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Direct Access</span>
+GET /administrator-panel HTTP/1.1
+Host: vulnerable-website.com
+
+# No authentication needed - full admin access!
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Delete User</span>
+POST /administrator-panel/delete HTTP/1.1
+Host: vulnerable-website.com
+Content-Type: application/x-www-form-urlencoded
+
+username=carlos
+                    </div>
+                </div>
+            </div>
+
+            <!-- Placeholder for other labs -->
+            <!-- Lab 2: Unprotected Admin with Unpredictable URL -->
+            <div id="lab2-unpredictable-url" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-link"></i> Lab 2: Unprotected Admin with Unpredictable URL</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Apprentice</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The admin panel URL is obscured but still accessible. The URL is disclosed in client-side JavaScript,
+                        making security through obscurity ineffective. No proper authentication is enforced.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Admin URL uses obscure path like <code>/admin-h7x9k2</code></li>
+                        <li>URL is leaked in JavaScript source code</li>
+                        <li>Security by obscurity - no actual authentication</li>
+                        <li>Once URL is discovered, full admin access is granted</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab2"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab2"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab2-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-js"></i><span>app.js (Client-side)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-javascript">// ❌ Admin URL leaked in client-side JavaScript!
+var isAdmin = false;
+
+<span class="vuln-line">if (isAdmin) {</span>
+<span class="vuln-line">    // URL exposed even to non-admins who view source</span>
+<span class="vuln-line">    var adminUrl = '/admin-h7x9k2';</span>
+<span class="vuln-line">    document.write('&lt;a href="' + adminUrl + '"&gt;Admin&lt;/a&gt;');</span>
+<span class="vuln-line">}</span>
+
+// Server-side (Python)
+@app.route('/admin-h7x9k2')
+def secret_admin():
+<span class="vuln-line">    # ❌ No authentication - relies on URL secrecy</span>
+    return render_template('admin.html', users=User.query.all())</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab2-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>admin.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"><span class="secure-line"># ✅ Never rely on URL obscurity for security</span>
+<span class="secure-line"># ✅ Always implement proper authentication</span>
+
+@app.route('/admin')
+<span class="secure-line">@login_required</span>
+<span class="secure-line">@admin_required</span>
+def admin_panel():
+<span class="secure-line">    # ✅ Proper role check regardless of URL</span>
+    return render_template('admin.html', users=User.query.all())
+
+# ✅ Client-side: Only render admin link if authenticated
+# Template (Jinja2):
+# {% if current_user.is_admin %}
+#     &lt;a href="{{ url_for('admin_panel') }}"&gt;Admin&lt;/a&gt;
+# {% endif %}
+
+<span class="secure-line"># ✅ Don't include admin URLs in client-side JS at all</span>
+<span class="secure-line"># ✅ Generate links server-side based on role</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">View Page Source</span>
+# Right-click → View Page Source
+# Search for "admin" in JavaScript files
+
+# Found in script:
+if (isAdmin) {
+    var adminUrl = '/admin-h7x9k2';  // ← Secret URL exposed!
+}
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Access Admin Panel</span>
+GET /admin-h7x9k2 HTTP/1.1
+Host: vulnerable-website.com
+
+# Full admin access without authentication!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 3: User Role Controlled by Request Parameter -->
+            <div id="lab3-role-parameter" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-user-tag"></i> Lab 3: User Role Controlled by Request Parameter</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Apprentice</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The application determines user privileges based on a client-controllable parameter like a cookie
+                        or hidden form field. Attackers can modify this to escalate privileges to admin.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>User role stored in cookie: <code>Admin=false</code></li>
+                        <li>Role checked from client-supplied value, not server</li>
+                        <li>Simply changing cookie to <code>Admin=true</code> grants access</li>
+                        <li>No server-side validation of role claims</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab3"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab3"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab3-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/login', methods=['POST'])
+def login():
+    user = authenticate(request.form['username'], request.form['password'])
+    if user:
+        resp = make_response(redirect('/'))
+        resp.set_cookie('session', create_session(user))
+<span class="vuln-line">        resp.set_cookie('Admin', 'true' if user.is_admin else 'false')  # ❌ Role in cookie!</span>
+        return resp
+
+@app.route('/admin')
+def admin_panel():
+<span class="vuln-line">    # ❌ Trusting client-supplied cookie for authorization!</span>
+<span class="vuln-line">    if request.cookies.get('Admin') == 'true':</span>
+        return render_template('admin.html', users=User.query.all())
+    return 'Access denied', 403
+
+@app.route('/admin/delete', methods=['POST'])
+def delete_user():
+<span class="vuln-line">    if request.cookies.get('Admin') == 'true':  # ❌ Same flaw</span>
+        User.query.filter_by(username=request.form['username']).delete()
+        db.session.commit()
+        return redirect('/admin')
+    return 'Access denied', 403</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab3-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>auth.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/login', methods=['POST'])
+def login():
+    user = authenticate(request.form['username'], request.form['password'])
+    if user:
+<span class="secure-line">        # ✅ Store only session ID in cookie, role in server-side session</span>
+<span class="secure-line">        session['user_id'] = user.id</span>
+<span class="secure-line">        session['is_admin'] = user.is_admin  # ✅ Server-side session</span>
+        return redirect('/')
+
+@app.route('/admin')
+<span class="secure-line">@login_required</span>
+def admin_panel():
+<span class="secure-line">    # ✅ Check role from server-side session, not cookie</span>
+<span class="secure-line">    if not session.get('is_admin'):</span>
+<span class="secure-line">        abort(403)</span>
+<span class="secure-line">    # ✅ Or better: fetch fresh from database</span>
+<span class="secure-line">    user = User.query.get(session['user_id'])</span>
+<span class="secure-line">    if not user or not user.is_admin:</span>
+<span class="secure-line">        abort(403)</span>
+    return render_template('admin.html', users=User.query.all())
+
+# ✅ Never trust client-supplied role claims
+# ✅ Always verify roles server-side from trusted data source</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Original Cookie</span>
+Cookie: session=abc123; Admin=false
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Modified Cookie (Burp/DevTools)</span>
+Cookie: session=abc123; Admin=true
+
+# Or via browser console:
+document.cookie = "Admin=true"
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Access Admin</span>
+GET /admin HTTP/1.1
+Host: vulnerable-website.com
+Cookie: session=abc123; Admin=true
+
+# Now have full admin access!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 4: User Role Can Be Modified in Profile -->
+            <div id="lab4-role-profile" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-id-card"></i> Lab 4: User Role Can Be Modified in User Profile</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The profile update endpoint accepts a <code>roleid</code> parameter that can be injected
+                        to escalate privileges. The API returns the updated user object including the new role.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Profile update accepts JSON with user-controllable fields</li>
+                        <li>Adding <code>"roleid": 2</code> escalates to admin</li>
+                        <li>Mass assignment / parameter pollution vulnerability</li>
+                        <li>Response reveals the role was successfully changed</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab4"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab4"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab4-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>profile.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/my-account/change-email', methods=['POST'])
+@login_required
+def change_email():
+    data = request.get_json()
+    user = current_user
+
+<span class="vuln-line">    # ❌ Mass assignment - updates ANY field in request!</span>
+<span class="vuln-line">    for key, value in data.items():</span>
+<span class="vuln-line">        setattr(user, key, value)</span>
+
+    db.session.commit()
+
+<span class="vuln-line">    # ❌ Response reveals all user fields including roleid</span>
+<span class="vuln-line">    return jsonify({</span>
+<span class="vuln-line">        'username': user.username,</span>
+<span class="vuln-line">        'email': user.email,</span>
+<span class="vuln-line">        'roleid': user.roleid  # ❌ Exposes role change worked!</span>
+<span class="vuln-line">    })</span>
+
+# roleid values:
+# 1 = regular user
+# 2 = administrator</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab4-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>profile.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/my-account/change-email', methods=['POST'])
+@login_required
+def change_email():
+    data = request.get_json()
+    user = current_user
+
+<span class="secure-line">    # ✅ Whitelist allowed fields - never mass assign</span>
+<span class="secure-line">    ALLOWED_FIELDS = ['email']  # Only email can be changed</span>
+
+<span class="secure-line">    for key, value in data.items():</span>
+<span class="secure-line">        if key not in ALLOWED_FIELDS:</span>
+<span class="secure-line">            continue  # ✅ Ignore unauthorized fields</span>
+<span class="secure-line">        if key == 'email':</span>
+<span class="secure-line">            if not validate_email(value):</span>
+<span class="secure-line">                abort(400, 'Invalid email')</span>
+<span class="secure-line">        setattr(user, key, value)</span>
+
+    db.session.commit()
+
+<span class="secure-line">    # ✅ Only return safe fields</span>
+    return jsonify({
+        'username': user.username,
+        'email': user.email
+<span class="secure-line">        # ✅ Never expose role in response</span>
+    })</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Normal Request</span>
+POST /my-account/change-email HTTP/1.1
+Host: vulnerable-website.com
+Content-Type: application/json
+Cookie: session=your-session
+
+{"email":"attacker@evil.com"}
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Privilege Escalation Attack</span>
+POST /my-account/change-email HTTP/1.1
+Host: vulnerable-website.com
+Content-Type: application/json
+Cookie: session=your-session
+
+{"email":"attacker@evil.com","roleid":2}
+
+# Response confirms escalation:
+{"username":"wiener","email":"attacker@evil.com","roleid":2}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 5: URL-based Access Control Bypass -->
+            <div id="lab5-url-bypass" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-route"></i> Lab 5: URL-based Access Control Can Be Circumvented</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The back-end uses <code>X-Original-URL</code> or <code>X-Rewrite-URL</code> headers to determine
+                        the actual URL. This bypasses front-end access controls that only check the request path.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Front-end proxy blocks <code>/admin</code> URL</li>
+                        <li>Back-end reads URL from <code>X-Original-URL</code> header</li>
+                        <li>Request <code>GET /</code> with header <code>X-Original-URL: /admin</code> bypasses</li>
+                        <li>Common in Spring, Symfony, and other frameworks</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab5"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab5"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab5-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>middleware.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"># Front-end access control (nginx/proxy)
+# location /admin { deny all; }
+
+# Back-end application
+class URLRewriteMiddleware:
+    def __call__(self, request):
+<span class="vuln-line">        # ❌ Trusts X-Original-URL header from client!</span>
+<span class="vuln-line">        original_url = request.headers.get('X-Original-URL')</span>
+<span class="vuln-line">        if original_url:</span>
+<span class="vuln-line">            request.path = original_url  # ❌ Overrides actual path!</span>
+        return self.get_response(request)
+
+# Routes
+@app.route('/admin')
+def admin_panel():
+<span class="vuln-line">    # ❌ Front-end blocked /admin, but X-Original-URL bypasses!</span>
+    return render_template('admin.html')
+
+@app.route('/admin/delete')
+def delete_user():
+    username = request.args.get('username')
+    User.query.filter_by(username=username).delete()
+    return redirect('/admin')</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab5-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>middleware.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"><span class="secure-line"># ✅ Option 1: Disable URL override headers entirely</span>
+class SecureMiddleware:
+    def __call__(self, request):
+<span class="secure-line">        # ✅ Ignore X-Original-URL and X-Rewrite-URL headers</span>
+<span class="secure-line">        # Only trust the actual request path</span>
+        return self.get_response(request)
+
+<span class="secure-line"># ✅ Option 2: If headers needed, validate at trusted proxy only</span>
+# Configure nginx/proxy to strip these headers from client requests
+# proxy_set_header X-Original-URL "";
+# proxy_set_header X-Rewrite-URL "";
+
+<span class="secure-line"># ✅ Option 3: Implement access control at application level</span>
+@app.route('/admin')
+<span class="secure-line">@login_required</span>
+<span class="secure-line">@admin_required  # ✅ Server-side role check</span>
+def admin_panel():
+    return render_template('admin.html')
+
+<span class="secure-line"># ✅ Never rely solely on front-end/proxy access controls</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Direct Access (Blocked by front-end)</span>
+GET /admin HTTP/1.1
+Host: vulnerable-website.com
+
+# Response: 403 Forbidden (blocked by proxy)
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Bypass with X-Original-URL</span>
+GET / HTTP/1.1
+Host: vulnerable-website.com
+X-Original-URL: /admin
+
+# Response: 200 OK - Admin panel served!
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Delete User via Bypass</span>
+GET /?username=carlos HTTP/1.1
+Host: vulnerable-website.com
+X-Original-URL: /admin/delete
+
+# Deletes carlos despite /admin being blocked!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 6: Method-based Access Control Bypass -->
+            <div id="lab6-method-bypass" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-exchange-alt"></i> Lab 6: Method-based Access Control Can Be Circumvented</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        Access controls are only applied to POST requests. By changing the HTTP method to GET
+                        (or using POSTX, etc.), the restrictions can be bypassed while still executing the action.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Admin action requires POST + admin role check</li>
+                        <li>GET requests to same endpoint skip the role check</li>
+                        <li>Framework processes GET params same as POST body</li>
+                        <li>Action executes without proper authorization</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab6"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab6"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab6-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>admin.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/admin-roles', methods=['GET', 'POST'])
+def admin_roles():
+<span class="vuln-line">    # ❌ Only checks authorization for POST!</span>
+<span class="vuln-line">    if request.method == 'POST':</span>
+<span class="vuln-line">        if not current_user.is_admin:</span>
+<span class="vuln-line">            abort(403)</span>
+
+<span class="vuln-line">    # ❌ Action executes for ANY method with params!</span>
+    username = request.values.get('username')  # Gets from GET or POST
+    action = request.values.get('action')
+
+    if username and action == 'upgrade':
+<span class="vuln-line">        user = User.query.filter_by(username=username).first()</span>
+<span class="vuln-line">        user.is_admin = True  # ❌ Executes without auth check for GET!</span>
+<span class="vuln-line">        db.session.commit()</span>
+
+    return render_template('admin_roles.html')</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab6-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>admin.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"><span class="secure-line"># ✅ Use decorators that apply to ALL methods</span>
+@app.route('/admin-roles', methods=['POST'])  # ✅ Only allow POST
+<span class="secure-line">@login_required</span>
+<span class="secure-line">@admin_required  # ✅ Decorator checks role for ALL requests</span>
+<span class="secure-line">@csrf_protect   # ✅ Require CSRF token</span>
+def admin_roles():
+<span class="secure-line">    # ✅ Only accept POST data, not GET params for actions</span>
+<span class="secure-line">    username = request.form.get('username')  # ✅ POST only</span>
+    action = request.form.get('action')
+
+    if username and action == 'upgrade':
+        user = User.query.filter_by(username=username).first()
+        if user:
+            user.is_admin = True
+            db.session.commit()
+<span class="secure-line">            audit_log('role_upgrade', current_user.id, username)</span>
+
+    return redirect('/admin-roles')
+
+<span class="secure-line"># ✅ Separate read-only GET endpoint if needed</span>
+@app.route('/admin-roles', methods=['GET'])
+@login_required
+@admin_required
+def view_roles():
+    return render_template('admin_roles.html')</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Original POST (Blocked for non-admin)</span>
+POST /admin-roles HTTP/1.1
+Host: vulnerable-website.com
+Cookie: session=wiener-session
+Content-Type: application/x-www-form-urlencoded
+
+username=wiener&action=upgrade
+
+# Response: 403 Forbidden
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Method Bypass with GET</span>
+GET /admin-roles?username=wiener&action=upgrade HTTP/1.1
+Host: vulnerable-website.com
+Cookie: session=wiener-session
+
+# Response: 200 OK - wiener is now admin!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 7: User ID Controlled by Request Parameter -->
+            <div id="lab7-user-id-param" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-fingerprint"></i> Lab 7: User ID Controlled by Request Parameter</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Apprentice</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The application uses a user-controllable <code>id</code> parameter to access account data.
+                        Changing the ID allows horizontal privilege escalation to view other users' data.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Account page accessed via <code>/my-account?id=wiener</code></li>
+                        <li>No validation that ID matches logged-in user</li>
+                        <li>Changing to <code>id=carlos</code> reveals carlos's data</li>
+                        <li>Classic horizontal privilege escalation (IDOR)</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab7"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab7"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab7-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>account.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/my-account')
+@login_required
+def my_account():
+<span class="vuln-line">    # ❌ User ID from query parameter, not session!</span>
+<span class="vuln-line">    user_id = request.args.get('id')</span>
+
+<span class="vuln-line">    # ❌ No check if this is the logged-in user!</span>
+<span class="vuln-line">    user = User.query.filter_by(username=user_id).first()</span>
+
+    return render_template('account.html',
+        username=user.username,
+<span class="vuln-line">        api_key=user.api_key,  # ❌ Exposes sensitive data!</span>
+        email=user.email
+    )</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab7-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>account.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/my-account')
+@login_required
+def my_account():
+<span class="secure-line">    # ✅ Always use session for user identification</span>
+<span class="secure-line">    user = current_user  # From session, not request params</span>
+
+    return render_template('account.html',
+        username=user.username,
+        api_key=user.api_key,
+        email=user.email
+    )
+
+<span class="secure-line"># ✅ If you need to view other users (admin feature):</span>
+@app.route('/admin/user/<username>')
+@login_required
+<span class="secure-line">@admin_required  # ✅ Explicit admin check</span>
+def view_user(username):
+    user = User.query.filter_by(username=username).first_or_404()
+<span class="secure-line">    audit_log('admin_view_user', current_user.id, username)</span>
+    return render_template('admin_user.html', user=user)</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Normal Request (own account)</span>
+GET /my-account?id=wiener HTTP/1.1
+Host: vulnerable-website.com
+Cookie: session=wiener-session
+
+# Shows wiener's account with API key
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">IDOR Attack (access other user)</span>
+GET /my-account?id=carlos HTTP/1.1
+Host: vulnerable-website.com
+Cookie: session=wiener-session
+
+# Shows carlos's account including API key!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 8: User ID with Unpredictable IDs -->
+            <div id="lab8-unpredictable-id" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-random"></i> Lab 8: User ID with Unpredictable User IDs</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        User IDs are GUIDs instead of sequential numbers, but the GUID is leaked elsewhere
+                        in the application (e.g., blog posts, comments). This enables IDOR attacks.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Account accessed via GUID: <code>/my-account?id=a1b2c3d4-...</code></li>
+                        <li>GUIDs seem unpredictable but are leaked in blog posts</li>
+                        <li>Blog author links contain user GUIDs</li>
+                        <li>Once GUID is known, IDOR is possible</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab8"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab8"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab8-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>blog.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"># User model with GUID
+class User(db.Model):
+    id = db.Column(db.String(36), primary_key=True, default=str(uuid.uuid4()))
+
+# Blog template leaks user GUID
+# blog_post.html:
+<span class="vuln-line"># &lt;a href="/blogs?userId={{ post.author.id }}"&gt;{{ post.author.name }}&lt;/a&gt;</span>
+<span class="vuln-line"># ❌ GUID exposed in public blog!</span>
+
+@app.route('/my-account')
+@login_required
+def my_account():
+<span class="vuln-line">    user_id = request.args.get('id')  # ❌ Still trusts user input</span>
+<span class="vuln-line">    user = User.query.get(user_id)    # ❌ No ownership check</span>
+
+    return render_template('account.html',
+        api_key=user.api_key  # ❌ Sensitive data exposed
+    )</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab8-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>blog.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"><span class="secure-line"># ✅ Use different identifiers for public vs private</span>
+class User(db.Model):
+    id = db.Column(db.String(36), primary_key=True)  # Internal use
+<span class="secure-line">    public_username = db.Column(db.String(50))  # ✅ Public identifier</span>
+
+# Blog template uses public username only
+# blog_post.html:
+<span class="secure-line"># &lt;a href="/blogs?author={{ post.author.public_username }}"&gt;</span>
+<span class="secure-line"># ✅ No GUID leaked</span>
+
+@app.route('/my-account')
+@login_required
+def my_account():
+<span class="secure-line">    # ✅ Use session, not request parameter</span>
+<span class="secure-line">    user = current_user</span>
+    return render_template('account.html', api_key=user.api_key)
+
+<span class="secure-line"># ✅ GUIDs should never be the only access control</span>
+<span class="secure-line"># ✅ Always verify ownership/authorization server-side</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Step 1: Find GUID in Blog Post</span>
+GET /blogs HTTP/1.1
+Host: vulnerable-website.com
+
+# Response contains:
+# &lt;a href="/blogs?userId=f8b2c3d4-1234-5678-9abc-def012345678"&gt;carlos&lt;/a&gt;
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Step 2: Access Target Account</span>
+GET /my-account?id=f8b2c3d4-1234-5678-9abc-def012345678 HTTP/1.1
+Host: vulnerable-website.com
+Cookie: session=wiener-session
+
+# Response: carlos's account with API key!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 9: Data Leakage in Redirect -->
+            <div id="lab9-redirect-leak" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-directions"></i> Lab 9: User ID with Data Leakage in Redirect</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The redirect response to login contains the sensitive data in the response body before
+                        redirecting. Even though a redirect occurs, the body contains the leaked information.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Accessing another user's page returns 302 redirect</li>
+                        <li>The redirect response BODY still contains the data</li>
+                        <li>Browser follows redirect, but Burp shows the body</li>
+                        <li>Sensitive data leaked despite "protection"</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab9"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab9"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab9-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>account.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/my-account')
+def my_account():
+    user_id = request.args.get('id')
+    user = User.query.filter_by(username=user_id).first()
+
+<span class="vuln-line">    # ❌ Check happens AFTER rendering the template!</span>
+<span class="vuln-line">    response = render_template('account.html',</span>
+<span class="vuln-line">        api_key=user.api_key  # ❌ Sensitive data rendered first!</span>
+<span class="vuln-line">    )</span>
+
+<span class="vuln-line">    # ❌ Redirect added to response, but body already has data</span>
+<span class="vuln-line">    if not current_user.is_authenticated or current_user.id != user.id:</span>
+<span class="vuln-line">        return redirect('/login'), 302, {'body': response}</span>
+
+    return response</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab9-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>account.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/my-account')
+@login_required
+def my_account():
+    user_id = request.args.get('id')
+
+<span class="secure-line">    # ✅ Check authorization BEFORE accessing any data</span>
+<span class="secure-line">    if user_id != current_user.username:</span>
+<span class="secure-line">        abort(403)  # ✅ Stop immediately, no data rendered</span>
+
+    user = User.query.filter_by(username=user_id).first()
+
+    return render_template('account.html',
+        api_key=user.api_key
+    )
+
+<span class="secure-line"># ✅ Or better: don't use user parameter at all</span>
+@app.route('/my-account')
+@login_required
+def my_account_secure():
+<span class="secure-line">    user = current_user  # ✅ Only own data, always</span>
+    return render_template('account.html', api_key=user.api_key)</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Request Another User's Account</span>
+GET /my-account?id=carlos HTTP/1.1
+Host: vulnerable-website.com
+Cookie: session=wiener-session
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Response (302 but body has data!)</span>
+HTTP/1.1 302 Found
+Location: /login
+
+&lt;!-- Body still contains: --&gt;
+&lt;div class="api-key"&gt;
+    Your API Key: carlos-secret-api-key-12345
+&lt;/div&gt;
+
+# Browser follows redirect, but Burp captures the data!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 10: Password Disclosure -->
+            <div id="lab10-password-disclosure" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-key"></i> Lab 10: User ID with Password Disclosure</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The user profile page pre-fills the password field with the actual password (masked in UI
+                        but visible in HTML source). Combined with IDOR, this reveals other users' passwords.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Profile page has password field pre-filled</li>
+                        <li>HTML: <code>&lt;input type="password" value="actualpassword"&gt;</code></li>
+                        <li>IDOR allows accessing admin's profile page</li>
+                        <li>View source reveals admin password in plaintext</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab10"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab10"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab10-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>profile.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/my-account')
+@login_required
+def my_account():
+<span class="vuln-line">    user_id = request.args.get('id')  # ❌ IDOR vulnerability</span>
+<span class="vuln-line">    user = User.query.filter_by(username=user_id).first()</span>
+
+    return render_template('account.html',
+        username=user.username,
+<span class="vuln-line">        password=user.password  # ❌ Passing password to template!</span>
+    )
+
+# Template (account.html):
+<span class="vuln-line"># &lt;input type="password" name="password" value="{{ password }}"&gt;</span>
+<span class="vuln-line"># ❌ Password visible in HTML source!</span>
+
+# Even with type="password", the VALUE is in plaintext HTML:
+# &lt;input type="password" value="s3cr3t-admin-password"&gt;</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab10-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>profile.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/my-account')
+@login_required
+def my_account():
+<span class="secure-line">    # ✅ Only access own account</span>
+<span class="secure-line">    user = current_user</span>
+
+    return render_template('account.html',
+        username=user.username
+<span class="secure-line">        # ✅ NEVER send password to frontend!</span>
+    )
+
+<span class="secure-line"># ✅ Password change requires re-authentication</span>
+@app.route('/change-password', methods=['POST'])
+@login_required
+def change_password():
+<span class="secure-line">    current = request.form.get('current_password')</span>
+<span class="secure-line">    if not check_password(current_user, current):</span>
+<span class="secure-line">        abort(403, "Current password incorrect")</span>
+
+    new_password = request.form.get('new_password')
+<span class="secure-line">    current_user.password = hash_password(new_password)</span>
+    db.session.commit()
+
+<span class="secure-line"># ✅ Password fields should ALWAYS be empty in forms</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Access Admin Profile via IDOR</span>
+GET /my-account?id=administrator HTTP/1.1
+Host: vulnerable-website.com
+Cookie: session=wiener-session
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">View Source Reveals Password</span>
+&lt;form action="/my-account/change-password"&gt;
+    &lt;input type="text" value="administrator"&gt;
+    &lt;input type="password" value="s3cr3t-admin-p@ss!"&gt;
+    &lt;!-- ^^^^^^^^^ Password in plaintext! --&gt;
+&lt;/form&gt;
+
+# Now login as administrator with stolen password
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 11: Insecure Direct Object References -->
+            <div id="lab11-idor" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-folder-open"></i> Lab 11: Insecure Direct Object References (IDOR)</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Apprentice</span></div>
+                    </div>
+                    <p class="lab-description">
+                        Chat transcript files are stored with sequential filenames. By modifying the file number,
+                        attackers can access other users' chat logs containing sensitive information.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Chat logs downloadable via <code>/download-transcript/3.txt</code></li>
+                        <li>File numbers are sequential (1.txt, 2.txt, 3.txt...)</li>
+                        <li>No authorization check on file access</li>
+                        <li>Changing number reveals other users' conversations</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab11"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab11"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab11-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>chat.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/download-transcript/<filename>')
+def download_transcript(filename):
+<span class="vuln-line">    # ❌ No authorization check!</span>
+<span class="vuln-line">    # ❌ Predictable sequential filenames</span>
+<span class="vuln-line">    filepath = f'/transcripts/{filename}'</span>
+
+<span class="vuln-line">    return send_file(filepath)  # ❌ Any file accessible!</span>
+
+# File structure:
+# /transcripts/1.txt  (carlos's chat with password)
+# /transcripts/2.txt  (another user)
+# /transcripts/3.txt  (your chat - you know this number)</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab11-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>chat.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"><span class="secure-line"># ✅ Use unpredictable identifiers + ownership check</span>
+class ChatTranscript(db.Model):
+    id = db.Column(db.String(36), default=lambda: str(uuid.uuid4()))
+<span class="secure-line">    user_id = db.Column(db.Integer, ForeignKey('user.id'))  # ✅ Owner</span>
+    filename = db.Column(db.String(100))
+
+@app.route('/download-transcript/<transcript_id>')
+@login_required
+def download_transcript(transcript_id):
+    transcript = ChatTranscript.query.get_or_404(transcript_id)
+
+<span class="secure-line">    # ✅ Verify ownership</span>
+<span class="secure-line">    if transcript.user_id != current_user.id:</span>
+<span class="secure-line">        abort(403, "Not your transcript")</span>
+
+<span class="secure-line">    # ✅ Prevent path traversal</span>
+<span class="secure-line">    safe_path = os.path.join(TRANSCRIPT_DIR, secure_filename(transcript.filename))</span>
+    return send_file(safe_path)
+
+<span class="secure-line"># ✅ Use UUID filenames, not sequential</span>
+<span class="secure-line"># ✅ Store ownership in database</span>
+<span class="secure-line"># ✅ Always verify user owns the resource</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Your Transcript (Known)</span>
+GET /download-transcript/3.txt HTTP/1.1
+Host: vulnerable-website.com
+
+# Returns your chat log
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">IDOR - Access Other Transcripts</span>
+GET /download-transcript/1.txt HTTP/1.1
+Host: vulnerable-website.com
+
+# Returns carlos's chat log:
+# "My password is: p@ssw0rd123"
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 12: Multi-step Process No Access Control -->
+            <div id="lab12-multistep" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-tasks"></i> Lab 12: Multi-step Process with No Access Control on One Step</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The admin role upgrade process has multiple steps, but access control is only enforced
+                        on the first step. By directly accessing later steps, attackers bypass the check.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Step 1: Select user (admin check) → Step 2: Confirm (NO check!)</li>
+                        <li>Access control only on initial action, not confirmation</li>
+                        <li>Attacker skips Step 1, goes directly to Step 2</li>
+                        <li>Confirmation step executes privileged action</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab12"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab12"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab12-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>admin.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"># Step 1: Select user to upgrade (protected)
+@app.route('/admin-roles', methods=['POST'])
+@login_required
+<span class="vuln-line">@admin_required  # ✅ This step is protected</span>
+def select_user_upgrade():
+    username = request.form.get('username')
+    return render_template('confirm_upgrade.html', username=username)
+
+# Step 2: Confirm upgrade (UNPROTECTED!)
+@app.route('/admin-roles', methods=['POST'])
+def confirm_upgrade():
+    if request.form.get('confirmed') == 'true':
+        username = request.form.get('username')
+<span class="vuln-line">        # ❌ No @admin_required on confirmation step!</span>
+<span class="vuln-line">        user = User.query.filter_by(username=username).first()</span>
+<span class="vuln-line">        user.is_admin = True</span>
+        db.session.commit()
+    return redirect('/admin')</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab12-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>admin.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"><span class="secure-line"># ✅ Protect ALL steps in multi-step process</span>
+
+@app.route('/admin-roles/select', methods=['POST'])
+@login_required
+<span class="secure-line">@admin_required</span>
+def select_user_upgrade():
+    username = request.form.get('username')
+<span class="secure-line">    # ✅ Use signed token to prevent tampering</span>
+<span class="secure-line">    token = create_signed_token(username, current_user.id)</span>
+    return render_template('confirm_upgrade.html', token=token)
+
+@app.route('/admin-roles/confirm', methods=['POST'])
+@login_required
+<span class="secure-line">@admin_required  # ✅ Protected!</span>
+<span class="secure-line">@csrf_protect</span>
+def confirm_upgrade():
+<span class="secure-line">    token = request.form.get('token')</span>
+<span class="secure-line">    username = verify_signed_token(token, current_user.id)</span>
+<span class="secure-line">    if not username:</span>
+<span class="secure-line">        abort(400, "Invalid or expired token")</span>
+
+    user = User.query.filter_by(username=username).first()
+    user.is_admin = True
+    db.session.commit()
+<span class="secure-line">    audit_log('role_upgrade', current_user.id, username)</span>
+    return redirect('/admin')</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Skip Step 1, Go Directly to Confirmation</span>
+POST /admin-roles HTTP/1.1
+Host: vulnerable-website.com
+Cookie: session=wiener-session
+Content-Type: application/x-www-form-urlencoded
+
+username=wiener&confirmed=true
+
+# wiener is now admin - bypassed Step 1 check!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 13: Referer-based Access Control -->
+            <div id="lab13-referer" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-paper-plane"></i> Lab 13: Referer-based Access Control</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The application relies on the Referer header to enforce access control. Since this header
+                        is client-controlled, attackers can forge it to bypass restrictions.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Action endpoint checks if Referer contains <code>/admin</code></li>
+                        <li>Referer header is completely client-controlled</li>
+                        <li>Adding <code>Referer: /admin</code> bypasses the check</li>
+                        <li>Never use client headers for authorization!</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab13"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab13"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab13-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>admin.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/admin-roles', methods=['GET'])
+def upgrade_user():
+<span class="vuln-line">    # ❌ Trusting Referer header for authorization!</span>
+<span class="vuln-line">    referer = request.headers.get('Referer', '')</span>
+
+<span class="vuln-line">    if '/admin' not in referer:</span>
+<span class="vuln-line">        abort(401, "Unauthorized")  # ❌ Easily bypassed!</span>
+
+    username = request.args.get('username')
+    action = request.args.get('action')
+
+    if action == 'upgrade':
+        user = User.query.filter_by(username=username).first()
+        user.is_admin = True
+        db.session.commit()
+
+    return 'User upgraded'</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab13-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>admin.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"><span class="secure-line"># ✅ Never use Referer for authorization!</span>
+<span class="secure-line"># ✅ Referer is only useful for analytics/logging</span>
+
+@app.route('/admin-roles', methods=['POST'])  # ✅ POST for state changes
+@login_required
+<span class="secure-line">@admin_required  # ✅ Server-side role check</span>
+<span class="secure-line">@csrf_protect    # ✅ CSRF token required</span>
+def upgrade_user():
+    username = request.form.get('username')
+    action = request.form.get('action')
+
+    if action == 'upgrade':
+        user = User.query.filter_by(username=username).first()
+        if user:
+            user.is_admin = True
+            db.session.commit()
+<span class="secure-line">            audit_log('role_upgrade', current_user.id, username)</span>
+
+    return redirect('/admin')
+
+<span class="secure-line"># ✅ Authorization must ALWAYS be based on:</span>
+<span class="secure-line"># - Server-side session</span>
+<span class="secure-line"># - Database role lookup</span>
+<span class="secure-line"># - NEVER on client-supplied headers!</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Request Without Referer (Blocked)</span>
+GET /admin-roles?username=wiener&action=upgrade HTTP/1.1
+Host: vulnerable-website.com
+Cookie: session=wiener-session
+
+# Response: 401 Unauthorized
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Forge Referer Header (Bypass)</span>
+GET /admin-roles?username=wiener&action=upgrade HTTP/1.1
+Host: vulnerable-website.com
+Cookie: session=wiener-session
+Referer: https://vulnerable-website.com/admin
+
+# Response: 200 OK - wiener is now admin!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+    <script>
+        // Handle code tab clicks
+        document.querySelectorAll('.code-tab').forEach(tab => {
+            tab.addEventListener('click', function(e) {
+                e.preventDefault();
+                const section = this.closest('.code-review-section');
+                const view = this.dataset.view;
+                const labId = this.dataset.lab;
+
+                section.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+
+                const vulnEl = document.getElementById(`${labId}-vulnerable`);
+                const secureEl = document.getElementById(`${labId}-secure`);
+
+                if (vulnEl && secureEl) {
+                    if (view === 'vulnerable') {
+                        vulnEl.classList.remove('hidden');
+                        secureEl.classList.add('hidden');
+                    } else {
+                        vulnEl.classList.add('hidden');
+                        secureEl.classList.remove('hidden');
+                    }
+                }
+            });
+        });
+
+        // Lab sidebar navigation
+        document.querySelectorAll('.lab-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.lab-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+
+                const labId = item.dataset.lab;
+                document.querySelectorAll('.lab-content').forEach(content => {
+                    content.classList.add('hidden');
+                });
+
+                const labContent = document.getElementById(labId);
+                if (labContent) {
+                    labContent.classList.remove('hidden');
+                }
+            });
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            const firstLab = document.querySelector('.lab-item');
+            if (firstLab) firstLab.click();
+        });
+    </script>
+</body>
+</html>
