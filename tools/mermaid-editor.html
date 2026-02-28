@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mermaid Live Editor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0e0f14;
+    --bg-secondary: #16171e;
+    --bg-tertiary: #1e2029;
+    --bg-elevated: #252733;
+    --surface: #2a2d3a;
+    --border: #333649;
+    --border-focus: #6366f1;
+    --text-primary: #e8e9ed;
+    --text-secondary: #9ca0b0;
+    --text-muted: #636780;
+    --accent: #6366f1;
+    --accent-hover: #818cf8;
+    --accent-glow: rgba(99, 102, 241, 0.15);
+    --green: #34d399;
+    --red: #f87171;
+    --amber: #fbbf24;
+    --preview-bg: #ffffff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ─── HEADER ─── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 56px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    z-index: 10;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -0.3px;
+  }
+
+  .logo-icon {
+    width: 28px;
+    height: 28px;
+    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    transition: all 0.3s;
+  }
+
+  .status-badge.valid { color: var(--green); border-color: rgba(52,211,153,0.3); }
+  .status-badge.error { color: var(--red); border-color: rgba(248,113,113,0.3); }
+  .status-badge .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* ─── BUTTONS ─── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn:hover { background: var(--bg-elevated); border-color: var(--text-muted); }
+
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+  .btn svg { width: 15px; height: 15px; }
+
+  /* ─── TOOLBAR ─── */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .toolbar .btn { padding: 6px 10px; font-size: 12px; border-radius: 6px; }
+
+  .toolbar-divider {
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+    margin: 0 4px;
+  }
+
+  .template-select {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    outline: none;
+  }
+  .template-select:focus { border-color: var(--accent); }
+
+  /* ─── MAIN LAYOUT ─── */
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ─── EDITOR PANEL ─── */
+  .editor-panel {
+    width: 45%;
+    min-width: 300px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    background: var(--bg-primary);
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+
+  .editor-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  textarea#code-input {
+    width: 100%;
+    height: 100%;
+    padding: 20px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: none;
+    outline: none;
+    resize: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13.5px;
+    line-height: 1.7;
+    tab-size: 2;
+    caret-color: var(--accent);
+  }
+
+  textarea#code-input::placeholder {
+    color: var(--text-muted);
+  }
+
+  textarea#code-input::selection {
+    background: var(--accent-glow);
+  }
+
+  /* ─── RESIZE HANDLE ─── */
+  .resize-handle {
+    width: 5px;
+    cursor: col-resize;
+    background: transparent;
+    transition: background 0.2s;
+    position: relative;
+    z-index: 5;
+    flex-shrink: 0;
+  }
+  .resize-handle:hover,
+  .resize-handle.active {
+    background: var(--accent);
+  }
+
+  /* ─── PREVIEW PANEL ─── */
+  .preview-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-primary);
+    min-width: 300px;
+  }
+
+  .preview-container {
+    flex: 1;
+    overflow: auto;
+    background: var(--preview-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    position: relative;
+  }
+
+  .preview-container.dark-preview {
+    background: #1a1a2e;
+  }
+
+  #mermaid-output {
+    max-width: 100%;
+    transition: transform 0.2s;
+  }
+
+  #mermaid-output svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .error-display {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    color: var(--red);
+    font-size: 13px;
+    text-align: center;
+    max-width: 400px;
+  }
+
+  .error-display.visible { display: flex; }
+
+  .error-display .error-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(248,113,113,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+
+  .error-display .error-text {
+    background: rgba(248,113,113,0.08);
+    border: 1px solid rgba(248,113,113,0.2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    text-align: left;
+    width: 100%;
+    max-height: 200px;
+    overflow: auto;
+    color: #fca5a5;
+  }
+
+  .placeholder-msg {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  .placeholder-msg .icon {
+    font-size: 48px;
+    opacity: 0.3;
+  }
+
+  .placeholder-msg p { font-size: 14px; line-height: 1.6; }
+
+  /* ─── ZOOM CONTROLS ─── */
+  .zoom-controls {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    display: flex;
+    gap: 4px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+
+  .zoom-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.15s;
+  }
+  .zoom-btn:hover { background: var(--bg-elevated); color: var(--text-primary); }
+
+  .zoom-level {
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ─── PREVIEW BG TOGGLE ─── */
+  .bg-toggle {
+    display: flex;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .bg-toggle button {
+    padding: 4px 10px;
+    border: none;
+    background: var(--bg-tertiary);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .bg-toggle button.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  /* ─── DOWNLOAD TOAST ─── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 100;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ─── SCALE SELECT ─── */
+  .scale-select {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    outline: none;
+  }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 768px) {
+    .main { flex-direction: column; }
+    .editor-panel { width: 100% !important; height: 40%; border-right: none; border-bottom: 1px solid var(--border); }
+    .resize-handle { display: none; }
+    .preview-panel { min-height: 0; }
+    .header-actions .btn span.label { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">◇</div>
+    Mermaid Live Editor
+  </div>
+  <div class="header-actions">
+    <div class="status-badge" id="status">
+      <span class="dot"></span>
+      <span id="status-text">Ready</span>
+    </div>
+    <button class="btn" onclick="copyToClipboard()" title="Copy SVG to clipboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      <span class="label">Copy SVG</span>
+    </button>
+    <select class="scale-select" id="export-scale" title="Export scale">
+      <option value="1">1x</option>
+      <option value="2" selected>2x</option>
+      <option value="3">3x</option>
+      <option value="4">4x</option>
+    </select>
+    <button class="btn btn-primary" onclick="downloadPNG()" title="Download as PNG">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span class="label">Download PNG</span>
+    </button>
+  </div>
+</header>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <select class="template-select" id="template-select" onchange="loadTemplate()">
+    <option value="">Load template…</option>
+    <option value="flowchart">Flowchart</option>
+    <option value="sequence">Sequence Diagram</option>
+    <option value="class">Class Diagram</option>
+    <option value="state">State Diagram</option>
+    <option value="er">ER Diagram</option>
+    <option value="gantt">Gantt Chart</option>
+    <option value="pie">Pie Chart</option>
+    <option value="git">Git Graph</option>
+    <option value="mindmap">Mind Map</option>
+    <option value="journey">User Journey</option>
+  </select>
+  <div class="toolbar-divider"></div>
+  <button class="btn" onclick="clearEditor()" title="Clear">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+    Clear
+  </button>
+  <button class="btn" onclick="formatCode()" title="Auto-format">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M4 7h16M4 12h10M4 17h14"/></svg>
+    Format
+  </button>
+  <div style="flex:1"></div>
+  <div class="bg-toggle">
+    <button class="active" onclick="setPreviewBg('light', this)">Light</button>
+    <button onclick="setPreviewBg('dark', this)">Dark</button>
+    <button onclick="setPreviewBg('transparent', this)">Transparent</button>
+  </div>
+</div>
+
+<!-- MAIN AREA -->
+<div class="main">
+  <!-- EDITOR -->
+  <div class="editor-panel" id="editor-panel">
+    <div class="panel-header">
+      <span>Editor</span>
+      <span id="line-count" style="font-weight:400;text-transform:none;letter-spacing:0">Ln 0</span>
+    </div>
+    <div class="editor-wrap">
+      <textarea id="code-input" spellcheck="false" placeholder="Paste your Mermaid code here…
+
+Examples:
+  graph TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[OK]
+    B -->|No| D[End]
+
+  sequenceDiagram
+    Alice->>Bob: Hello
+    Bob-->>Alice: Hi!"></textarea>
+    </div>
+  </div>
+
+  <!-- RESIZE HANDLE -->
+  <div class="resize-handle" id="resize-handle"></div>
+
+  <!-- PREVIEW -->
+  <div class="preview-panel">
+    <div class="panel-header">
+      <span>Preview</span>
+      <span id="diagram-type" style="font-weight:400;text-transform:none;letter-spacing:0"></span>
+    </div>
+    <div class="preview-container" id="preview-container">
+      <div id="mermaid-output"></div>
+      <div class="error-display" id="error-display">
+        <div class="error-icon">✕</div>
+        <div><strong>Syntax Error</strong></div>
+        <div class="error-text" id="error-text"></div>
+      </div>
+      <div class="placeholder-msg" id="placeholder">
+        <div class="icon">◇</div>
+        <p>Paste or type Mermaid code in the editor<br>to see a live preview here.</p>
+      </div>
+
+      <!-- Zoom -->
+      <div class="zoom-controls">
+        <button class="zoom-btn" onclick="zoom(-0.1)">−</button>
+        <span class="zoom-level" id="zoom-level">100%</span>
+        <button class="zoom-btn" onclick="zoom(0.1)">+</button>
+        <button class="zoom-btn" onclick="resetZoom()" title="Reset zoom">⟲</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span id="toast-icon">✓</span>
+  <span id="toast-msg">Copied to clipboard</span>
+</div>
+
+<script>
+  // ─── STATE ───
+  let currentZoom = 1;
+  let renderTimeout = null;
+  let previewBg = 'light';
+
+  // ─── INIT MERMAID ───
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'default',
+    securityLevel: 'loose',
+    fontFamily: 'DM Sans, sans-serif',
+    flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+    sequence: { useMaxWidth: true },
+    gantt: { useMaxWidth: true },
+  });
+
+  // ─── TEMPLATES ───
+  const templates = {
+    flowchart: `graph TD
+    A[🚀 Start] --> B{Is it working?}
+    B -->|Yes| C[Great!]
+    B -->|No| D[Debug]
+    D --> E[Fix the code]
+    E --> B
+    C --> F[🎉 Ship it!]
+
+    style A fill:#6366f1,stroke:#4f46e5,color:#fff
+    style F fill:#34d399,stroke:#059669,color:#fff
+    style B fill:#fbbf24,stroke:#d97706,color:#333`,
+
+    sequence: `sequenceDiagram
+    participant U as 👤 User
+    participant F as 🖥️ Frontend
+    participant A as ⚙️ API
+    participant D as 🗄️ Database
+
+    U->>F: Click Login
+    F->>A: POST /auth/login
+    A->>D: Query user
+    D-->>A: User data
+    A-->>F: JWT Token
+    F-->>U: Redirect to Dashboard
+
+    Note over U,D: Authentication Flow`,
+
+    class: `classDiagram
+    class Animal {
+      +String name
+      +int age
+      +makeSound() void
+    }
+    class Dog {
+      +String breed
+      +fetch() void
+    }
+    class Cat {
+      +String color
+      +purr() void
+    }
+    Animal <|-- Dog
+    Animal <|-- Cat`,
+
+    state: `stateDiagram-v2
+    [*] --> Idle
+    Idle --> Processing : Submit
+    Processing --> Success : Valid
+    Processing --> Error : Invalid
+    Error --> Idle : Retry
+    Success --> [*]
+
+    state Processing {
+      [*] --> Validating
+      Validating --> Saving
+      Saving --> [*]
+    }`,
+
+    er: `erDiagram
+    CUSTOMER ||--o{ ORDER : places
+    ORDER ||--|{ LINE_ITEM : contains
+    PRODUCT ||--o{ LINE_ITEM : "ordered in"
+    CUSTOMER {
+      int id PK
+      string name
+      string email
+    }
+    ORDER {
+      int id PK
+      date created
+      string status
+    }
+    PRODUCT {
+      int id PK
+      string name
+      float price
+    }`,
+
+    gantt: `gantt
+    title Project Timeline
+    dateFormat YYYY-MM-DD
+    section Planning
+      Research       :a1, 2024-01-01, 14d
+      Design         :a2, after a1, 10d
+    section Development
+      Backend        :b1, after a2, 21d
+      Frontend       :b2, after a2, 18d
+    section Testing
+      QA Testing     :c1, after b1, 10d
+      Bug Fixes      :c2, after c1, 7d
+    section Launch
+      Deployment     :d1, after c2, 3d`,
+
+    pie: `pie title Project Budget Allocation
+    "Development" : 40
+    "Design" : 20
+    "Marketing" : 15
+    "Infrastructure" : 15
+    "Testing" : 10`,
+
+    git: `gitGraph
+    commit
+    branch develop
+    checkout develop
+    commit
+    commit
+    branch feature
+    checkout feature
+    commit
+    commit
+    checkout develop
+    merge feature
+    checkout main
+    merge develop
+    commit tag:"v1.0"`,
+
+    mindmap: `mindmap
+  root((Project))
+    Planning
+      Research
+      Requirements
+      Timeline
+    Design
+      UI/UX
+      Architecture
+      Prototyping
+    Development
+      Frontend
+      Backend
+      Database
+    Testing
+      Unit Tests
+      Integration
+      UAT`,
+
+    journey: `journey
+    title My Working Day
+    section Morning
+      Wake up: 3: Me
+      Commute: 2: Me, Bus
+      Work: 4: Me, Team
+    section Afternoon
+      Lunch: 5: Me, Friend
+      Meetings: 3: Me, Team
+      Code review: 4: Me
+    section Evening
+      Commute home: 2: Me, Bus
+      Dinner: 5: Me, Family
+      Relax: 5: Me`
+  };
+
+  // ─── RENDER ───
+  const input = document.getElementById('code-input');
+  const output = document.getElementById('mermaid-output');
+  const errorDisplay = document.getElementById('error-display');
+  const errorText = document.getElementById('error-text');
+  const placeholder = document.getElementById('placeholder');
+  const statusEl = document.getElementById('status');
+  const statusTextEl = document.getElementById('status-text');
+  const lineCountEl = document.getElementById('line-count');
+  const diagramTypeEl = document.getElementById('diagram-type');
+
+  async function render() {
+    const code = input.value.trim();
+
+    // Update line count
+    const lines = input.value.split('\n').length;
+    lineCountEl.textContent = `Ln ${lines}`;
+
+    if (!code) {
+      output.innerHTML = '';
+      errorDisplay.classList.remove('visible');
+      placeholder.style.display = 'flex';
+      setStatus('ready');
+      diagramTypeEl.textContent = '';
+      return;
+    }
+
+    placeholder.style.display = 'none';
+
+    try {
+      // Detect diagram type
+      const firstLine = code.split('\n')[0].trim().toLowerCase();
+      let dtype = 'Diagram';
+      if (firstLine.startsWith('graph') || firstLine.startsWith('flowchart')) dtype = 'Flowchart';
+      else if (firstLine.startsWith('sequencediagram')) dtype = 'Sequence';
+      else if (firstLine.startsWith('classdiagram')) dtype = 'Class';
+      else if (firstLine.startsWith('statediagram')) dtype = 'State';
+      else if (firstLine.startsWith('erdiagram')) dtype = 'ER Diagram';
+      else if (firstLine.startsWith('gantt')) dtype = 'Gantt';
+      else if (firstLine.startsWith('pie')) dtype = 'Pie Chart';
+      else if (firstLine.startsWith('gitgraph')) dtype = 'Git Graph';
+      else if (firstLine.startsWith('mindmap')) dtype = 'Mind Map';
+      else if (firstLine.startsWith('journey')) dtype = 'User Journey';
+      else if (firstLine.startsWith('timeline')) dtype = 'Timeline';
+      diagramTypeEl.textContent = dtype;
+
+      // Validate
+      await mermaid.parse(code);
+
+      // Render
+      const id = 'mermaid-' + Date.now();
+      const { svg } = await mermaid.render(id, code);
+      output.innerHTML = svg;
+      output.style.transform = `scale(${currentZoom})`;
+      errorDisplay.classList.remove('visible');
+      setStatus('valid');
+    } catch (err) {
+      errorDisplay.classList.add('visible');
+      output.innerHTML = '';
+      errorText.textContent = err.message || 'Unknown syntax error';
+      setStatus('error');
+    }
+  }
+
+  function setStatus(state) {
+    statusEl.className = 'status-badge ' + (state === 'ready' ? '' : state);
+    statusTextEl.textContent = state === 'valid' ? 'Valid' : state === 'error' ? 'Error' : 'Ready';
+  }
+
+  // Debounced input
+  input.addEventListener('input', () => {
+    clearTimeout(renderTimeout);
+    renderTimeout = setTimeout(render, 350);
+  });
+
+  // Tab support
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = input.selectionStart;
+      const end = input.selectionEnd;
+      input.value = input.value.substring(0, start) + '  ' + input.value.substring(end);
+      input.selectionStart = input.selectionEnd = start + 2;
+      clearTimeout(renderTimeout);
+      renderTimeout = setTimeout(render, 350);
+    }
+  });
+
+  // ─── TEMPLATES ───
+  function loadTemplate() {
+    const sel = document.getElementById('template-select');
+    const key = sel.value;
+    if (key && templates[key]) {
+      input.value = templates[key];
+      render();
+    }
+    sel.value = '';
+  }
+
+  // ─── CLEAR ───
+  function clearEditor() {
+    input.value = '';
+    render();
+    input.focus();
+  }
+
+  // ─── FORMAT ───
+  function formatCode() {
+    const lines = input.value.split('\n');
+    input.value = lines.map(l => l.trimEnd()).join('\n').replace(/\n{3,}/g, '\n\n');
+    render();
+  }
+
+  // ─── ZOOM ───
+  function zoom(delta) {
+    currentZoom = Math.max(0.2, Math.min(3, currentZoom + delta));
+    output.style.transform = `scale(${currentZoom})`;
+    output.style.transformOrigin = 'center center';
+    document.getElementById('zoom-level').textContent = Math.round(currentZoom * 100) + '%';
+  }
+
+  function resetZoom() {
+    currentZoom = 1;
+    output.style.transform = 'scale(1)';
+    document.getElementById('zoom-level').textContent = '100%';
+  }
+
+  // ─── PREVIEW BG ───
+  function setPreviewBg(mode, btn) {
+    const container = document.getElementById('preview-container');
+    previewBg = mode;
+    container.classList.remove('dark-preview');
+    if (mode === 'light') container.style.background = '#ffffff';
+    else if (mode === 'dark') { container.style.background = '#1a1a2e'; container.classList.add('dark-preview'); }
+    else container.style.background = 'repeating-conic-gradient(#e0e0e0 0% 25%, #fff 0% 50%) 0 0 / 20px 20px';
+
+    btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  // ─── COPY SVG ───
+  function copyToClipboard() {
+    const svg = output.innerHTML;
+    if (!svg) return showToast('Nothing to copy', '⚠');
+    navigator.clipboard.writeText(svg).then(() => showToast('SVG copied to clipboard'));
+  }
+
+  // ─── DOWNLOAD PNG ───
+  async function downloadPNG() {
+    const svgEl = output.querySelector('svg');
+    if (!svgEl) return showToast('Nothing to export', '⚠');
+
+    const scale = parseInt(document.getElementById('export-scale').value);
+    const svgData = new XMLSerializer().serializeToString(svgEl);
+
+    // Get SVG dimensions
+    const bbox = svgEl.getBoundingClientRect();
+    let width = svgEl.getAttribute('width') || bbox.width;
+    let height = svgEl.getAttribute('height') || bbox.height;
+    width = parseFloat(width) || bbox.width;
+    height = parseFloat(height) || bbox.height;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+    const ctx = canvas.getContext('2d');
+
+    // Background
+    if (previewBg === 'light') {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else if (previewBg === 'dark') {
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    // transparent: no fill
+
+    const img = new Image();
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+
+      canvas.toBlob((blob) => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `mermaid-diagram-${scale}x.png`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        showToast(`Downloaded at ${scale}x resolution`);
+      }, 'image/png');
+    };
+
+    img.onerror = () => {
+      // Fallback: use data URL
+      const encoded = btoa(unescape(encodeURIComponent(svgData)));
+      img.src = 'data:image/svg+xml;base64,' + encoded;
+    };
+
+    img.src = url;
+  }
+
+  // ─── TOAST ───
+  function showToast(msg, icon = '✓') {
+    const toast = document.getElementById('toast');
+    document.getElementById('toast-msg').textContent = msg;
+    document.getElementById('toast-icon').textContent = icon;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+  }
+
+  // ─── RESIZE HANDLE ───
+  const resizeHandle = document.getElementById('resize-handle');
+  const editorPanel = document.getElementById('editor-panel');
+  let isResizing = false;
+
+  resizeHandle.addEventListener('mousedown', (e) => {
+    isResizing = true;
+    resizeHandle.classList.add('active');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+    const newWidth = e.clientX;
+    const minW = 300;
+    const maxW = window.innerWidth - 300;
+    editorPanel.style.width = Math.max(minW, Math.min(maxW, newWidth)) + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (isResizing) {
+      isResizing = false;
+      resizeHandle.classList.remove('active');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+  });
+
+  // ─── INIT ───
+  render();
+</script>
+</body>
+</html>
