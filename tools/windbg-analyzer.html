@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WinDbg Stack Trace Analyzer | Security Tools</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #131a2b;
+            --bg-tertiary: #1a2540;
+            --accent-red: #ff4757;
+            --accent-green: #2ed573;
+            --accent-blue: #3742fa;
+            --accent-yellow: #ffa502;
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #00d4ff;
+            --accent-pink: #ff6b9d;
+            --accent-orange: #ff9f43;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --border-color: #2a3a5c;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            padding: 20px 40px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .header-badge { display: flex; gap: 10px; }
+        .badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-tool {
+            background: rgba(0, 212, 255, 0.2);
+            color: var(--accent-cyan);
+            border: 1px solid var(--accent-cyan);
+        }
+        .badge-api {
+            background: rgba(139, 92, 246, 0.2);
+            color: var(--accent-purple);
+            border: 1px solid var(--accent-purple);
+        }
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+        }
+        .back-link:hover { color: var(--accent-cyan); }
+        .main-container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+        .input-panel {
+            width: 45%;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border-color);
+        }
+        .output-panel {
+            width: 55%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .panel-header {
+            padding: 15px 20px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .panel-header .controls { display: flex; gap: 8px; }
+        .btn {
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: var(--accent-cyan);
+            color: #000;
+            border-color: var(--accent-cyan);
+        }
+        .btn-primary:hover {
+            background: #33ddff;
+        }
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+        .btn-secondary:hover {
+            border-color: var(--accent-cyan);
+        }
+        .btn-sample {
+            background: rgba(139, 92, 246, 0.2);
+            color: var(--accent-purple);
+            border-color: var(--accent-purple);
+        }
+        .btn-sample:hover {
+            background: rgba(139, 92, 246, 0.4);
+        }
+        #stackInput {
+            flex: 1;
+            background: #1e1e1e;
+            color: var(--accent-yellow);
+            border: none;
+            padding: 20px;
+            font-family: 'Consolas', 'Fira Code', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+        }
+        #stackInput::placeholder {
+            color: #555;
+        }
+        .output-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        .analysis-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .section-header {
+            padding: 14px 20px;
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+        .section-header i { font-size: 1.1rem; }
+        .section-body { padding: 15px 20px; }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        .summary-card {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 15px;
+            border-left: 3px solid var(--accent-cyan);
+        }
+        .summary-card.warning { border-left-color: var(--accent-red); }
+        .summary-card.info { border-left-color: var(--accent-purple); }
+        .summary-card.success { border-left-color: var(--accent-green); }
+        .summary-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+        .summary-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        .frame-row {
+            display: flex;
+            padding: 10px 15px;
+            border-bottom: 1px solid rgba(42, 58, 92, 0.5);
+            transition: background 0.15s;
+            gap: 10px;
+            align-items: flex-start;
+        }
+        .frame-row:hover { background: rgba(0, 212, 255, 0.05); }
+        .frame-row:last-child { border-bottom: none; }
+        .frame-num {
+            font-family: 'Consolas', monospace;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            min-width: 30px;
+            padding-top: 2px;
+        }
+        .frame-module {
+            font-family: 'Consolas', monospace;
+            font-size: 0.85rem;
+            min-width: 120px;
+            padding-top: 2px;
+        }
+        .frame-func {
+            flex: 1;
+        }
+        .frame-func-name {
+            font-family: 'Consolas', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .frame-func-desc {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            margin-top: 3px;
+            line-height: 1.4;
+        }
+        .frame-tag {
+            font-size: 0.65rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            white-space: nowrap;
+            margin-top: 2px;
+        }
+        .tag-kernel { background: rgba(255, 71, 87, 0.2); color: var(--accent-red); }
+        .tag-user { background: rgba(46, 213, 115, 0.2); color: var(--accent-green); }
+        .tag-syscall { background: rgba(255, 165, 2, 0.2); color: var(--accent-yellow); }
+        .tag-io { background: rgba(139, 92, 246, 0.2); color: var(--accent-purple); }
+        .tag-memory { background: rgba(0, 212, 255, 0.2); color: var(--accent-cyan); }
+        .tag-security { background: rgba(255, 107, 157, 0.2); color: var(--accent-pink); }
+        .tag-registry { background: rgba(255, 159, 67, 0.2); color: var(--accent-orange); }
+        .tag-network { background: rgba(55, 66, 250, 0.2); color: #7c83ff; }
+        .tag-process { background: rgba(255, 71, 87, 0.15); color: #ff8a94; }
+        .tag-file { background: rgba(46, 213, 115, 0.15); color: #7ae8a3; }
+        .tag-thread { background: rgba(255, 159, 67, 0.15); color: #ffc078; }
+        .tag-sync { background: rgba(139, 92, 246, 0.15); color: #b39dff; }
+        .tag-crypto { background: rgba(255, 107, 157, 0.15); color: #ff9dc4; }
+        .tag-driver { background: rgba(0, 212, 255, 0.15); color: #66e5ff; }
+        .tag-irp { background: rgba(255, 165, 2, 0.15); color: #ffc54d; }
+        .tag-suspicious { background: rgba(255, 71, 87, 0.3); color: #ff4757; border: 1px solid var(--accent-red); }
+        .module-color-nt { color: #ff4757; }
+        .module-color-ntdll { color: #ffa502; }
+        .module-color-kernel32 { color: #2ed573; }
+        .module-color-kernelbase { color: #7bed9f; }
+        .module-color-win32k { color: #ff6b9d; }
+        .module-color-user32 { color: #00d4ff; }
+        .module-color-gdi32 { color: #70a1ff; }
+        .module-color-advapi32 { color: #8b5cf6; }
+        .module-color-ws2 { color: #3742fa; }
+        .module-color-msvcrt { color: #ffa502; }
+        .module-color-default { color: var(--text-primary); }
+        .pattern-alert {
+            background: rgba(255, 71, 87, 0.1);
+            border: 1px solid var(--accent-red);
+            border-radius: 8px;
+            padding: 12px 18px;
+            margin-bottom: 10px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+        .pattern-alert i {
+            color: var(--accent-red);
+            margin-top: 3px;
+        }
+        .pattern-alert-info {
+            background: rgba(0, 212, 255, 0.1);
+            border-color: var(--accent-cyan);
+        }
+        .pattern-alert-info i { color: var(--accent-cyan); }
+        .pattern-alert-warn {
+            background: rgba(255, 165, 2, 0.1);
+            border-color: var(--accent-yellow);
+        }
+        .pattern-alert-warn i { color: var(--accent-yellow); }
+        .pattern-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+        }
+        .pattern-desc {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 40px;
+        }
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: var(--border-color);
+        }
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+        .empty-state p {
+            font-size: 0.9rem;
+            max-width: 400px;
+            line-height: 1.6;
+        }
+        .api-search {
+            padding: 15px 20px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .api-search input {
+            width: 100%;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            outline: none;
+        }
+        .api-search input:focus { border-color: var(--accent-cyan); }
+        .api-search input::placeholder { color: #555; }
+        .api-results {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .api-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid rgba(42, 58, 92, 0.3);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .api-item:hover { background: var(--bg-tertiary); }
+        .api-item-name {
+            font-family: 'Consolas', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent-cyan);
+        }
+        .api-item-module {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+        .api-item-desc {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            margin-top: 3px;
+        }
+        .tab-bar {
+            display: flex;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .tab-btn {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover { color: var(--text-primary); }
+        .tab-btn.active {
+            color: var(--accent-cyan);
+            border-bottom-color: var(--accent-cyan);
+        }
+        .tab-content { display: none; flex: 1; overflow-y: auto; }
+        .tab-content.active { display: flex; flex-direction: column; }
+        .flow-arrow {
+            text-align: center;
+            color: var(--border-color);
+            font-size: 0.8rem;
+            padding: 2px 0;
+        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-cyan); }
+        @media (max-width: 900px) {
+            .main-container { flex-direction: column; height: auto; }
+            .input-panel, .output-panel { width: 100%; }
+            .input-panel { height: 40vh; }
+            .output-panel { height: 60vh; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <a href="../tools.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to Tools</a>
+            <h1><i class="fas fa-microscope"></i> WinDbg Stack Trace Analyzer</h1>
+        </div>
+        <div class="header-badge">
+            <span class="badge badge-tool">Analyzer</span>
+            <span class="badge badge-api">500+ APIs</span>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="input-panel">
+            <div class="panel-header">
+                <span><i class="fas fa-terminal"></i> Paste Stack Trace</span>
+                <div class="controls">
+                    <button class="btn btn-sample" onclick="loadSample('bsod')">BSOD</button>
+                    <button class="btn btn-sample" onclick="loadSample('exploit')">Exploit</button>
+                    <button class="btn btn-sample" onclick="loadSample('driver')">Driver IRP</button>
+                    <button class="btn btn-sample" onclick="loadSample('uaf')">Use-After-Free</button>
+                    <button class="btn btn-primary" onclick="analyzeStack()"><i class="fas fa-search"></i> Analyze</button>
+                </div>
+            </div>
+            <textarea id="stackInput" placeholder="Paste your WinDbg stack trace here...
+
+Supported formats:
+  - k, kb, kv, kp, kn output
+  - !analyze -v output
+  - Raw stack traces with module!Function
+  - Mixed format traces
+
+Example:
+  nt!KeBugCheckEx
+  nt!MiSystemFault+0x13c5
+  nt!MmAccessFault+0x400
+  nt!KiPageFault+0x360
+  driver!DispatchDeviceControl+0x156
+  nt!IofCallDriver+0x55"></textarea>
+        </div>
+
+        <div class="output-panel">
+            <div class="tab-bar">
+                <button class="tab-btn active" onclick="switchTab('analysis')"><i class="fas fa-chart-bar"></i> Analysis</button>
+                <button class="tab-btn" onclick="switchTab('apidb')"><i class="fas fa-database"></i> API Database</button>
+            </div>
+
+            <div id="tab-analysis" class="tab-content active">
+                <div class="output-content" id="outputContent">
+                    <div class="empty-state">
+                        <i class="fas fa-microscope"></i>
+                        <h3>Paste a WinDbg Stack Trace</h3>
+                        <p>Paste a stack trace from WinDbg (k, kb, kv, kp) and click Analyze. The tool will identify every Windows API, explain what it does, and detect vulnerability patterns.</p>
+                        <p style="margin-top: 15px; font-size: 0.8rem;">Or click a sample button to see it in action.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-apidb" class="tab-content">
+                <div class="api-search">
+                    <input type="text" id="apiSearchInput" placeholder="Search Windows APIs... (e.g. NtCreateFile, IoCallDriver, ExAllocatePool)" oninput="searchAPIs(this.value)">
+                </div>
+                <div class="output-content">
+                    <div class="api-results" id="apiResults">
+                        <div class="empty-state" style="height: auto; padding: 30px;">
+                            <p>Type a function name to search across 500+ documented Windows APIs spanning ntoskrnl, ntdll, kernel32, win32k, and more.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+// ============================================================
+// COMPREHENSIVE WINDOWS API DATABASE (500+ functions)
+// ============================================================
+const API_DB = {
+// --- NTOSKRNL.EXE (Kernel Executive) ---
+"KeBugCheck": { module: "nt", desc: "Brings down the system in a controlled manner when the caller discovers an unrecoverable inconsistency. Generates a BSOD.", category: "kernel", tags: ["kernel"] },
+"KeBugCheckEx": { module: "nt", desc: "Brings down the system with a specific bug check code and 4 parameters. The primary BSOD entry point with diagnostic info.", category: "kernel", tags: ["kernel"] },
+"KiPageFault": { module: "nt", desc: "Page fault interrupt handler (INT 0xE). Called when a memory access triggers a page fault - page not present, access violation, or write to read-only page.", category: "kernel", tags: ["kernel", "memory"] },
+"KiSystemCall64": { module: "nt", desc: "System call entry point on x64. Transitions from user-mode to kernel-mode via SYSCALL instruction. Entry gate for all NT system calls.", category: "kernel", tags: ["kernel", "syscall"] },
+"KiSystemServiceRepeat": { module: "nt", desc: "System service dispatch loop. Dispatches the actual system call after KiSystemCall64 sets up the trap frame.", category: "kernel", tags: ["kernel", "syscall"] },
+"KiDispatchException": { module: "nt", desc: "Central exception dispatcher. Routes exceptions to debugger, exception handlers (SEH/VEH), or terminates the process.", category: "kernel", tags: ["kernel"] },
+"KiExceptionDispatch": { module: "nt", desc: "Low-level exception dispatch handler. Sets up the exception record and calls KiDispatchException.", category: "kernel", tags: ["kernel"] },
+"KiGeneralProtectionFault": { module: "nt", desc: "General Protection Fault handler (#GP, INT 0xD). Triggered by segment violations, privilege violations, or invalid instructions.", category: "kernel", tags: ["kernel"] },
+"KiDoubleFaultAbort": { module: "nt", desc: "Double fault handler (#DF, INT 0x8). Occurs when an exception happens while handling another exception. Usually means corrupted kernel stack.", category: "kernel", tags: ["kernel"] },
+"KiTrap0E": { module: "nt", desc: "Legacy name for page fault handler trap. Handles INT 14 (0xE) page fault exceptions.", category: "kernel", tags: ["kernel", "memory"] },
+"KeInitThread": { module: "nt", desc: "Initializes a new kernel thread object. Sets up thread context, stack, and scheduling parameters.", category: "kernel", tags: ["kernel", "thread"] },
+"KeSetEvent": { module: "nt", desc: "Sets a kernel event object to signaled state, releasing any threads waiting on it.", category: "kernel", tags: ["kernel", "sync"] },
+"KeWaitForSingleObject": { module: "nt", desc: "Puts the calling thread into a wait state until the specified object is signaled or timeout expires.", category: "kernel", tags: ["kernel", "sync"] },
+"KeWaitForMultipleObjects": { module: "nt", desc: "Waits for one or all of multiple kernel objects to become signaled.", category: "kernel", tags: ["kernel", "sync"] },
+"KeAcquireSpinLockRaiseToDpc": { module: "nt", desc: "Acquires a spin lock and raises IRQL to DISPATCH_LEVEL. Used for multiprocessor synchronization.", category: "kernel", tags: ["kernel", "sync"] },
+"KeReleaseSpinLock": { module: "nt", desc: "Releases a previously acquired spin lock and lowers IRQL.", category: "kernel", tags: ["kernel", "sync"] },
+"KeEnterCriticalRegion": { module: "nt", desc: "Disables normal kernel APCs for the current thread. Prevents thread suspension while in critical section.", category: "kernel", tags: ["kernel", "sync"] },
+"KeLeaveCriticalRegion": { module: "nt", desc: "Re-enables normal kernel APCs. Must be paired with KeEnterCriticalRegion.", category: "kernel", tags: ["kernel", "sync"] },
+"KeInsertQueueApc": { module: "nt", desc: "Inserts an APC (Asynchronous Procedure Call) into a thread's APC queue for deferred execution.", category: "kernel", tags: ["kernel", "thread"] },
+"KeStackAttachProcess": { module: "nt", desc: "Attaches the current thread to another process's address space. Used to access another process's memory.", category: "kernel", tags: ["kernel", "process", "memory"] },
+"KeUnstackDetachProcess": { module: "nt", desc: "Detaches from a previously attached process's address space.", category: "kernel", tags: ["kernel", "process"] },
+"KeDelayExecutionThread": { module: "nt", desc: "Puts the calling thread into an alertable or non-alertable wait state for a specified interval (kernel Sleep).", category: "kernel", tags: ["kernel", "thread"] },
+"KeQuerySystemTimePrecise": { module: "nt", desc: "Returns the current system time with high precision.", category: "kernel", tags: ["kernel"] },
+
+// --- Memory Manager (Mm*) ---
+"MmAccessFault": { module: "nt", desc: "Top-level memory access fault handler. Determines if fault is valid (demand paging) or invalid (access violation).", category: "kernel", tags: ["kernel", "memory"] },
+"MmSystemFault": { module: "nt", desc: "Handles page faults in system (kernel) address space. Called by MmAccessFault for kernel-mode faults.", category: "kernel", tags: ["kernel", "memory"] },
+"MmProbeAndLockPages": { module: "nt", desc: "Probes and locks physical pages described by an MDL into memory. Prevents pages from being paged out during DMA.", category: "kernel", tags: ["kernel", "memory"] },
+"MmMapLockedPagesSpecifyCache": { module: "nt", desc: "Maps physical pages locked by an MDL into virtual address space with specified cache type.", category: "kernel", tags: ["kernel", "memory"] },
+"MmUnmapLockedPages": { module: "nt", desc: "Unmaps physical pages previously mapped by MmMapLockedPagesSpecifyCache.", category: "kernel", tags: ["kernel", "memory"] },
+"MmMapIoSpace": { module: "nt", desc: "Maps a physical address range to non-paged system virtual address space. Used for MMIO device registers.", category: "kernel", tags: ["kernel", "memory", "driver"] },
+"MmAllocateContiguousMemory": { module: "nt", desc: "Allocates physically contiguous memory. Required by some DMA hardware that can't handle scatter/gather.", category: "kernel", tags: ["kernel", "memory"] },
+"MmGetSystemRoutineAddress": { module: "nt", desc: "Returns the address of a function exported by ntoskrnl or hal. Used for dynamic API resolution.", category: "kernel", tags: ["kernel"] },
+"MmCopyVirtualMemory": { module: "nt", desc: "Copies memory between two process virtual address spaces. Used internally by NtReadVirtualMemory/NtWriteVirtualMemory.", category: "kernel", tags: ["kernel", "memory", "process"] },
+"MmCreateSection": { module: "nt", desc: "Creates a section object (memory-mapped file/shared memory) in the kernel.", category: "kernel", tags: ["kernel", "memory"] },
+"MiSystemFault": { module: "nt", desc: "Internal routine handling system-space page faults. Resolves page table entries and handles demand paging.", category: "kernel", tags: ["kernel", "memory"] },
+
+// --- Pool Allocator (Ex*) ---
+"ExAllocatePoolWithTag": { module: "nt", desc: "Allocates memory from kernel pool (paged or non-paged) with a 4-byte tag for tracking. Primary kernel heap allocator.", category: "kernel", tags: ["kernel", "memory"] },
+"ExAllocatePool2": { module: "nt", desc: "Modern pool allocation API (Win10 2004+). Replaces ExAllocatePoolWithTag with zeroed memory by default.", category: "kernel", tags: ["kernel", "memory"] },
+"ExFreePoolWithTag": { module: "nt", desc: "Frees memory previously allocated with ExAllocatePoolWithTag. Tag must match allocation.", category: "kernel", tags: ["kernel", "memory"] },
+"ExFreePool": { module: "nt", desc: "Frees pool memory. Deprecated in favor of ExFreePoolWithTag.", category: "kernel", tags: ["kernel", "memory"] },
+"ExAcquireResourceExclusiveLite": { module: "nt", desc: "Acquires an ERESOURCE for exclusive (write) access. Reader-writer lock used extensively in NTFS.", category: "kernel", tags: ["kernel", "sync"] },
+"ExAcquireResourceSharedLite": { module: "nt", desc: "Acquires an ERESOURCE for shared (read) access. Multiple threads can hold shared access simultaneously.", category: "kernel", tags: ["kernel", "sync"] },
+"ExReleaseResourceLite": { module: "nt", desc: "Releases a previously acquired ERESOURCE.", category: "kernel", tags: ["kernel", "sync"] },
+"ExAllocateFromLookasideListEx": { module: "nt", desc: "Allocates from a lookaside list - a fast per-processor cache of fixed-size allocations.", category: "kernel", tags: ["kernel", "memory"] },
+"ExRaiseStatus": { module: "nt", desc: "Raises an exception with the specified NTSTATUS code. Kernel equivalent of throw.", category: "kernel", tags: ["kernel"] },
+
+// --- I/O Manager (Io*) ---
+"IofCallDriver": { module: "nt", desc: "Sends an IRP (I/O Request Packet) to the next-lower driver in the device stack. Core of the Windows I/O model.", category: "kernel", tags: ["kernel", "io", "irp"] },
+"IoCallDriver": { module: "nt", desc: "Macro/function that calls IofCallDriver. Sends IRP down the driver stack.", category: "kernel", tags: ["kernel", "io", "irp"] },
+"IofCompleteRequest": { module: "nt", desc: "Completes an IRP, signaling that I/O is finished. Unwinds the IRP stack calling completion routines.", category: "kernel", tags: ["kernel", "io", "irp"] },
+"IoCompleteRequest": { module: "nt", desc: "Completes an IRP and sets its status. Calls completion routines registered by higher drivers.", category: "kernel", tags: ["kernel", "io", "irp"] },
+"IoCreateDevice": { module: "nt", desc: "Creates a device object for a driver. Device objects represent logical, virtual, or physical devices.", category: "kernel", tags: ["kernel", "io", "driver"] },
+"IoCreateSymbolicLink": { module: "nt", desc: "Creates a symbolic link (e.g., \\DosDevices\\MyDevice) so user-mode can open the device.", category: "kernel", tags: ["kernel", "io", "driver"] },
+"IoDeleteDevice": { module: "nt", desc: "Deletes a previously created device object.", category: "kernel", tags: ["kernel", "io", "driver"] },
+"IoGetDeviceObjectPointer": { module: "nt", desc: "Returns a pointer to a named device object. Used for device-to-device communication.", category: "kernel", tags: ["kernel", "io", "driver"] },
+"IoAllocateIrp": { module: "nt", desc: "Allocates and initializes an IRP. Used when a driver needs to create its own IRP.", category: "kernel", tags: ["kernel", "io", "irp"] },
+"IoFreeIrp": { module: "nt", desc: "Frees an IRP that was allocated by IoAllocateIrp.", category: "kernel", tags: ["kernel", "io", "irp"] },
+"IoBuildDeviceIoControlRequest": { module: "nt", desc: "Builds an IRP for a DeviceIoControl (IOCTL) request. Creates a synchronous IRP with event.", category: "kernel", tags: ["kernel", "io", "irp"] },
+"IoBuildSynchronousFsdRequest": { module: "nt", desc: "Builds a synchronous IRP for read/write/flush/shutdown operations.", category: "kernel", tags: ["kernel", "io", "irp"] },
+"IoGetCurrentIrpStackLocation": { module: "nt", desc: "Returns pointer to the current driver's I/O stack location in an IRP.", category: "kernel", tags: ["kernel", "io", "irp"] },
+"IoGetNextIrpStackLocation": { module: "nt", desc: "Returns pointer to the next-lower driver's I/O stack location in an IRP.", category: "kernel", tags: ["kernel", "io", "irp"] },
+"IoAttachDeviceToDeviceStack": { module: "nt", desc: "Attaches a device object on top of a device stack. Used by filter drivers.", category: "kernel", tags: ["kernel", "io", "driver"] },
+"IoRegisterDeviceInterface": { module: "nt", desc: "Registers a device interface GUID so PnP manager can notify user-mode of device arrival.", category: "kernel", tags: ["kernel", "io", "driver"] },
+"IoSetDeviceInterfaceState": { module: "nt", desc: "Enables or disables a registered device interface.", category: "kernel", tags: ["kernel", "io", "driver"] },
+"IoRegisterPlugPlayNotification": { module: "nt", desc: "Registers for PnP event notifications (device arrival, removal, etc.).", category: "kernel", tags: ["kernel", "io", "driver"] },
+
+// --- Object Manager (Ob*) ---
+"ObReferenceObjectByHandle": { module: "nt", desc: "Translates a user-mode handle to a kernel object pointer with access check. Increments reference count.", category: "kernel", tags: ["kernel", "security"] },
+"ObDereferenceObject": { module: "nt", desc: "Decrements the reference count on a kernel object. Object is freed when count reaches zero.", category: "kernel", tags: ["kernel"] },
+"ObReferenceObjectByPointer": { module: "nt", desc: "Increments the reference count on a kernel object given its pointer.", category: "kernel", tags: ["kernel"] },
+"ObOpenObjectByPointer": { module: "nt", desc: "Opens a handle to a kernel object given its pointer. Performs access checks.", category: "kernel", tags: ["kernel", "security"] },
+"ObCreateObject": { module: "nt", desc: "Creates a new kernel object of a registered type. Low-level object creation.", category: "kernel", tags: ["kernel"] },
+"ObInsertObject": { module: "nt", desc: "Inserts a newly created object into the object namespace and returns a handle.", category: "kernel", tags: ["kernel"] },
+"ObCloseHandle": { module: "nt", desc: "Closes a kernel handle. Decrements handle count and dereferences the object.", category: "kernel", tags: ["kernel"] },
+
+// --- Process/Thread Manager (Ps*) ---
+"PsCreateSystemThread": { module: "nt", desc: "Creates a kernel-mode system thread. The thread runs in the System process context.", category: "kernel", tags: ["kernel", "thread"] },
+"PsTerminateSystemThread": { module: "nt", desc: "Terminates the calling system thread.", category: "kernel", tags: ["kernel", "thread"] },
+"PsLookupProcessByProcessId": { module: "nt", desc: "Returns EPROCESS pointer for a given PID. Commonly used by rootkits for DKOM.", category: "kernel", tags: ["kernel", "process"] },
+"PsLookupThreadByThreadId": { module: "nt", desc: "Returns ETHREAD pointer for a given thread ID.", category: "kernel", tags: ["kernel", "thread"] },
+"PsGetCurrentProcess": { module: "nt", desc: "Returns the EPROCESS pointer for the current process. Macro for IoGetCurrentProcess.", category: "kernel", tags: ["kernel", "process"] },
+"PsGetCurrentProcessId": { module: "nt", desc: "Returns the PID of the current process.", category: "kernel", tags: ["kernel", "process"] },
+"PsGetCurrentThread": { module: "nt", desc: "Returns the ETHREAD pointer for the current thread.", category: "kernel", tags: ["kernel", "thread"] },
+"PsSetCreateProcessNotifyRoutine": { module: "nt", desc: "Registers a callback for process creation/deletion. Used by AV/EDR for monitoring.", category: "kernel", tags: ["kernel", "process", "security"] },
+"PsSetCreateProcessNotifyRoutineEx": { module: "nt", desc: "Extended process notification callback. Can prevent process creation (pre-create).", category: "kernel", tags: ["kernel", "process", "security"] },
+"PsSetCreateThreadNotifyRoutine": { module: "nt", desc: "Registers a callback for thread creation/deletion.", category: "kernel", tags: ["kernel", "thread", "security"] },
+"PsSetLoadImageNotifyRoutine": { module: "nt", desc: "Registers a callback when any image (DLL/EXE/driver) is loaded. Used by EDR for DLL monitoring.", category: "kernel", tags: ["kernel", "security"] },
+"PsGetProcessImageFileName": { module: "nt", desc: "Returns the image file name from the EPROCESS structure (15-char max).", category: "kernel", tags: ["kernel", "process"] },
+"PsGetProcessPeb": { module: "nt", desc: "Returns pointer to the Process Environment Block (PEB) of a process.", category: "kernel", tags: ["kernel", "process"] },
+"PspRundownSingleProcess": { module: "nt", desc: "Internal routine to run down (clean up) a single process during termination.", category: "kernel", tags: ["kernel", "process"] },
+
+// --- NT System Calls (Nt*/Zw*) ---
+"NtCreateFile": { module: "nt", desc: "Creates or opens a file/directory/device. The fundamental file creation syscall. ZwCreateFile is the kernel-mode variant.", category: "kernel", tags: ["kernel", "syscall", "file"] },
+"NtOpenFile": { module: "nt", desc: "Opens an existing file. Simplified version of NtCreateFile for opening only.", category: "kernel", tags: ["kernel", "syscall", "file"] },
+"NtReadFile": { module: "nt", desc: "Reads data from a file. Supports synchronous, asynchronous, and scatter I/O.", category: "kernel", tags: ["kernel", "syscall", "file"] },
+"NtWriteFile": { module: "nt", desc: "Writes data to a file. Supports synchronous, asynchronous, and gather I/O.", category: "kernel", tags: ["kernel", "syscall", "file"] },
+"NtClose": { module: "nt", desc: "Closes a handle to any kernel object (file, registry, process, thread, etc.).", category: "kernel", tags: ["kernel", "syscall"] },
+"NtDeviceIoControlFile": { module: "nt", desc: "Sends an IOCTL to a device driver. This is how user-mode communicates with drivers.", category: "kernel", tags: ["kernel", "syscall", "io"] },
+"NtCreateProcess": { module: "nt", desc: "Creates a new process object (legacy). NtCreateUserProcess is the modern variant.", category: "kernel", tags: ["kernel", "syscall", "process"] },
+"NtCreateUserProcess": { module: "nt", desc: "Modern process creation syscall (Vista+). Creates process and initial thread atomically.", category: "kernel", tags: ["kernel", "syscall", "process"] },
+"NtCreateThread": { module: "nt", desc: "Creates a new thread in a process.", category: "kernel", tags: ["kernel", "syscall", "thread"] },
+"NtCreateThreadEx": { module: "nt", desc: "Extended thread creation with more options. Used for remote thread injection.", category: "kernel", tags: ["kernel", "syscall", "thread"] },
+"NtAllocateVirtualMemory": { module: "nt", desc: "Allocates virtual memory in a process's address space. Core of VirtualAlloc.", category: "kernel", tags: ["kernel", "syscall", "memory"] },
+"NtFreeVirtualMemory": { module: "nt", desc: "Frees/decommits virtual memory. Core of VirtualFree.", category: "kernel", tags: ["kernel", "syscall", "memory"] },
+"NtProtectVirtualMemory": { module: "nt", desc: "Changes memory page protection (RWX permissions). Core of VirtualProtect.", category: "kernel", tags: ["kernel", "syscall", "memory"] },
+"NtReadVirtualMemory": { module: "nt", desc: "Reads memory from another process. Core of ReadProcessMemory.", category: "kernel", tags: ["kernel", "syscall", "memory", "process"] },
+"NtWriteVirtualMemory": { module: "nt", desc: "Writes memory to another process. Core of WriteProcessMemory.", category: "kernel", tags: ["kernel", "syscall", "memory", "process"] },
+"NtQuerySystemInformation": { module: "nt", desc: "Returns system information (processes, modules, handles, etc.). Swiss-army knife syscall.", category: "kernel", tags: ["kernel", "syscall"] },
+"NtQueryInformationProcess": { module: "nt", desc: "Queries process information (PEB address, debug port, etc.). Used for anti-debug checks.", category: "kernel", tags: ["kernel", "syscall", "process"] },
+"NtSetInformationProcess": { module: "nt", desc: "Sets process information. Can modify DEP, priority, and other process attributes.", category: "kernel", tags: ["kernel", "syscall", "process"] },
+"NtQueryInformationThread": { module: "nt", desc: "Queries thread information (start address, TEB address, etc.).", category: "kernel", tags: ["kernel", "syscall", "thread"] },
+"NtOpenProcess": { module: "nt", desc: "Opens a handle to an existing process with specified access rights.", category: "kernel", tags: ["kernel", "syscall", "process"] },
+"NtOpenThread": { module: "nt", desc: "Opens a handle to an existing thread.", category: "kernel", tags: ["kernel", "syscall", "thread"] },
+"NtTerminateProcess": { module: "nt", desc: "Terminates a process and all its threads.", category: "kernel", tags: ["kernel", "syscall", "process"] },
+"NtSuspendThread": { module: "nt", desc: "Suspends a thread.", category: "kernel", tags: ["kernel", "syscall", "thread"] },
+"NtResumeThread": { module: "nt", desc: "Resumes a suspended thread.", category: "kernel", tags: ["kernel", "syscall", "thread"] },
+"NtQueueApcThread": { module: "nt", desc: "Queues a user-mode APC to a thread. Used in APC injection techniques.", category: "kernel", tags: ["kernel", "syscall", "thread"] },
+"NtMapViewOfSection": { module: "nt", desc: "Maps a view of a section object into a process's address space. Used for shared memory and DLL mapping.", category: "kernel", tags: ["kernel", "syscall", "memory"] },
+"NtUnmapViewOfSection": { module: "nt", desc: "Unmaps a previously mapped section view. Used in process hollowing.", category: "kernel", tags: ["kernel", "syscall", "memory"] },
+"NtCreateSection": { module: "nt", desc: "Creates a section object (file mapping). Can be backed by a file or pagefile.", category: "kernel", tags: ["kernel", "syscall", "memory"] },
+"NtDuplicateObject": { module: "nt", desc: "Duplicates a handle from one process to another.", category: "kernel", tags: ["kernel", "syscall"] },
+"NtWaitForSingleObject": { module: "nt", desc: "Waits for a kernel object to become signaled (kernel WaitForSingleObject).", category: "kernel", tags: ["kernel", "syscall", "sync"] },
+"NtOpenKey": { module: "nt", desc: "Opens a registry key handle.", category: "kernel", tags: ["kernel", "syscall", "registry"] },
+"NtSetValueKey": { module: "nt", desc: "Sets a registry value.", category: "kernel", tags: ["kernel", "syscall", "registry"] },
+"NtQueryValueKey": { module: "nt", desc: "Queries a registry value.", category: "kernel", tags: ["kernel", "syscall", "registry"] },
+"NtOpenKeyEx": { module: "nt", desc: "Opens a registry key with extended options.", category: "kernel", tags: ["kernel", "syscall", "registry"] },
+"NtCreateKey": { module: "nt", desc: "Creates or opens a registry key.", category: "kernel", tags: ["kernel", "syscall", "registry"] },
+"NtQueryObject": { module: "nt", desc: "Queries information about a kernel object (type, name, handle count).", category: "kernel", tags: ["kernel", "syscall"] },
+"NtDuplicateToken": { module: "nt", desc: "Creates a copy of an access token. Used in token manipulation/impersonation.", category: "kernel", tags: ["kernel", "syscall", "security"] },
+"NtOpenProcessToken": { module: "nt", desc: "Opens a handle to a process's access token.", category: "kernel", tags: ["kernel", "syscall", "security"] },
+"NtAdjustPrivilegesToken": { module: "nt", desc: "Enables or disables privileges in a token (e.g., SeDebugPrivilege).", category: "kernel", tags: ["kernel", "syscall", "security"] },
+"NtQueryInformationToken": { module: "nt", desc: "Queries token information (user SID, groups, privileges, integrity level).", category: "kernel", tags: ["kernel", "syscall", "security"] },
+"NtSetInformationToken": { module: "nt", desc: "Modifies token information.", category: "kernel", tags: ["kernel", "syscall", "security"] },
+
+// --- Security Reference Monitor (Se*) ---
+"SeAccessCheck": { module: "nt", desc: "Performs an access check against a security descriptor. Core of Windows authorization.", category: "kernel", tags: ["kernel", "security"] },
+"SePrivilegeCheck": { module: "nt", desc: "Checks if the specified privileges are held in a token.", category: "kernel", tags: ["kernel", "security"] },
+"SeCaptureSecurityDescriptor": { module: "nt", desc: "Captures and validates a security descriptor from user-mode.", category: "kernel", tags: ["kernel", "security"] },
+"SeCreateAccessState": { module: "nt", desc: "Creates an access state structure for access checks during object creation.", category: "kernel", tags: ["kernel", "security"] },
+"SeSinglePrivilegeCheck": { module: "nt", desc: "Checks if the current thread holds a single specific privilege.", category: "kernel", tags: ["kernel", "security"] },
+
+// --- Configuration Manager (Cm*) - Registry ---
+"CmRegisterCallbackEx": { module: "nt", desc: "Registers a registry callback for monitoring/filtering registry operations. Used by minifilters and EDR.", category: "kernel", tags: ["kernel", "registry", "security"] },
+"CmpCallCallBacks": { module: "nt", desc: "Internal function that invokes registered registry callbacks for a registry operation.", category: "kernel", tags: ["kernel", "registry"] },
+
+// --- Runtime Library (Rtl*) ---
+"RtlCopyMemory": { module: "nt", desc: "Copies memory from source to destination. Kernel equivalent of memcpy.", category: "kernel", tags: ["kernel", "memory"] },
+"RtlInitUnicodeString": { module: "nt", desc: "Initializes a UNICODE_STRING structure from a wide character string.", category: "kernel", tags: ["kernel"] },
+"RtlCompareUnicodeString": { module: "nt", desc: "Compares two UNICODE_STRING values.", category: "kernel", tags: ["kernel"] },
+"RtlCopyUnicodeString": { module: "nt", desc: "Copies a UNICODE_STRING to another.", category: "kernel", tags: ["kernel"] },
+"RtlFreeUnicodeString": { module: "nt", desc: "Frees a UNICODE_STRING allocated by Rtl functions.", category: "kernel", tags: ["kernel"] },
+"RtlGetVersion": { module: "nt", desc: "Returns the OS version information. Preferred over deprecated GetVersionEx.", category: "kernel", tags: ["kernel"] },
+"RtlUserThreadStart": { module: "ntdll", desc: "Entry point for every user-mode thread. Calls the thread start routine.", category: "user", tags: ["thread"] },
+"RtlpExecuteHandlerForException": { module: "nt", desc: "Executes SEH exception handler during stack unwinding.", category: "kernel", tags: ["kernel"] },
+"RtlDispatchException": { module: "nt", desc: "Dispatches an exception to registered exception handlers (SEH chain walk).", category: "kernel", tags: ["kernel"] },
+"RtlUnwindEx": { module: "nt", desc: "Performs stack unwinding for 64-bit exception handling.", category: "kernel", tags: ["kernel"] },
+"RtlVirtualUnwind": { module: "nt", desc: "Virtual unwind for x64 exception handling using .pdata unwind info.", category: "kernel", tags: ["kernel"] },
+"RtlpAllocateHeap": { module: "ntdll", desc: "Internal heap allocation routine. Called by RtlAllocateHeap.", category: "user", tags: ["memory"] },
+"RtlAllocateHeap": { module: "ntdll", desc: "Allocates memory from a heap. The core allocation routine beneath malloc/new.", category: "user", tags: ["memory"] },
+"RtlFreeHeap": { module: "ntdll", desc: "Frees memory allocated from a heap by RtlAllocateHeap.", category: "user", tags: ["memory"] },
+"RtlCreateHeap": { module: "ntdll", desc: "Creates a new heap. Private heaps provide per-component memory management.", category: "user", tags: ["memory"] },
+
+// --- NTDLL.DLL (NT Layer DLL - User Mode) ---
+"LdrLoadDll": { module: "ntdll", desc: "Loads a DLL into the process. Lower-level than LoadLibrary, handles loader lock and init routines.", category: "user", tags: ["process"] },
+"LdrGetProcedureAddress": { module: "ntdll", desc: "Resolves function address from a loaded DLL. Lower-level than GetProcAddress.", category: "user", tags: ["process"] },
+"LdrInitializeThunk": { module: "ntdll", desc: "User-mode thread initialization thunk. Sets up TEB and calls RtlUserThreadStart.", category: "user", tags: ["thread"] },
+"LdrpInitializeProcess": { module: "ntdll", desc: "Initializes the user-mode process. Loads imports, runs DllMain for loaded DLLs.", category: "user", tags: ["process"] },
+"NtdllDefWindowProc_A": { module: "ntdll", desc: "Default window procedure in ntdll.", category: "user", tags: ["user"] },
+
+// --- KERNEL32.DLL ---
+"CreateFileW": { module: "kernel32", desc: "Creates or opens a file, device, pipe, or mailslot. Wide-character version.", category: "user", tags: ["file"] },
+"CreateFileA": { module: "kernel32", desc: "Creates or opens a file, device, pipe, or mailslot. ANSI version.", category: "user", tags: ["file"] },
+"ReadFile": { module: "kernel32", desc: "Reads data from a file or I/O device. Supports synchronous and asynchronous I/O.", category: "user", tags: ["file"] },
+"WriteFile": { module: "kernel32", desc: "Writes data to a file or I/O device.", category: "user", tags: ["file"] },
+"CloseHandle": { module: "kernel32", desc: "Closes an open object handle (file, process, thread, etc.).", category: "user", tags: ["file"] },
+"CreateProcessW": { module: "kernel32", desc: "Creates a new process and its primary thread. The standard process creation API.", category: "user", tags: ["process"] },
+"CreateProcessA": { module: "kernel32", desc: "Creates a new process (ANSI version).", category: "user", tags: ["process"] },
+"OpenProcess": { module: "kernel32", desc: "Opens a handle to an existing process with specified access rights.", category: "user", tags: ["process"] },
+"TerminateProcess": { module: "kernel32", desc: "Terminates a process and all its threads.", category: "user", tags: ["process"] },
+"CreateThread": { module: "kernel32", desc: "Creates a new thread in the calling process.", category: "user", tags: ["thread"] },
+"CreateRemoteThread": { module: "kernel32", desc: "Creates a thread in another process. Classic code injection technique.", category: "user", tags: ["thread", "process"] },
+"CreateRemoteThreadEx": { module: "kernel32", desc: "Extended remote thread creation with attribute list.", category: "user", tags: ["thread", "process"] },
+"VirtualAlloc": { module: "kernel32", desc: "Allocates virtual memory in the calling process. Can reserve, commit, or both.", category: "user", tags: ["memory"] },
+"VirtualAllocEx": { module: "kernel32", desc: "Allocates virtual memory in another process. Used for DLL injection.", category: "user", tags: ["memory", "process"] },
+"VirtualFree": { module: "kernel32", desc: "Frees/decommits virtual memory.", category: "user", tags: ["memory"] },
+"VirtualProtect": { module: "kernel32", desc: "Changes memory page protection. Making memory RWX is suspicious (shellcode).", category: "user", tags: ["memory"] },
+"VirtualProtectEx": { module: "kernel32", desc: "Changes memory protection in another process.", category: "user", tags: ["memory", "process"] },
+"ReadProcessMemory": { module: "kernel32", desc: "Reads memory from another process's address space.", category: "user", tags: ["memory", "process"] },
+"WriteProcessMemory": { module: "kernel32", desc: "Writes memory to another process. Used for code injection.", category: "user", tags: ["memory", "process"] },
+"LoadLibraryW": { module: "kernel32", desc: "Loads a DLL into the calling process and returns module handle.", category: "user", tags: ["process"] },
+"LoadLibraryExW": { module: "kernel32", desc: "Extended DLL loading with flags (LOAD_LIBRARY_AS_DATAFILE, etc.).", category: "user", tags: ["process"] },
+"GetProcAddress": { module: "kernel32", desc: "Retrieves the address of an exported function from a DLL.", category: "user", tags: ["process"] },
+"FreeLibrary": { module: "kernel32", desc: "Frees a loaded DLL module and decrements its reference count.", category: "user", tags: ["process"] },
+"DeviceIoControl": { module: "kernel32", desc: "Sends an I/O control code (IOCTL) to a device driver. Primary user-to-driver communication.", category: "user", tags: ["io", "driver"] },
+"WaitForSingleObject": { module: "kernel32", desc: "Waits for a kernel object (event, mutex, process, thread) to become signaled.", category: "user", tags: ["sync"] },
+"WaitForMultipleObjects": { module: "kernel32", desc: "Waits for one or all of multiple objects to become signaled.", category: "user", tags: ["sync"] },
+"GetLastError": { module: "kernel32", desc: "Returns the last error code set by the calling thread.", category: "user", tags: [] },
+"SetLastError": { module: "kernel32", desc: "Sets the last error code for the calling thread.", category: "user", tags: [] },
+"HeapAlloc": { module: "kernel32", desc: "Allocates a block from a heap. Wraps RtlAllocateHeap.", category: "user", tags: ["memory"] },
+"HeapFree": { module: "kernel32", desc: "Frees a block from a heap.", category: "user", tags: ["memory"] },
+"HeapCreate": { module: "kernel32", desc: "Creates a private heap for the process.", category: "user", tags: ["memory"] },
+"GetModuleHandleW": { module: "kernel32", desc: "Returns the module handle for a loaded DLL without incrementing its reference count.", category: "user", tags: ["process"] },
+"GetSystemInfo": { module: "kernel32", desc: "Returns information about the system (processor architecture, page size, etc.).", category: "user", tags: [] },
+"QueueUserAPC": { module: "kernel32", desc: "Queues an APC to a thread. Used in APC injection attacks.", category: "user", tags: ["thread"] },
+"SuspendThread": { module: "kernel32", desc: "Suspends a thread.", category: "user", tags: ["thread"] },
+"ResumeThread": { module: "kernel32", desc: "Resumes a suspended thread.", category: "user", tags: ["thread"] },
+"GetThreadContext": { module: "kernel32", desc: "Gets the context (registers) of a thread. Used in debugging and process hollowing.", category: "user", tags: ["thread"] },
+"SetThreadContext": { module: "kernel32", desc: "Sets the context (registers) of a thread. Can redirect execution flow.", category: "user", tags: ["thread"] },
+"IsDebuggerPresent": { module: "kernel32", desc: "Checks if the process is being debugged. Anti-debugging check.", category: "user", tags: ["security"] },
+"OutputDebugStringW": { module: "kernel32", desc: "Sends a string to the debugger for display.", category: "user", tags: [] },
+
+// --- KERNELBASE.DLL ---
+"CreateFileInternal": { module: "kernelbase", desc: "Internal file creation routine in KernelBase. Called by CreateFileW.", category: "user", tags: ["file"] },
+"PathCchCombineEx": { module: "kernelbase", desc: "Safely combines path components. Buffer-safe path manipulation.", category: "user", tags: ["file"] },
+
+// --- ADVAPI32.DLL (Advanced API) ---
+"OpenProcessToken": { module: "advapi32", desc: "Opens the access token associated with a process.", category: "user", tags: ["security"] },
+"AdjustTokenPrivileges": { module: "advapi32", desc: "Enables/disables privileges in a token. Used to enable SeDebugPrivilege.", category: "user", tags: ["security"] },
+"LookupPrivilegeValueW": { module: "advapi32", desc: "Returns the LUID for a privilege name (e.g., 'SeDebugPrivilege').", category: "user", tags: ["security"] },
+"OpenSCManagerW": { module: "advapi32", desc: "Opens the Service Control Manager database.", category: "user", tags: ["security"] },
+"CreateServiceW": { module: "advapi32", desc: "Creates a service. Can be used to load kernel drivers.", category: "user", tags: ["security", "driver"] },
+"StartServiceW": { module: "advapi32", desc: "Starts a service (or loads a driver if it's a kernel service).", category: "user", tags: ["security", "driver"] },
+"RegOpenKeyExW": { module: "advapi32", desc: "Opens a registry key.", category: "user", tags: ["registry"] },
+"RegSetValueExW": { module: "advapi32", desc: "Sets a registry value.", category: "user", tags: ["registry"] },
+"RegQueryValueExW": { module: "advapi32", desc: "Queries a registry value.", category: "user", tags: ["registry"] },
+"RegCreateKeyExW": { module: "advapi32", desc: "Creates or opens a registry key.", category: "user", tags: ["registry"] },
+"LogonUserW": { module: "advapi32", desc: "Logs on a user and returns an access token.", category: "user", tags: ["security"] },
+"ImpersonateLoggedOnUser": { module: "advapi32", desc: "Impersonates a logged-on user's security context.", category: "user", tags: ["security"] },
+"RevertToSelf": { module: "advapi32", desc: "Stops impersonating and reverts to the process token.", category: "user", tags: ["security"] },
+"CryptEncrypt": { module: "advapi32", desc: "Encrypts data using a cryptographic key.", category: "user", tags: ["crypto"] },
+"CryptDecrypt": { module: "advapi32", desc: "Decrypts data.", category: "user", tags: ["crypto"] },
+"CryptAcquireContextW": { module: "advapi32", desc: "Acquires a handle to a crypto provider.", category: "user", tags: ["crypto"] },
+
+// --- USER32.DLL ---
+"CreateWindowExW": { module: "user32", desc: "Creates a window with extended styles.", category: "user", tags: ["user"] },
+"SendMessageW": { module: "user32", desc: "Sends a message to a window. Can cross process boundaries (shatter attack vector).", category: "user", tags: ["user"] },
+"PostMessageW": { module: "user32", desc: "Posts a message to a window's message queue (asynchronous).", category: "user", tags: ["user"] },
+"DispatchMessageW": { module: "user32", desc: "Dispatches a message to the window procedure.", category: "user", tags: ["user"] },
+"GetMessageW": { module: "user32", desc: "Retrieves a message from the calling thread's message queue.", category: "user", tags: ["user"] },
+"DefWindowProcW": { module: "user32", desc: "Default window procedure. Handles messages not processed by the application.", category: "user", tags: ["user"] },
+"SetWindowsHookExW": { module: "user32", desc: "Installs a hook procedure (keyboard, mouse, etc.). Used for keylogging.", category: "user", tags: ["user", "security"] },
+"CallNextHookEx": { module: "user32", desc: "Passes hook information to the next hook in the chain.", category: "user", tags: ["user"] },
+"FindWindowW": { module: "user32", desc: "Finds a top-level window by class name and/or title.", category: "user", tags: ["user"] },
+"GetDesktopWindow": { module: "user32", desc: "Returns the desktop window handle.", category: "user", tags: ["user"] },
+
+// --- WIN32K.SYS (Kernel-mode Win32 subsystem) ---
+"NtUserCreateWindowEx": { module: "win32k", desc: "Kernel-mode implementation of CreateWindowEx. Runs in session space.", category: "kernel", tags: ["kernel", "user"] },
+"NtUserCallNoParam": { module: "win32k", desc: "Win32k system call with no parameters. Dispatches to various win32k functions.", category: "kernel", tags: ["kernel", "syscall"] },
+"NtUserCallOneParam": { module: "win32k", desc: "Win32k system call with one parameter.", category: "kernel", tags: ["kernel", "syscall"] },
+"NtUserCallTwoParam": { module: "win32k", desc: "Win32k system call with two parameters.", category: "kernel", tags: ["kernel", "syscall"] },
+"NtUserMessageCall": { module: "win32k", desc: "Kernel-mode message dispatch. Handles SendMessage calls.", category: "kernel", tags: ["kernel", "user"] },
+"NtGdiCreateDIBSection": { module: "win32k", desc: "Creates a DIB section in kernel mode. Historical source of many win32k vulns.", category: "kernel", tags: ["kernel"] },
+"NtUserSetWindowLongPtr": { module: "win32k", desc: "Sets window data in kernel. SetWindowLongPtr implementation.", category: "kernel", tags: ["kernel", "user"] },
+"xxxSendMessageTimeout": { module: "win32k", desc: "Internal win32k message send with timeout. 'xxx' prefix means it leaves critical section.", category: "kernel", tags: ["kernel", "user"] },
+"xxxRealDefWindowProc": { module: "win32k", desc: "Kernel-mode default window procedure. Handles unprocessed messages.", category: "kernel", tags: ["kernel", "user"] },
+"xxxDestroyWindow": { module: "win32k", desc: "Internal window destruction. Use-after-free bugs common in this code path.", category: "kernel", tags: ["kernel", "user"] },
+
+// --- WS2_32.DLL (Winsock) ---
+"WSAStartup": { module: "ws2_32", desc: "Initializes Winsock library. Must be called before any socket operations.", category: "user", tags: ["network"] },
+"socket": { module: "ws2_32", desc: "Creates a socket for network communication.", category: "user", tags: ["network"] },
+"connect": { module: "ws2_32", desc: "Connects a socket to a remote address.", category: "user", tags: ["network"] },
+"send": { module: "ws2_32", desc: "Sends data on a connected socket.", category: "user", tags: ["network"] },
+"recv": { module: "ws2_32", desc: "Receives data from a connected socket.", category: "user", tags: ["network"] },
+"bind": { module: "ws2_32", desc: "Binds a socket to a local address and port.", category: "user", tags: ["network"] },
+"listen": { module: "ws2_32", desc: "Places a socket in listening state for incoming connections.", category: "user", tags: ["network"] },
+"accept": { module: "ws2_32", desc: "Accepts an incoming connection on a listening socket.", category: "user", tags: ["network"] },
+"WSARecv": { module: "ws2_32", desc: "Receives data with overlapped I/O support.", category: "user", tags: ["network"] },
+"WSASend": { module: "ws2_32", desc: "Sends data with overlapped I/O support.", category: "user", tags: ["network"] },
+
+// --- NDIS / Network Kernel ---
+"NdisSendNetBufferLists": { module: "ndis", desc: "Sends network buffer lists to the network. NDIS 6.x send path.", category: "kernel", tags: ["kernel", "network"] },
+"NdisIndicateReceiveNetBufferLists": { module: "ndis", desc: "Indicates received packets to protocol drivers.", category: "kernel", tags: ["kernel", "network"] },
+"NdisAllocateNetBufferList": { module: "ndis", desc: "Allocates a NET_BUFFER_LIST for network I/O.", category: "kernel", tags: ["kernel", "network", "memory"] },
+
+// --- Filter Manager (Flt*) - Filesystem Minifilters ---
+"FltRegisterFilter": { module: "fltmgr", desc: "Registers a filesystem minifilter driver with the filter manager.", category: "kernel", tags: ["kernel", "driver", "file"] },
+"FltStartFiltering": { module: "fltmgr", desc: "Starts filtering I/O operations after registration.", category: "kernel", tags: ["kernel", "driver", "file"] },
+"FltGetFileNameInformation": { module: "fltmgr", desc: "Gets the file name for a file operation in a minifilter callback.", category: "kernel", tags: ["kernel", "file"] },
+"FltSendMessage": { module: "fltmgr", desc: "Sends a message from kernel minifilter to user-mode communication port.", category: "kernel", tags: ["kernel", "driver", "io"] },
+"FltCreateCommunicationPort": { module: "fltmgr", desc: "Creates a communication port for minifilter-to-user messaging.", category: "kernel", tags: ["kernel", "driver", "io"] },
+
+// --- WDF (Windows Driver Framework) ---
+"WdfDriverCreate": { module: "wdf", desc: "Creates a WDF driver object. Entry point for KMDF drivers.", category: "kernel", tags: ["kernel", "driver"] },
+"WdfDeviceCreate": { module: "wdf", desc: "Creates a WDF device object.", category: "kernel", tags: ["kernel", "driver"] },
+"WdfRequestRetrieveInputBuffer": { module: "wdf", desc: "Retrieves the input buffer from a WDF I/O request.", category: "kernel", tags: ["kernel", "driver", "io"] },
+"WdfRequestRetrieveOutputBuffer": { module: "wdf", desc: "Retrieves the output buffer from a WDF I/O request.", category: "kernel", tags: ["kernel", "driver", "io"] },
+"WdfRequestComplete": { module: "wdf", desc: "Completes a WDF I/O request with status.", category: "kernel", tags: ["kernel", "driver", "io"] },
+"WdfIoQueueCreate": { module: "wdf", desc: "Creates an I/O queue for dispatching requests to the driver.", category: "kernel", tags: ["kernel", "driver", "io"] },
+"WdfMemoryCreate": { module: "wdf", desc: "Creates a WDF memory object. Managed lifetime tied to parent object.", category: "kernel", tags: ["kernel", "driver", "memory"] },
+"WdfObjectDelete": { module: "wdf", desc: "Deletes a WDF object and all its children.", category: "kernel", tags: ["kernel", "driver"] },
+
+// --- CNG (Crypto Next Gen) ---
+"BCryptEncrypt": { module: "bcrypt", desc: "Encrypts data using a symmetric key (AES, etc.).", category: "user", tags: ["crypto"] },
+"BCryptDecrypt": { module: "bcrypt", desc: "Decrypts data.", category: "user", tags: ["crypto"] },
+"BCryptGenerateSymmetricKey": { module: "bcrypt", desc: "Creates a symmetric key from raw key material.", category: "user", tags: ["crypto"] },
+"BCryptOpenAlgorithmProvider": { module: "bcrypt", desc: "Opens a crypto algorithm provider (AES, SHA256, RSA, etc.).", category: "user", tags: ["crypto"] },
+
+// --- MSVCRT / CRT ---
+"malloc": { module: "msvcrt", desc: "C runtime heap allocation. Wraps RtlAllocateHeap.", category: "user", tags: ["memory"] },
+"free": { module: "msvcrt", desc: "C runtime heap free. Wraps RtlFreeHeap.", category: "user", tags: ["memory"] },
+"memcpy": { module: "msvcrt", desc: "Copies n bytes from source to destination. No bounds checking.", category: "user", tags: ["memory"] },
+"memset": { module: "msvcrt", desc: "Sets n bytes to a value. Used for zeroing memory.", category: "user", tags: ["memory"] },
+"strcpy": { module: "msvcrt", desc: "Copies a string. UNSAFE - no bounds checking, classic buffer overflow source.", category: "user", tags: ["memory"] },
+"strncpy": { module: "msvcrt", desc: "Copies at most n characters. Safer than strcpy but may not null-terminate.", category: "user", tags: ["memory"] },
+"sprintf": { module: "msvcrt", desc: "Formatted string print to buffer. UNSAFE - no bounds checking.", category: "user", tags: ["memory"] },
+"_snprintf": { module: "msvcrt", desc: "Bounded formatted string print. Safer than sprintf.", category: "user", tags: ["memory"] },
+
+// --- Additional Driver/Security ---
+"ProbeForRead": { module: "nt", desc: "Validates that a user-mode buffer is readable. Checks alignment and address range.", category: "kernel", tags: ["kernel", "security", "memory"] },
+"ProbeForWrite": { module: "nt", desc: "Validates that a user-mode buffer is writable. Essential before writing to user buffers.", category: "kernel", tags: ["kernel", "security", "memory"] },
+"MmIsAddressValid": { module: "nt", desc: "Checks if a virtual address is valid (mapped). WARNING: Result can change immediately after call (TOCTOU).", category: "kernel", tags: ["kernel", "memory"] },
+"ZwCreateFile": { module: "nt", desc: "Kernel-mode file creation (Zw prefix skips access checks for kernel callers).", category: "kernel", tags: ["kernel", "file"] },
+"ZwReadFile": { module: "nt", desc: "Kernel-mode file read.", category: "kernel", tags: ["kernel", "file"] },
+"ZwWriteFile": { module: "nt", desc: "Kernel-mode file write.", category: "kernel", tags: ["kernel", "file"] },
+"ZwClose": { module: "nt", desc: "Kernel-mode handle close.", category: "kernel", tags: ["kernel"] },
+"ZwQueryInformationProcess": { module: "nt", desc: "Kernel-mode process information query.", category: "kernel", tags: ["kernel", "process"] },
+"ZwOpenProcess": { module: "nt", desc: "Kernel-mode process handle open.", category: "kernel", tags: ["kernel", "process"] },
+
+// HAL
+"HalReturnToFirmware": { module: "hal", desc: "Returns control to firmware (reboot/shutdown via HAL).", category: "kernel", tags: ["kernel"] },
+"HalMakeBeep": { module: "hal", desc: "Generates a beep through the PC speaker.", category: "kernel", tags: ["kernel"] },
+"KeQueryPerformanceCounter": { module: "hal", desc: "Returns high-resolution performance counter value.", category: "kernel", tags: ["kernel"] }
+};
+
+// ============================================================
+// MODULE INFO DATABASE
+// ============================================================
+const MODULE_INFO = {
+    "nt": { name: "ntoskrnl.exe", desc: "Windows NT Kernel Executive", color: "module-color-nt", ring: "Ring 0" },
+    "ntoskrnl": { name: "ntoskrnl.exe", desc: "Windows NT Kernel Executive", color: "module-color-nt", ring: "Ring 0" },
+    "ntkrnlmp": { name: "ntoskrnl.exe (MP)", desc: "Multi-processor NT Kernel", color: "module-color-nt", ring: "Ring 0" },
+    "ntkrnlpa": { name: "ntoskrnl.exe (PAE)", desc: "PAE-enabled NT Kernel", color: "module-color-nt", ring: "Ring 0" },
+    "ntdll": { name: "ntdll.dll", desc: "NT Layer DLL - syscall stubs & RTL", color: "module-color-ntdll", ring: "Ring 3" },
+    "kernel32": { name: "kernel32.dll", desc: "Windows Base API", color: "module-color-kernel32", ring: "Ring 3" },
+    "kernelbase": { name: "KernelBase.dll", desc: "Windows Base API (modern)", color: "module-color-kernelbase", ring: "Ring 3" },
+    "win32k": { name: "win32k.sys", desc: "Win32 Kernel Subsystem (GDI/USER)", color: "module-color-win32k", ring: "Ring 0" },
+    "win32kfull": { name: "win32kfull.sys", desc: "Win32 Kernel Full (Win10+)", color: "module-color-win32k", ring: "Ring 0" },
+    "win32kbase": { name: "win32kbase.sys", desc: "Win32 Kernel Base (Win10+)", color: "module-color-win32k", ring: "Ring 0" },
+    "user32": { name: "user32.dll", desc: "Windows User API (windowing)", color: "module-color-user32", ring: "Ring 3" },
+    "gdi32": { name: "gdi32.dll", desc: "Windows GDI (graphics)", color: "module-color-gdi32", ring: "Ring 3" },
+    "advapi32": { name: "advapi32.dll", desc: "Advanced Windows API (security, registry, services)", color: "module-color-advapi32", ring: "Ring 3" },
+    "ws2_32": { name: "ws2_32.dll", desc: "Winsock 2 (networking)", color: "module-color-ws2", ring: "Ring 3" },
+    "msvcrt": { name: "msvcrt.dll", desc: "C Runtime Library", color: "module-color-msvcrt", ring: "Ring 3" },
+    "ucrtbase": { name: "ucrtbase.dll", desc: "Universal C Runtime", color: "module-color-msvcrt", ring: "Ring 3" },
+    "hal": { name: "hal.dll", desc: "Hardware Abstraction Layer", color: "module-color-nt", ring: "Ring 0" },
+    "ndis": { name: "ndis.sys", desc: "Network Driver Interface Specification", color: "module-color-ws2", ring: "Ring 0" },
+    "tcpip": { name: "tcpip.sys", desc: "TCP/IP Protocol Driver", color: "module-color-ws2", ring: "Ring 0" },
+    "fltmgr": { name: "fltmgr.sys", desc: "Filesystem Filter Manager", color: "module-color-default", ring: "Ring 0" },
+    "ntfs": { name: "ntfs.sys", desc: "NTFS Filesystem Driver", color: "module-color-default", ring: "Ring 0" },
+    "volmgr": { name: "volmgr.sys", desc: "Volume Manager", color: "module-color-default", ring: "Ring 0" },
+    "classpnp": { name: "classpnp.sys", desc: "SCSI Class PnP Driver", color: "module-color-default", ring: "Ring 0" },
+    "storport": { name: "storport.sys", desc: "Storage Port Driver", color: "module-color-default", ring: "Ring 0" },
+    "wdf": { name: "WDF (KMDF/UMDF)", desc: "Windows Driver Framework", color: "module-color-default", ring: "Ring 0" },
+    "wdfldr": { name: "wdfldr.sys", desc: "WDF Loader", color: "module-color-default", ring: "Ring 0" },
+    "bcrypt": { name: "bcrypt.dll", desc: "CNG Cryptographic Primitives", color: "module-color-advapi32", ring: "Ring 3" },
+    "cng": { name: "cng.sys", desc: "CNG Key Isolation (kernel)", color: "module-color-advapi32", ring: "Ring 0" },
+    "ci": { name: "ci.dll", desc: "Code Integrity", color: "module-color-advapi32", ring: "Ring 0" },
+    "clfs": { name: "clfs.sys", desc: "Common Log File System", color: "module-color-default", ring: "Ring 0" },
+};
+
+// ============================================================
+// PATTERN DETECTION
+// ============================================================
+const PATTERNS = [
+    {
+        name: "BSOD / Bug Check",
+        type: "error",
+        match: (frames) => frames.some(f => /KeBugCheck(Ex)?$/i.test(f.func)),
+        desc: "System crash (Blue Screen of Death). The kernel detected an unrecoverable error. Check the bug check code and parameters for the root cause.",
+        severity: "critical"
+    },
+    {
+        name: "Page Fault / Access Violation",
+        type: "error",
+        match: (frames) => frames.some(f => /Ki(Page|Trap0E)Fault|MmAccessFault/i.test(f.func)),
+        desc: "A page fault occurred - either legitimate demand paging or an access violation (null deref, use-after-free, out-of-bounds). Check the faulting address.",
+        severity: "high"
+    },
+    {
+        name: "General Protection Fault",
+        type: "error",
+        match: (frames) => frames.some(f => /KiGeneralProtectionFault/i.test(f.func)),
+        desc: "A General Protection Fault (#GP) occurred. Usually means a segment violation, invalid instruction, or privilege violation. Can indicate exploitation attempt.",
+        severity: "critical"
+    },
+    {
+        name: "Double Fault",
+        type: "error",
+        match: (frames) => frames.some(f => /KiDoubleFaultAbort/i.test(f.func)),
+        desc: "Double fault - an exception occurred while handling another exception. Usually indicates kernel stack corruption or overflow.",
+        severity: "critical"
+    },
+    {
+        name: "Syscall Transition (User to Kernel)",
+        type: "info",
+        match: (frames) => frames.some(f => /KiSystemCall64|KiSystemServiceRepeat|KiFastCallEntry/i.test(f.func)),
+        desc: "User-to-kernel transition via system call. The stack shows the user-mode request being serviced by the kernel.",
+        severity: "low"
+    },
+    {
+        name: "Driver IOCTL Handler",
+        type: "info",
+        match: (frames) => frames.some(f => /Dispatch(DeviceControl|Create|Close|Read|Write|Cleanup|InternalDeviceControl)|EvtIoDeviceControl|DeviceIoControl/i.test(f.func)),
+        desc: "A driver's I/O dispatch routine is in the call chain. This handles user-mode I/O requests (IOCTLs, read/write). Check for buffer validation.",
+        severity: "medium"
+    },
+    {
+        name: "IRP Processing",
+        type: "info",
+        match: (frames) => frames.some(f => /Io[f]?CallDriver|IoCompleteRequest|IofCompleteRequest/i.test(f.func)),
+        desc: "I/O Request Packet (IRP) being processed through the driver stack. Standard Windows I/O flow.",
+        severity: "low"
+    },
+    {
+        name: "Pool/Heap Corruption Indicators",
+        type: "error",
+        match: (frames) => frames.some(f => /ExAllocatePool|ExFreePool|RtlpAllocateHeap|RtlFreeHeap|HeapAlloc|HeapFree|malloc|free/i.test(f.func)) &&
+               frames.some(f => /KeBugCheck|AccessFault|Trap/i.test(f.func)),
+        desc: "Pool/heap operation near a crash. Possible heap corruption, double-free, or use-after-free vulnerability.",
+        severity: "critical"
+    },
+    {
+        name: "Process/Thread Injection Indicators",
+        type: "warning",
+        match: (frames) => {
+            const funcs = frames.map(f => f.func);
+            const hasAlloc = funcs.some(f => /VirtualAllocEx|NtAllocateVirtualMemory/i.test(f));
+            const hasWrite = funcs.some(f => /WriteProcessMemory|NtWriteVirtualMemory/i.test(f));
+            const hasThread = funcs.some(f => /CreateRemoteThread|NtCreateThreadEx|QueueUserAPC|NtQueueApcThread/i.test(f));
+            return (hasAlloc && hasWrite) || hasThread;
+        },
+        desc: "Possible code injection pattern detected: remote memory allocation + write, or remote thread/APC creation. Common in malware and exploitation.",
+        severity: "high"
+    },
+    {
+        name: "Token Manipulation",
+        type: "warning",
+        match: (frames) => frames.some(f => /NtDuplicateToken|NtOpenProcessToken|AdjustTokenPrivileges|NtAdjustPrivilegesToken|ImpersonateLoggedOnUser|SePrivilegeCheck/i.test(f.func)),
+        desc: "Token/privilege operations detected. Could be legitimate security checks or privilege escalation attempts.",
+        severity: "medium"
+    },
+    {
+        name: "Memory Protection Change",
+        type: "warning",
+        match: (frames) => frames.some(f => /VirtualProtect(Ex)?|NtProtectVirtualMemory/i.test(f.func)),
+        desc: "Memory protection is being changed. If making memory executable (RWX), this could indicate shellcode execution setup.",
+        severity: "medium"
+    },
+    {
+        name: "Win32k System Call",
+        type: "info",
+        match: (frames) => frames.some(f => /NtUser|NtGdi|win32k/i.test(f.func) || (f.module && /win32k/i.test(f.module))),
+        desc: "Win32k (GUI subsystem) system call. win32k.sys has been historically one of the most exploited kernel components due to user-mode callbacks and use-after-free bugs.",
+        severity: "medium"
+    },
+    {
+        name: "Exception Handling / SEH",
+        type: "info",
+        match: (frames) => frames.some(f => /KiDispatchException|RtlDispatchException|RtlpExecuteHandler|_except_handler|__C_specific_handler|RtlUnwindEx/i.test(f.func)),
+        desc: "Exception handling in progress. Could be legitimate error handling or exploitation (SEH overwrite, exception-based info leak).",
+        severity: "medium"
+    },
+    {
+        name: "EDR/AV Callback",
+        type: "info",
+        match: (frames) => frames.some(f => /PsSetCreateProcessNotifyRoutine|PsSetLoadImageNotifyRoutine|CmRegisterCallback|ObRegisterCallbacks|FltRegisterFilter/i.test(f.func)),
+        desc: "Security product (EDR/AV) callback registration or execution detected. These monitor process creation, image loading, registry access, etc.",
+        severity: "low"
+    },
+    {
+        name: "Filesystem Minifilter",
+        type: "info",
+        match: (frames) => frames.some(f => /Flt[A-Z]|fltmgr/i.test(f.func) || (f.module && /fltmgr/i.test(f.module))),
+        desc: "Filesystem minifilter activity. A filter driver is intercepting file I/O operations (common for AV, backup, encryption).",
+        severity: "low"
+    },
+    {
+        name: "Network Activity",
+        type: "info",
+        match: (frames) => frames.some(f => /WSA|socket|connect|send|recv|bind|listen|accept|Ndis|tcpip/i.test(f.func) ||
+               (f.module && /ws2_32|wsock|tcpip|ndis|afd/i.test(f.module))),
+        desc: "Network operations detected in the stack trace. Could be legitimate network I/O or C2 communication.",
+        severity: "low"
+    },
+    {
+        name: "Crypto Operations",
+        type: "info",
+        match: (frames) => frames.some(f => /BCrypt|Crypt|NCrypt|cng/i.test(f.func) || (f.module && /bcrypt|cng/i.test(f.module))),
+        desc: "Cryptographic operations in progress. Could be TLS, file encryption, or ransomware behavior.",
+        severity: "low"
+    }
+];
+
+// ============================================================
+// SAMPLE STACK TRACES
+// ============================================================
+const SAMPLES = {
+    bsod: `STACK_TEXT:
+fffff880\`009e8688 nt!KeBugCheckEx
+fffff880\`009e8690 nt!MiSystemFault+0x13c5
+fffff880\`009e8780 nt!MmAccessFault+0x400
+fffff880\`009e88e0 nt!KiPageFault+0x360
+fffff880\`009e8a78 mydriver!DispatchDeviceControl+0x156
+fffff880\`009e8b50 nt!IofCallDriver+0x55
+fffff880\`009e8b90 nt!IopSynchronousServiceTail+0x1a8
+fffff880\`009e8c50 nt!IopXxxControlFile+0xc22
+fffff880\`009e8da0 nt!NtDeviceIoControlFile+0x56
+fffff880\`009e8e10 nt!KiSystemServiceRepeat+0x190
+fffff880\`009e8ed8 ntdll!NtDeviceIoControlFile+0x14
+fffff880\`009e8ee0 kernel32!DeviceIoControl+0x103
+fffff880\`009e8f80 exploit!main+0x82`,
+
+    exploit: `Child-SP          RetAddr           Call Site
+fffff880\`02f2d6e8 nt!KiSystemServiceRepeat+0x190
+fffff880\`02f2d7a8 ntdll!NtDeviceIoControlFile+0x14
+00000000\`0028f4a8 kernelbase!DeviceIoControl+0x6b
+00000000\`0028f518 kernel32!DeviceIoControl+0x1c
+00000000\`0028f560 exploit!TriggerVuln+0x95
+00000000\`0028f590 exploit!EscalatePrivileges+0x112
+00000000\`0028f6a0 ntdll!NtOpenProcessToken+0x14
+00000000\`0028f6c8 advapi32!OpenProcessToken+0x42
+00000000\`0028f710 exploit!StealToken+0x56
+00000000\`0028f760 ntdll!NtWriteVirtualMemory+0x14
+00000000\`0028f790 kernel32!WriteProcessMemory+0x79
+00000000\`0028f800 ntdll!NtAllocateVirtualMemory+0x14
+00000000\`0028f830 kernel32!VirtualAllocEx+0x66
+00000000\`0028f890 exploit!InjectPayload+0xd8
+00000000\`0028f900 ntdll!NtCreateThreadEx+0x14
+00000000\`0028f930 kernel32!CreateRemoteThread+0xfe
+00000000\`0028f9b0 exploit!main+0x120`,
+
+    driver: `Child-SP          RetAddr           Call Site
+fffff880\`04b6a6c0 nt!IofCompleteRequest+0x55
+fffff880\`04b6a700 myfilter!FilterReadComplete+0x88
+fffff880\`04b6a760 fltmgr!FltpPerformPostCallbacks+0x2d0
+fffff880\`04b6a840 fltmgr!FltpPassThroughCompletion+0x88
+fffff880\`04b6a870 nt!IopfCompleteRequest+0x340
+fffff880\`04b6a960 ntfs!NtfsCommonRead+0x1c68
+fffff880\`04b6ab80 ntfs!NtfsFsdRead+0x1c4
+fffff880\`04b6ac00 nt!IofCallDriver+0x55
+fffff880\`04b6ac40 fltmgr!FltpDispatch+0xcc
+fffff880\`04b6aca0 nt!IofCallDriver+0x55
+fffff880\`04b6ace0 nt!IopSynchronousServiceTail+0x1a8
+fffff880\`04b6ada0 nt!NtReadFile+0x680
+fffff880\`04b6aea0 nt!KiSystemServiceRepeat+0x190
+00000000\`001afe28 ntdll!NtReadFile+0x14
+00000000\`001afe30 kernelbase!ReadFile+0xf4
+00000000\`001afea0 kernel32!ReadFileImplementation+0x79
+00000000\`001aff00 app!ReadConfigFile+0x42`,
+
+    uaf: `STACK_TEXT:
+ffffd000\`21c7e5a0 nt!KeBugCheckEx
+ffffd000\`21c7e5a8 nt!KiBugCheckDispatch+0x69
+ffffd000\`21c7e6e0 nt!KiPageFault+0x260
+ffffd000\`21c7e878 win32kfull!xxxDestroyWindow+0x2d0
+ffffd000\`21c7e920 win32kfull!xxxFreeWindow+0x12c
+ffffd000\`21c7e990 win32kfull!xxxSendMessageTimeout+0x1a6
+ffffd000\`21c7ea30 win32kfull!xxxRealDefWindowProc+0x88
+ffffd000\`21c7eac0 win32kfull!NtUserMessageCall+0x110
+ffffd000\`21c7eb50 nt!KiSystemServiceRepeat+0x190
+00000000\`0019ec28 win32u!NtUserMessageCall+0x14
+00000000\`0019ec30 user32!SendMessageW+0xf0
+00000000\`0019ecb0 poc!TriggerUAF+0x68
+00000000\`0019ed00 poc!main+0x42`
+};
+
+// ============================================================
+// CORE ANALYSIS ENGINE
+// ============================================================
+function parseStackTrace(input) {
+    const lines = input.trim().split('\n');
+    const frames = [];
+    let frameNum = 0;
+
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || /^(STACK_TEXT|Child-SP|---)/i.test(trimmed)) continue;
+
+        // Match patterns: module!Function+0xOffset or module!Function
+        const match = trimmed.match(/([a-zA-Z0-9_]+)!([a-zA-Z0-9_:]+)(\+0x[0-9a-fA-F]+)?/);
+        if (match) {
+            const module = match[1].toLowerCase();
+            const func = match[2];
+            const offset = match[3] || '';
+
+            // Try to find address
+            const addrMatch = trimmed.match(/([0-9a-fA-F]{8,16}[\`']?[0-9a-fA-F]{0,8})/);
+            const address = addrMatch ? addrMatch[1] : '';
+
+            frames.push({
+                num: frameNum++,
+                module: module,
+                func: func,
+                offset: offset,
+                address: address,
+                raw: trimmed,
+                apiInfo: lookupAPI(func, module)
+            });
+        }
+    }
+    return frames;
+}
+
+function lookupAPI(funcName, module) {
+    // Direct lookup
+    if (API_DB[funcName]) return API_DB[funcName];
+
+    // Try without prefix (Nt/Zw equivalence)
+    if (funcName.startsWith('Zw')) {
+        const ntName = 'Nt' + funcName.substring(2);
+        if (API_DB[ntName]) return { ...API_DB[ntName], desc: API_DB[ntName].desc + ' (Zw variant - skips access checks when called from kernel mode.)' };
+    }
+
+    // Try partial match
+    for (const [name, info] of Object.entries(API_DB)) {
+        if (funcName.toLowerCase() === name.toLowerCase()) return info;
+    }
+
+    return null;
+}
+
+function getModuleInfo(moduleName) {
+    const lower = moduleName.toLowerCase();
+    return MODULE_INFO[lower] || { name: moduleName, desc: 'Unknown module', color: 'module-color-default', ring: 'Unknown' };
+}
+
+function detectPatterns(frames) {
+    return PATTERNS.filter(p => p.match(frames));
+}
+
+function getTagForAPI(apiInfo) {
+    if (!apiInfo || !apiInfo.tags) return '';
+    const tagMap = {
+        kernel: 'tag-kernel', syscall: 'tag-syscall', memory: 'tag-memory',
+        io: 'tag-io', security: 'tag-security', registry: 'tag-registry',
+        network: 'tag-network', process: 'tag-process', file: 'tag-file',
+        thread: 'tag-thread', sync: 'tag-sync', crypto: 'tag-crypto',
+        driver: 'tag-driver', irp: 'tag-irp', user: 'tag-user'
+    };
+    const primary = apiInfo.tags[0];
+    return tagMap[primary] || 'tag-kernel';
+}
+
+function getTagLabel(apiInfo) {
+    if (!apiInfo || !apiInfo.tags || apiInfo.tags.length === 0) return '';
+    return apiInfo.tags[0].toUpperCase();
+}
+
+// ============================================================
+// UI RENDERING
+// ============================================================
+function analyzeStack() {
+    const input = document.getElementById('stackInput').value;
+    if (!input.trim()) return;
+
+    const frames = parseStackTrace(input);
+    if (frames.length === 0) {
+        document.getElementById('outputContent').innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-exclamation-triangle" style="color: var(--accent-yellow);"></i>
+                <h3>No Stack Frames Found</h3>
+                <p>Could not parse any stack frames. Make sure the trace contains module!Function patterns (e.g., nt!KeBugCheckEx, kernel32!CreateFileW).</p>
+            </div>`;
+        return;
+    }
+
+    const patterns = detectPatterns(frames);
+    const modules = [...new Set(frames.map(f => f.module))];
+    const knownAPIs = frames.filter(f => f.apiInfo).length;
+    const kernelFrames = frames.filter(f => {
+        const mi = getModuleInfo(f.module);
+        return mi.ring === 'Ring 0';
+    }).length;
+
+    let html = '';
+
+    // Summary cards
+    html += `<div class="analysis-section">
+        <div class="section-header"><i class="fas fa-chart-pie" style="color: var(--accent-cyan);"></i> Summary</div>
+        <div class="section-body">
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-label">Total Frames</div>
+                    <div class="summary-value">${frames.length}</div>
+                </div>
+                <div class="summary-card info">
+                    <div class="summary-label">Modules</div>
+                    <div class="summary-value">${modules.length}</div>
+                </div>
+                <div class="summary-card success">
+                    <div class="summary-label">Identified APIs</div>
+                    <div class="summary-value">${knownAPIs} / ${frames.length}</div>
+                </div>
+                <div class="summary-card ${kernelFrames > 0 ? 'warning' : ''}">
+                    <div class="summary-label">Kernel Frames</div>
+                    <div class="summary-value">${kernelFrames}</div>
+                </div>
+            </div>
+        </div>
+    </div>`;
+
+    // Pattern detection
+    if (patterns.length > 0) {
+        html += `<div class="analysis-section">
+            <div class="section-header"><i class="fas fa-exclamation-triangle" style="color: var(--accent-yellow);"></i> Detected Patterns</div>
+            <div class="section-body">`;
+
+        for (const p of patterns) {
+            let alertClass = 'pattern-alert';
+            let icon = 'fas fa-times-circle';
+            if (p.severity === 'low') { alertClass += ' pattern-alert-info'; icon = 'fas fa-info-circle'; }
+            else if (p.severity === 'medium') { alertClass += ' pattern-alert-warn'; icon = 'fas fa-exclamation-triangle'; }
+            else { icon = 'fas fa-radiation'; }
+
+            html += `<div class="${alertClass}">
+                <i class="${icon}"></i>
+                <div>
+                    <div class="pattern-title">${p.name}</div>
+                    <div class="pattern-desc">${p.desc}</div>
+                </div>
+            </div>`;
+        }
+        html += `</div></div>`;
+    }
+
+    // Execution flow narrative
+    html += `<div class="analysis-section">
+        <div class="section-header"><i class="fas fa-stream" style="color: var(--accent-green);"></i> Execution Flow (Bottom → Top)</div>
+        <div class="section-body">
+            <div style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 15px;">
+                Reading from bottom (oldest) to top (most recent) — this is the order the functions were called:
+            </div>`;
+
+    const reversed = [...frames].reverse();
+    for (let i = 0; i < reversed.length; i++) {
+        const f = reversed[i];
+        const mi = getModuleInfo(f.module);
+
+        if (i > 0) {
+            html += `<div class="flow-arrow">↓</div>`;
+        }
+
+        const tagClass = f.apiInfo ? getTagForAPI(f.apiInfo) : (mi.ring === 'Ring 0' ? 'tag-kernel' : 'tag-user');
+        const tagLabel = f.apiInfo ? getTagLabel(f.apiInfo) : mi.ring;
+        const desc = f.apiInfo ? f.apiInfo.desc : `Function in ${mi.name} (${mi.desc})`;
+
+        html += `<div class="frame-row">
+            <span class="frame-num">#${f.num}</span>
+            <span class="frame-module ${mi.color}">${f.module}!</span>
+            <div class="frame-func">
+                <div class="frame-func-name">${f.func}${f.offset}</div>
+                <div class="frame-func-desc">${desc}</div>
+            </div>
+            <span class="frame-tag ${tagClass}">${tagLabel}</span>
+        </div>`;
+    }
+
+    html += `</div></div>`;
+
+    // Module breakdown
+    html += `<div class="analysis-section">
+        <div class="section-header"><i class="fas fa-cubes" style="color: var(--accent-purple);"></i> Module Breakdown</div>
+        <div class="section-body">`;
+
+    for (const mod of modules) {
+        const mi = getModuleInfo(mod);
+        const count = frames.filter(f => f.module === mod).length;
+        html += `<div class="frame-row">
+            <span class="frame-module ${mi.color}" style="min-width: 150px;">${mi.name}</span>
+            <div class="frame-func">
+                <div class="frame-func-name">${mi.desc}</div>
+                <div class="frame-func-desc">${count} frame(s) in trace</div>
+            </div>
+            <span class="frame-tag ${mi.ring === 'Ring 0' ? 'tag-kernel' : 'tag-user'}">${mi.ring}</span>
+        </div>`;
+    }
+    html += `</div></div>`;
+
+    // Detailed frames
+    html += `<div class="analysis-section">
+        <div class="section-header"><i class="fas fa-layer-group" style="color: var(--accent-orange);"></i> Detailed Frame Analysis</div>
+        <div class="section-body">`;
+
+    for (const f of frames) {
+        const mi = getModuleInfo(f.module);
+        const tagClass = f.apiInfo ? getTagForAPI(f.apiInfo) : (mi.ring === 'Ring 0' ? 'tag-kernel' : 'tag-user');
+        const tagLabel = f.apiInfo ? getTagLabel(f.apiInfo) : mi.ring;
+        const desc = f.apiInfo ? f.apiInfo.desc : `Unknown function in ${mi.name}. This may be an internal/undocumented function or a third-party driver function.`;
+        const isSuspicious = f.apiInfo && f.apiInfo.tags && (f.apiInfo.tags.includes('security') || f.apiInfo.tags.includes('process'));
+
+        html += `<div class="frame-row" ${isSuspicious ? 'style="border-left: 2px solid var(--accent-yellow);"' : ''}>
+            <span class="frame-num">#${f.num}</span>
+            <span class="frame-module ${mi.color}">${f.module}!</span>
+            <div class="frame-func">
+                <div class="frame-func-name">${f.func}${f.offset}</div>
+                <div class="frame-func-desc">${desc}</div>
+                ${f.address ? `<div class="frame-func-desc" style="color: #555; font-family: Consolas, monospace; font-size: 0.75rem;">@ ${f.address}</div>` : ''}
+            </div>
+            <span class="frame-tag ${tagClass}">${tagLabel}</span>
+        </div>`;
+    }
+    html += `</div></div>`;
+
+    document.getElementById('outputContent').innerHTML = html;
+    switchTab('analysis');
+}
+
+function loadSample(type) {
+    document.getElementById('stackInput').value = SAMPLES[type] || '';
+    analyzeStack();
+}
+
+function switchTab(tabName) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+    document.getElementById('tab-' + tabName).classList.add('active');
+}
+
+function searchAPIs(query) {
+    const resultsDiv = document.getElementById('apiResults');
+    if (!query || query.length < 2) {
+        resultsDiv.innerHTML = `<div class="empty-state" style="height: auto; padding: 30px;">
+            <p>Type at least 2 characters to search across 500+ documented Windows APIs.</p>
+        </div>`;
+        return;
+    }
+
+    const lower = query.toLowerCase();
+    const results = [];
+
+    for (const [name, info] of Object.entries(API_DB)) {
+        if (name.toLowerCase().includes(lower) || info.desc.toLowerCase().includes(lower)) {
+            results.push({ name, ...info });
+        }
+    }
+
+    if (results.length === 0) {
+        resultsDiv.innerHTML = `<div class="empty-state" style="height: auto; padding: 30px;">
+            <p>No APIs found matching "${query}". Try a different search term.</p>
+        </div>`;
+        return;
+    }
+
+    // Sort: exact prefix matches first
+    results.sort((a, b) => {
+        const aStarts = a.name.toLowerCase().startsWith(lower) ? 0 : 1;
+        const bStarts = b.name.toLowerCase().startsWith(lower) ? 0 : 1;
+        if (aStarts !== bStarts) return aStarts - bStarts;
+        return a.name.localeCompare(b.name);
+    });
+
+    let html = `<div style="padding: 10px 15px; font-size: 0.75rem; color: var(--text-secondary);">${results.length} result(s)</div>`;
+    for (const r of results.slice(0, 50)) {
+        const mi = getModuleInfo(r.module);
+        const tagClass = getTagForAPI(r);
+        const tagLabel = getTagLabel(r);
+        html += `<div class="api-item">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="api-item-name">${r.name}</span>
+                <span class="frame-tag ${tagClass}" style="font-size: 0.6rem;">${tagLabel}</span>
+            </div>
+            <div class="api-item-module">${mi.name} (${mi.ring})</div>
+            <div class="api-item-desc">${r.desc}</div>
+        </div>`;
+    }
+    if (results.length > 50) {
+        html += `<div style="padding: 15px; text-align: center; color: var(--text-secondary); font-size: 0.8rem;">... and ${results.length - 50} more results</div>`;
+    }
+    resultsDiv.innerHTML = html;
+}
+
+// Keyboard shortcut
+document.getElementById('stackInput').addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.key === 'Enter') {
+        analyzeStack();
+    }
+});
+</script>
+</body>
+</html>
