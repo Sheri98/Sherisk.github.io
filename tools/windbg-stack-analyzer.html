@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WinDbg Stack Trace Analyzer</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-primary: #0a0c10;
+  --bg-secondary: #111520;
+  --bg-tertiary: #181d2a;
+  --bg-card: #141925;
+  --border: #252d3f;
+  --border-active: #3b82f6;
+  --text-primary: #e2e8f0;
+  --text-secondary: #8892a8;
+  --text-muted: #5a6478;
+  --accent-blue: #3b82f6;
+  --accent-cyan: #22d3ee;
+  --accent-green: #34d399;
+  --accent-orange: #fb923c;
+  --accent-purple: #a78bfa;
+  --accent-pink: #f472b6;
+  --accent-red: #f87171;
+  --accent-yellow: #fbbf24;
+  --glow-blue: rgba(59, 130, 246, 0.15);
+  --glow-cyan: rgba(34, 211, 238, 0.1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.app-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.header-icon {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 0 24px var(--glow-blue);
+}
+
+.header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.header p {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Input Panel */
+.input-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.input-panel label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.input-panel textarea {
+  width: 100%;
+  height: 220px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+
+.input-panel textarea:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px var(--glow-blue);
+}
+
+.input-panel textarea::placeholder {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  align-items: center;
+}
+
+.btn-analyze {
+  padding: 10px 28px;
+  background: linear-gradient(135deg, var(--accent-blue), #2563eb);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 12px var(--glow-blue);
+}
+
+.btn-analyze:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+}
+
+.btn-secondary {
+  padding: 10px 20px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--border-active);
+}
+
+.info-badge {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Tabs */
+.tab-bar {
+  display: flex;
+  gap: 2px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 20px;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 10px 16px;
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-btn.active {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+
+.tab-btn:hover:not(.active) {
+  color: var(--text-secondary);
+}
+
+/* Results panels */
+.results-container { display: none; }
+.results-container.visible { display: block; }
+
+/* Call Flow View */
+.call-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.call-frame {
+  position: relative;
+  padding: 16px 20px 16px 60px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 2px;
+  cursor: pointer;
+  transition: all 0.25s;
+  animation: slideIn 0.3s ease forwards;
+  opacity: 0;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.call-frame:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px var(--glow-blue);
+}
+
+.call-frame.expanded {
+  border-color: var(--accent-blue);
+  background: var(--bg-tertiary);
+}
+
+.frame-depth {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  color: white;
+}
+
+.frame-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.frame-module {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.frame-function {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent-cyan);
+}
+
+.frame-offset {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.frame-arrow {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 14px;
+  transition: transform 0.2s;
+}
+
+.call-frame.expanded .frame-arrow {
+  transform: translateY(-50%) rotate(90deg);
+  color: var(--accent-blue);
+}
+
+/* Connector lines between frames */
+.connector {
+  width: 2px;
+  height: 10px;
+  background: linear-gradient(to bottom, var(--accent-blue), transparent);
+  margin-left: 33px;
+  opacity: 0.4;
+}
+
+/* Expanded detail panel */
+.frame-details {
+  display: none;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.call-frame.expanded .frame-details { display: block; }
+
+.detail-section {
+  margin-bottom: 12px;
+}
+
+.detail-section h4 {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.arg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 8px;
+}
+
+.arg-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-primary);
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  border: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.arg-item:hover { border-color: var(--border); }
+
+.arg-name {
+  color: var(--accent-orange);
+  font-weight: 500;
+}
+
+.arg-eq { color: var(--text-muted); }
+
+.arg-value {
+  color: var(--accent-green);
+  word-break: break-all;
+}
+
+.arg-type {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 10px;
+  padding: 1px 6px;
+  background: var(--bg-secondary);
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.source-info {
+  padding: 8px 12px;
+  background: var(--bg-primary);
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.raw-text {
+  padding: 10px 12px;
+  background: var(--bg-primary);
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.6;
+}
+
+/* Diagram View */
+.diagram-container {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 28px;
+  overflow-x: auto;
+}
+
+.diagram-container svg {
+  display: block;
+  margin: 0 auto;
+}
+
+/* Module groupings */
+.module-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+/* Summary stats */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Summary View */
+.summary-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+}
+
+.summary-panel h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.summary-section {
+  margin-bottom: 20px;
+}
+
+.summary-section h4 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent-blue);
+  margin-bottom: 10px;
+}
+
+.summary-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.module-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.module-table th, .module-table td {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.module-table th {
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 11px;
+}
+
+.module-table td {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-secondary);
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+}
+
+.empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
+.empty-state p { font-size: 14px; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .app-container { padding: 14px; }
+  .input-panel textarea { height: 160px; }
+  .arg-grid { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<div class="app-container">
+  <div class="header">
+    <div class="header-icon">🔬</div>
+    <div>
+      <h1>WinDbg Stack Analyzer</h1>
+      <p>Paste a WinDbg stack trace to visualize call flow, arguments &amp; module mapping</p>
+    </div>
+  </div>
+
+  <div class="input-panel">
+    <label>Stack Trace Input</label>
+    <textarea id="stackInput" placeholder="Paste your WinDbg stack trace here...
+
+Examples supported:
+  kv / kp / kb / kn output
+  !analyze -v output
+  Thread call stacks
+  x86/x64 stacks with args
+
+e.g.:
+00 00000098`a12ff6a0 00007ffa`1c2b4567 ntdll!NtWaitForSingleObject+0x14
+01 00000098`a12ff6b0 00007ffa`1a3c8901 KERNELBASE!WaitForSingleObjectEx+0x9f
+02 00000098`a12ff760 00007ff7`4a2d1234 kernel32!WaitForSingleObjectExImplementation+0x23
+..."></textarea>
+    <div class="btn-row">
+      <button class="btn-analyze" onclick="analyzeStack()">Analyze Stack</button>
+      <button class="btn-secondary" onclick="loadExample()">Load Example</button>
+      <button class="btn-secondary" onclick="clearAll()">Clear</button>
+      <span class="info-badge" id="lineCount">0 lines</span>
+    </div>
+  </div>
+
+  <div id="resultsArea" class="results-container">
+    <div class="stats-row" id="statsRow"></div>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('flow')">Call Flow</button>
+      <button class="tab-btn" onclick="switchTab('diagram')">Diagram</button>
+      <button class="tab-btn" onclick="switchTab('summary')">Summary</button>
+    </div>
+
+    <div id="flowView" class="tab-content"></div>
+    <div id="diagramView" class="tab-content" style="display:none;"></div>
+    <div id="summaryView" class="tab-content" style="display:none;"></div>
+  </div>
+
+  <div id="emptyState" class="empty-state">
+    <div class="icon">📋</div>
+    <p>Paste a WinDbg stack trace above and click <strong>Analyze Stack</strong></p>
+  </div>
+</div>
+
+<script>
+// Module color palette
+const MODULE_COLORS = [
+  { bg: 'rgba(59,130,246,0.15)', text: '#60a5fa', border: '#3b82f6' },
+  { bg: 'rgba(34,211,238,0.15)', text: '#22d3ee', border: '#06b6d4' },
+  { bg: 'rgba(52,211,153,0.15)', text: '#34d399', border: '#10b981' },
+  { bg: 'rgba(251,146,60,0.15)', text: '#fb923c', border: '#f97316' },
+  { bg: 'rgba(167,139,250,0.15)', text: '#a78bfa', border: '#8b5cf6' },
+  { bg: 'rgba(244,114,182,0.15)', text: '#f472b6', border: '#ec4899' },
+  { bg: 'rgba(248,113,113,0.15)', text: '#f87171', border: '#ef4444' },
+  { bg: 'rgba(251,191,36,0.15)', text: '#fbbf24', border: '#f59e0b' },
+];
+
+let parsedFrames = [];
+let moduleColorMap = {};
+
+// ---- PARSER ----
+
+function parseStackTrace(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const frames = [];
+  let moduleIdx = 0;
+  moduleColorMap = {};
+
+  for (const line of lines) {
+    const frame = parseLine(line);
+    if (frame) {
+      if (!moduleColorMap[frame.module]) {
+        moduleColorMap[frame.module] = MODULE_COLORS[moduleIdx % MODULE_COLORS.length];
+        moduleIdx++;
+      }
+      frame.color = moduleColorMap[frame.module];
+      frames.push(frame);
+    }
+  }
+  return frames;
+}
+
+function parseLine(line) {
+  // Try multiple WinDbg formats
+
+  // Format 1: kv/kn style  — FrameNum RetAddr : Args : Module!Function+Offset
+  // e.g.: 00 00000098`a12ff6a0 00007ffa`1c2b4567 ntdll!NtWaitForSingleObject+0x14
+  // e.g.: 0b 0012f8ac 7c90e399 ntdll!KiFastSystemCallRet
+  // With args: 00 0012fd6c 7c90d09a 0000003c 00000001 00000000 ntdll!KiFastSystemCallRet
+
+  // Format 2: Child-SP RetAddr Call Site
+  // 00000098`a12ff6a0 00007ffa`1c2b4567 ntdll!NtWaitForSingleObject+0x14
+
+  // Format 3: kp with params
+  // 00 ntdll!NtWaitForSingleObject(HANDLE Handle = 0x000003c, ...)
+
+  // Format 4: # with ChildEBP/ESP
+  // # ChildEBP RetAddr
+  // 00 0012fd6c 7c90d09a ntdll!KiFastSystemCallRet
+
+  let frame = null;
+
+  // Try kp style with typed params: 00 module!Func(Type arg = val, ...)
+  const kpMatch = line.match(/^([0-9a-fA-F]+)\s+.*?([A-Za-z_][\w]*(?:\+[\w]*)?)\s*!\s*([A-Za-z_][\w:~<>,*&\s]*?)\s*\(([^)]*)\)\s*(?:\+\s*(0x[0-9a-fA-F]+))?/);
+  if (kpMatch) {
+    frame = {
+      frameNum: parseInt(kpMatch[1], 16),
+      module: kpMatch[2],
+      func: kpMatch[3].trim(),
+      args: parseTypedArgs(kpMatch[4]),
+      offset: kpMatch[5] || null,
+      raw: line,
+      retAddr: null,
+      childSP: null,
+    };
+    return frame;
+  }
+
+  // Try general format: optional_frame_num addr addr [addr addr addr] module!function+offset
+  // WinDbg kv on x86 outputs: frame childEBP retAddr arg1 arg2 arg3 module!func+off
+  const generalMatch = line.match(
+    /^([0-9a-fA-F]{1,4})\s+((?:[0-9a-fA-F`]+\s+)+?)([A-Za-z_][\w.]*(?:\+[\w.]*)?)\s*!\s*([A-Za-z_][\w:~<>,*&\s]*?)(?:\+\s*(0x[0-9a-fA-F]+))?\s*$/
+  );
+  if (generalMatch) {
+    const addrs = generalMatch[2].trim().split(/\s+/);
+    let childSP = null, retAddr = null, rawArgs = [];
+
+    if (addrs.length >= 2) {
+      childSP = addrs[0];
+      retAddr = addrs[1];
+      rawArgs = addrs.slice(2);
+    } else if (addrs.length === 1) {
+      retAddr = addrs[0];
+    }
+
+    frame = {
+      frameNum: parseInt(generalMatch[1], 16),
+      module: generalMatch[3],
+      func: generalMatch[4].trim(),
+      args: rawArgs.map((v, i) => ({ name: `Arg${i+1}`, value: v, type: guessType(v) })),
+      offset: generalMatch[5] || null,
+      raw: line,
+      retAddr,
+      childSP,
+    };
+    return frame;
+  }
+
+  // Try no-frame-number format: addr addr module!func+offset
+  const noFrameMatch = line.match(
+    /^((?:[0-9a-fA-F`]+\s+)+?)([A-Za-z_][\w.]*(?:\+[\w.]*)?)\s*!\s*([A-Za-z_][\w:~<>,*&\s]*?)(?:\+\s*(0x[0-9a-fA-F]+))?\s*$/
+  );
+  if (noFrameMatch) {
+    const addrs = noFrameMatch[1].trim().split(/\s+/);
+    frame = {
+      frameNum: parsedFrames ? parsedFrames.length : 0,
+      module: noFrameMatch[2],
+      func: noFrameMatch[3].trim(),
+      args: [],
+      offset: noFrameMatch[4] || null,
+      raw: line,
+      retAddr: addrs[1] || addrs[0] || null,
+      childSP: addrs.length >= 2 ? addrs[0] : null,
+    };
+    return frame;
+  }
+
+  // Try simple: module!func+offset or module!func (standalone)
+  const simpleMatch = line.match(
+    /([A-Za-z_][\w.]*(?:\+[\w.]*)?)\s*!\s*([A-Za-z_][\w:~<>,*&\s]*?)(?:\+\s*(0x[0-9a-fA-F]+))?\s*$/
+  );
+  if (simpleMatch) {
+    frame = {
+      frameNum: parsedFrames ? parsedFrames.length : 0,
+      module: simpleMatch[1],
+      func: simpleMatch[2].trim(),
+      args: [],
+      offset: simpleMatch[3] || null,
+      raw: line,
+      retAddr: null,
+      childSP: null,
+    };
+    return frame;
+  }
+
+  return null;
+}
+
+function parseTypedArgs(str) {
+  if (!str || !str.trim()) return [];
+  const parts = str.split(',');
+  return parts.map((p, i) => {
+    p = p.trim();
+    // Type name = value
+    const m = p.match(/^([\w\s*&:<>]+?)\s+(\w+)\s*=\s*(.+)$/);
+    if (m) {
+      return { name: m[2], value: m[3].trim(), type: m[1].trim() };
+    }
+    // name = value
+    const m2 = p.match(/^(\w+)\s*=\s*(.+)$/);
+    if (m2) {
+      return { name: m2[1], value: m2[2].trim(), type: guessType(m2[2].trim()) };
+    }
+    return { name: `Arg${i+1}`, value: p, type: guessType(p) };
+  });
+}
+
+function guessType(val) {
+  if (!val) return 'unknown';
+  val = val.replace(/`/g, '');
+  if (/^0x[0-9a-fA-F]+$/i.test(val) || /^[0-9a-fA-F]{8,}$/i.test(val)) {
+    const n = parseInt(val.replace('0x',''), 16);
+    if (n === 0) return 'NULL';
+    if (n <= 0xFFFF) return 'small int/flag';
+    return 'pointer/handle';
+  }
+  if (/^[0-9]+$/.test(val)) return 'integer';
+  if (/true|false/i.test(val)) return 'boolean';
+  return 'value';
+}
+
+// ---- RENDERING ----
+
+function analyzeStack() {
+  const text = document.getElementById('stackInput').value;
+  if (!text.trim()) return;
+
+  parsedFrames = parseStackTrace(text);
+  if (parsedFrames.length === 0) {
+    alert('Could not parse any stack frames. Make sure you paste a valid WinDbg stack trace (kv, kp, kb, kn output).');
+    return;
+  }
+
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('resultsArea').classList.add('visible');
+
+  renderStats();
+  renderCallFlow();
+  renderDiagram();
+  renderSummary();
+  switchTab('flow');
+}
+
+function renderStats() {
+  const modules = [...new Set(parsedFrames.map(f => f.module))];
+  const totalArgs = parsedFrames.reduce((s, f) => s + f.args.length, 0);
+  const deepest = parsedFrames.length;
+  const withArgs = parsedFrames.filter(f => f.args.length > 0).length;
+
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-card"><div class="stat-value">${deepest}</div><div class="stat-label">Stack Depth</div></div>
+    <div class="stat-card"><div class="stat-value">${modules.length}</div><div class="stat-label">Modules</div></div>
+    <div class="stat-card"><div class="stat-value">${totalArgs}</div><div class="stat-label">Arguments</div></div>
+    <div class="stat-card"><div class="stat-value">${withArgs}</div><div class="stat-label">Frames w/ Args</div></div>
+  `;
+}
+
+function renderCallFlow() {
+  const container = document.getElementById('flowView');
+  let html = '<div class="call-flow">';
+
+  // Reversed: bottom of stack (entry point) first, or keep natural order (top = crash point)
+  // We keep WinDbg order: frame 0 is the current (top) frame
+  parsedFrames.forEach((f, i) => {
+    const c = f.color;
+    const hasDetails = f.args.length > 0 || f.retAddr || f.childSP;
+
+    html += `
+      <div class="call-frame" id="frame-${i}" onclick="toggleFrame(${i})" style="animation-delay:${i * 50}ms">
+        <div class="frame-depth" style="background:${c.border}">${String(f.frameNum).padStart(2, '0')}</div>
+        <div class="frame-header">
+          <span class="frame-module" style="background:${c.bg};color:${c.text}">${esc(f.module)}</span>
+          <span class="frame-function">${esc(f.func)}</span>
+          ${f.offset ? `<span class="frame-offset">+${f.offset}</span>` : ''}
+          ${f.args.length > 0 ? `<span class="frame-offset">(${f.args.length} arg${f.args.length>1?'s':''})</span>` : ''}
+        </div>
+        ${hasDetails ? '<span class="frame-arrow">▸</span>' : ''}
+        <div class="frame-details">
+          ${f.args.length > 0 ? `
+            <div class="detail-section">
+              <h4>Arguments</h4>
+              <div class="arg-grid">
+                ${f.args.map(a => `
+                  <div class="arg-item">
+                    <span class="arg-name">${esc(a.name)}</span>
+                    <span class="arg-eq">=</span>
+                    <span class="arg-value">${esc(a.value)}</span>
+                    <span class="arg-type">${esc(a.type)}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+          ${f.retAddr || f.childSP ? `
+            <div class="detail-section">
+              <h4>Frame Info</h4>
+              <div class="source-info">
+                ${f.childSP ? `<div>Child-SP / EBP: <span style="color:var(--accent-purple)">${esc(f.childSP)}</span></div>` : ''}
+                ${f.retAddr ? `<div>Return Address: <span style="color:var(--accent-yellow)">${esc(f.retAddr)}</span></div>` : ''}
+              </div>
+            </div>
+          ` : ''}
+          <div class="detail-section">
+            <h4>Raw Line</h4>
+            <div class="raw-text">${esc(f.raw)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+    if (i < parsedFrames.length - 1) {
+      html += '<div class="connector"></div>';
+    }
+  });
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function toggleFrame(idx) {
+  document.getElementById(`frame-${idx}`).classList.toggle('expanded');
+}
+
+function renderDiagram() {
+  const container = document.getElementById('diagramView');
+
+  // Build SVG call diagram
+  const frames = [...parsedFrames].reverse(); // bottom-up: entry → crash
+  const boxW = 300, boxH = 48, gapY = 16, padX = 40, padY = 30;
+  const svgW = boxW + padX * 2 + 200;
+  const svgH = frames.length * (boxH + gapY) + padY * 2;
+
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.min(svgW, 900)}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">`;
+
+  // Defs
+  svg += `<defs>
+    <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#3b82f6"/>
+    </marker>
+    <filter id="glow"><feGaussianBlur stdDeviation="2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>`;
+
+  // Background
+  svg += `<rect width="${svgW}" height="${svgH}" fill="#111520" rx="14"/>`;
+
+  frames.forEach((f, i) => {
+    const c = f.color;
+    const x = padX;
+    const y = padY + i * (boxH + gapY);
+
+    // Box
+    svg += `<rect x="${x}" y="${y}" width="${boxW}" height="${boxH}" rx="8" fill="${c.bg}" stroke="${c.border}" stroke-width="1.5"/>`;
+
+    // Module badge
+    svg += `<text x="${x+12}" y="${y+20}" fill="${c.text}" font-family="JetBrains Mono,monospace" font-size="10" font-weight="600">${escSvg(f.module)}</text>`;
+
+    // Function name (truncated)
+    const funcName = f.func.length > 28 ? f.func.slice(0, 26) + '…' : f.func;
+    svg += `<text x="${x+12}" y="${y+38}" fill="#e2e8f0" font-family="JetBrains Mono,monospace" font-size="11">${escSvg(funcName)}</text>`;
+
+    // Args count on right
+    if (f.args.length > 0) {
+      const ax = x + boxW + 14;
+      svg += `<text x="${ax}" y="${y + 28}" fill="#8892a8" font-family="JetBrains Mono,monospace" font-size="10">${f.args.map(a => escSvg(a.name) + '=' + escSvg(a.value.length > 12 ? a.value.slice(0,10)+'…' : a.value)).join(', ')}</text>`;
+    }
+
+    // Arrow to next
+    if (i < frames.length - 1) {
+      const ax = x + boxW / 2;
+      const ay1 = y + boxH;
+      const ay2 = y + boxH + gapY;
+      svg += `<line x1="${ax}" y1="${ay1}" x2="${ax}" y2="${ay2}" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrowhead)" opacity="0.6"/>`;
+      svg += `<text x="${ax + 8}" y="${ay1 + gapY/2 + 3}" fill="#5a6478" font-family="DM Sans,sans-serif" font-size="9">calls</text>`;
+    }
+  });
+
+  // Direction label
+  svg += `<text x="${padX + boxW/2}" y="${svgH - 8}" fill="#5a6478" font-family="DM Sans,sans-serif" font-size="10" text-anchor="middle">▲ Entry Point → Crash / Break Point ▲</text>`;
+
+  svg += '</svg>';
+
+  // Legend
+  const modules = [...new Set(parsedFrames.map(f => f.module))];
+  let legend = '<div class="module-legend">';
+  modules.forEach(m => {
+    const c = moduleColorMap[m];
+    legend += `<div class="legend-item"><div class="legend-dot" style="background:${c.border}"></div>${esc(m)}</div>`;
+  });
+  legend += '</div>';
+
+  container.innerHTML = `<div class="diagram-container">${legend}${svg}</div>`;
+}
+
+function renderSummary() {
+  const container = document.getElementById('summaryView');
+  const modules = {};
+  parsedFrames.forEach(f => {
+    if (!modules[f.module]) modules[f.module] = { count: 0, funcs: [] };
+    modules[f.module].count++;
+    modules[f.module].funcs.push(f.func);
+  });
+
+  // Call chain description
+  const chain = parsedFrames.map(f => `${f.module}!${f.func}`);
+  const topFrame = parsedFrames[0];
+  const bottomFrame = parsedFrames[parsedFrames.length - 1];
+
+  // Build execution narrative
+  const reversed = [...parsedFrames].reverse();
+  let narrative = reversed.map((f, i) => {
+    let desc = `<strong>${i+1}.</strong> <code style="color:${f.color.text}">${esc(f.module)}!${esc(f.func)}</code>`;
+    if (f.args.length > 0) {
+      desc += ` — called with ${f.args.map(a => `<code>${esc(a.name)}=${esc(a.value)}</code>`).join(', ')}`;
+    }
+    if (f.offset) desc += ` <span style="color:var(--text-muted)">(at offset ${f.offset})</span>`;
+    return desc;
+  }).join('<br>');
+
+  let moduleRows = Object.entries(modules).map(([m, data]) => {
+    const c = moduleColorMap[m];
+    return `<tr>
+      <td><span style="color:${c.text}">${esc(m)}</span></td>
+      <td>${data.count}</td>
+      <td style="color:var(--text-muted);font-size:11px">${data.funcs.map(esc).join(', ')}</td>
+    </tr>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="summary-panel">
+      <h3>Stack Trace Analysis</h3>
+
+      <div class="summary-section">
+        <h4>Break / Crash Point</h4>
+        <div class="summary-text">
+          Execution stopped at <code style="color:var(--accent-cyan)">${esc(topFrame.module)}!${esc(topFrame.func)}</code>
+          ${topFrame.offset ? ` at offset <code>${topFrame.offset}</code>` : ''}.
+          The call originated from <code style="color:var(--accent-green)">${esc(bottomFrame.module)}!${esc(bottomFrame.func)}</code>.
+        </div>
+      </div>
+
+      <div class="summary-section">
+        <h4>Execution Flow (Bottom → Top)</h4>
+        <div class="summary-text">${narrative}</div>
+      </div>
+
+      <div class="summary-section">
+        <h4>Module Breakdown</h4>
+        <table class="module-table">
+          <thead><tr><th>Module</th><th>Frames</th><th>Functions</th></tr></thead>
+          <tbody>${moduleRows}</tbody>
+        </table>
+      </div>
+
+      <div class="summary-section">
+        <h4>Full Call Chain</h4>
+        <div class="raw-text" style="font-size:11px;line-height:1.8">${chain.map(esc).join('\n→ ')}</div>
+      </div>
+    </div>
+  `;
+}
+
+// ---- TABS ----
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['flow','diagram','summary'][i] === name);
+  });
+  document.getElementById('flowView').style.display = name === 'flow' ? 'block' : 'none';
+  document.getElementById('diagramView').style.display = name === 'diagram' ? 'block' : 'none';
+  document.getElementById('summaryView').style.display = name === 'summary' ? 'block' : 'none';
+}
+
+// ---- UTILITIES ----
+
+function esc(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function escSvg(s) {
+  return esc(s).replace(/'/g, '&#39;');
+}
+
+function clearAll() {
+  document.getElementById('stackInput').value = '';
+  document.getElementById('resultsArea').classList.remove('visible');
+  document.getElementById('emptyState').style.display = 'block';
+  parsedFrames = [];
+  updateLineCount();
+}
+
+function updateLineCount() {
+  const text = document.getElementById('stackInput').value;
+  const count = text.trim() ? text.trim().split('\n').length : 0;
+  document.getElementById('lineCount').textContent = `${count} line${count !== 1 ? 's' : ''}`;
+}
+
+document.getElementById('stackInput').addEventListener('input', updateLineCount);
+
+function loadExample() {
+  document.getElementById('stackInput').value = `00 00000098\`a12ff5e0 00007ffa\`1c2b9a01 ntdll!NtWaitForSingleObject+0x14
+01 00000098\`a12ff620 00007ffa\`1a3c8e32 KERNELBASE!WaitForSingleObjectEx+0x9f
+02 00000098\`a12ff6c0 00007ffa\`1a3c8d05 kernel32!WaitForSingleObjectExImplementation+0x23
+03 00000098\`a12ff700 00007ff7\`4a2d5678 myapp!WorkerThread::WaitForTask+0x45
+04 00000098\`a12ff780 00007ff7\`4a2d1234 myapp!WorkerThread::Run+0x1a2
+05 00000098\`a12ff810 00007ff7\`4a2e9abc myapp!ThreadPool::ExecuteWork+0xbc
+06 00000098\`a12ff890 00007ff7\`4a301122 myapp!RequestHandler::ProcessRequest+0x67
+07 00000098\`a12ff920 00007ff7\`4a2faa00 myapp!HttpServer::HandleConnection+0x2f1
+08 00000098\`a12ffa10 00007ff7\`4a2f5500 myapp!HttpServer::AcceptLoop+0x8c
+09 00000098\`a12ffab0 00007ffa\`1c2a4560 ucrtbase!thread_start<unsigned int (__cdecl*)(void *),1>+0x42
+0a 00000098\`a12ffb00 00007ffa\`1c2b7890 ntdll!RtlUserThreadStart+0x2b`;
+  updateLineCount();
+  analyzeStack();
+}
+</script>
+</body>
+</html>
