@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WinDbg !pnptriage Analyzer</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-0: #06080d;
+  --bg-1: #0c1017;
+  --bg-2: #121822;
+  --bg-3: #182030;
+  --bg-4: #1e2940;
+  --border-0: #1e2940;
+  --border-1: #2a3a55;
+  --border-active: #4c8dff;
+  --text-0: #e6ecf5;
+  --text-1: #a0b0c8;
+  --text-2: #6a7d9a;
+  --text-3: #485a78;
+  --blue: #4c8dff;
+  --blue-dim: rgba(76,141,255,0.12);
+  --cyan: #00d4e6;
+  --cyan-dim: rgba(0,212,230,0.12);
+  --green: #00d68f;
+  --green-dim: rgba(0,214,143,0.12);
+  --orange: #ff9f43;
+  --orange-dim: rgba(255,159,67,0.12);
+  --red: #ff6b6b;
+  --red-dim: rgba(255,107,107,0.12);
+  --purple: #b18cff;
+  --purple-dim: rgba(177,140,255,0.12);
+  --yellow: #ffd43b;
+  --yellow-dim: rgba(255,212,59,0.12);
+  --pink: #ff6bcb;
+  --pink-dim: rgba(255,107,203,0.12);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg-0);color:var(--text-0);min-height:100vh;overflow-x:hidden;}
+.mono{font-family:'JetBrains Mono',monospace;}
+
+/* Layout */
+.app{max-width:1500px;margin:0 auto;padding:20px 24px;}
+
+/* Header */
+.hdr{display:flex;align-items:center;gap:16px;padding:16px 0 20px;border-bottom:1px solid var(--border-0);margin-bottom:24px;}
+.hdr-icon{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 30px rgba(76,141,255,0.2);}
+.hdr h1{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;letter-spacing:-0.5px;}
+.hdr p{font-size:12px;color:var(--text-2);margin-top:2px;}
+
+/* Input */
+.input-box{background:var(--bg-1);border:1px solid var(--border-0);border-radius:12px;padding:18px;margin-bottom:22px;}
+.input-box label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-3);margin-bottom:8px;}
+.input-box textarea{width:100%;height:240px;background:var(--bg-0);border:1px solid var(--border-0);border-radius:8px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.65;color:var(--text-0);resize:vertical;transition:border-color .2s;}
+.input-box textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-dim);}
+.input-box textarea::placeholder{color:var(--text-3);font-size:11px;}
+.btn-row{display:flex;gap:8px;margin-top:12px;align-items:center;}
+.btn-primary{padding:9px 24px;background:linear-gradient(135deg,var(--blue),#2d6bdf);color:#fff;border:none;border-radius:7px;font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:all .2s;box-shadow:0 2px 12px rgba(76,141,255,0.2);}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(76,141,255,0.35);}
+.btn-ghost{padding:9px 16px;background:var(--bg-3);color:var(--text-1);border:1px solid var(--border-0);border-radius:7px;font-family:'IBM Plex Sans',sans-serif;font-weight:500;font-size:12px;cursor:pointer;transition:all .2s;}
+.btn-ghost:hover{background:var(--bg-4);border-color:var(--border-1);}
+.info-tag{margin-left:auto;font-size:11px;color:var(--text-3);font-family:'JetBrains Mono',monospace;}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:20px;}
+.stat{background:var(--bg-1);border:1px solid var(--border-0);border-radius:10px;padding:14px 16px;text-align:center;}
+.stat-val{font-size:26px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.stat-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-2);margin-top:3px;}
+
+/* Tabs */
+.tabs{display:flex;gap:2px;background:var(--bg-1);border:1px solid var(--border-0);border-radius:9px;padding:3px;margin-bottom:18px;}
+.tab{flex:1;padding:9px 14px;background:transparent;color:var(--text-2);border:none;border-radius:7px;font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:12px;cursor:pointer;transition:all .2s;}
+.tab.on{background:var(--bg-3);color:var(--text-0);box-shadow:0 1px 4px rgba(0,0,0,.2);}
+.tab:hover:not(.on){color:var(--text-1);}
+
+/* Section blocks */
+.section{background:var(--bg-1);border:1px solid var(--border-0);border-radius:12px;margin-bottom:14px;overflow:hidden;}
+.section-hdr{display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;transition:background .15s;user-select:none;}
+.section-hdr:hover{background:var(--bg-2);}
+.section-hdr .dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+.section-hdr h3{font-size:13px;font-weight:600;flex:1;}
+.section-hdr .badge{font-size:10px;font-family:'JetBrains Mono',monospace;padding:2px 8px;border-radius:4px;font-weight:500;}
+.section-hdr .arrow{color:var(--text-3);font-size:12px;transition:transform .2s;}
+.section.open .section-hdr .arrow{transform:rotate(90deg);color:var(--blue);}
+.section-body{display:none;padding:0 18px 16px;animation:fadeIn .2s;}
+.section.open .section-body{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:translateY(0);}}
+
+/* Queue entries */
+.queue-entry{padding:12px 14px;background:var(--bg-2);border:1px solid var(--border-0);border-radius:8px;margin-bottom:8px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.65;}
+.queue-entry .qlabel{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-3);margin-bottom:4px;font-family:'IBM Plex Sans',sans-serif;font-weight:600;}
+.queue-entry .qval{color:var(--text-1);}
+.queue-entry .qval .hl-addr{color:var(--purple);}
+.queue-entry .qval .hl-cmd{color:var(--cyan);}
+.queue-entry .qval .hl-kw{color:var(--orange);}
+.queue-entry .qval .hl-state{color:var(--green);}
+.queue-entry .qval .hl-err{color:var(--red);}
+.queue-entry .qval .hl-drv{color:var(--yellow);}
+
+/* IRP details */
+.irp-card{padding:14px;background:var(--bg-2);border:1px solid var(--border-0);border-radius:8px;margin-bottom:10px;}
+.irp-card h4{font-size:12px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.irp-card h4 .irp-status{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:600;}
+.irp-stack-row{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;padding:6px 0;border-bottom:1px solid var(--border-0);}
+.irp-stack-row:last-child{border:none;}
+.irp-stack-row .lbl{color:var(--text-3);text-align:right;white-space:nowrap;}
+
+/* DevNode */
+.devnode-card{padding:14px;background:var(--bg-2);border:1px solid var(--border-0);border-radius:8px;margin-bottom:10px;}
+.devnode-card h4{font-size:12px;font-weight:600;margin-bottom:6px;color:var(--cyan);}
+.devnode-row{display:flex;gap:8px;align-items:baseline;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.8;}
+.devnode-row .k{color:var(--text-3);min-width:120px;white-space:nowrap;}
+.devnode-row .v{color:var(--text-1);word-break:break-all;}
+
+/* Stack trace */
+.stack-frame{position:relative;padding:12px 16px 12px 54px;background:var(--bg-1);border:1px solid var(--border-0);border-radius:8px;margin-bottom:2px;cursor:pointer;transition:all .2s;}
+.stack-frame:hover{background:var(--bg-2);border-color:var(--blue);}
+.stack-frame.open{background:var(--bg-2);border-color:var(--blue);}
+.frame-num{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;border-radius:5px;color:#fff;}
+.frame-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.frame-mod{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;padding:2px 7px;border-radius:3px;}
+.frame-fn{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;color:var(--cyan);}
+.frame-off{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-3);}
+.frame-params{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-2);}
+.frame-detail{display:none;margin-top:12px;padding-top:10px;border-top:1px solid var(--border-0);}
+.stack-frame.open .frame-detail{display:block;}
+.param-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px;}
+.param-item{display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--bg-0);border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:11px;}
+.param-item .pn{color:var(--orange);}
+.param-item .pe{color:var(--text-3);}
+.param-item .pv{color:var(--green);}
+.param-item .pt{margin-left:auto;color:var(--text-3);font-size:9px;padding:1px 5px;background:var(--bg-2);border-radius:2px;white-space:nowrap;}
+.frame-connector{width:2px;height:8px;background:linear-gradient(to bottom,var(--blue),transparent);margin-left:26px;opacity:.3;}
+
+/* Flow diagram */
+.diagram-wrap{background:var(--bg-1);border:1px solid var(--border-0);border-radius:12px;padding:24px;overflow-x:auto;}
+
+/* Summary / Analysis */
+.analysis-block{background:var(--bg-2);border-left:3px solid var(--blue);border-radius:0 8px 8px 0;padding:14px 18px;margin-bottom:12px;}
+.analysis-block h4{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--blue);margin-bottom:8px;font-weight:700;}
+.analysis-block p{font-size:13px;color:var(--text-1);line-height:1.7;}
+.analysis-block code{font-family:'JetBrains Mono',monospace;font-size:11px;padding:1px 5px;background:var(--bg-3);border-radius:3px;}
+.analysis-block.warn{border-color:var(--orange);}
+.analysis-block.warn h4{color:var(--orange);}
+.analysis-block.err{border-color:var(--red);}
+.analysis-block.err h4{color:var(--red);}
+.analysis-block.ok{border-color:var(--green);}
+.analysis-block.ok h4{color:var(--green);}
+
+/* Raw view */
+.raw-block{padding:14px;background:var(--bg-0);border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.7;color:var(--text-1);white-space:pre-wrap;word-break:break-all;overflow-x:auto;max-height:400px;overflow-y:auto;}
+
+/* Empty */
+.empty{text-align:center;padding:60px 20px;color:var(--text-3);}
+.empty .icon{font-size:44px;margin-bottom:14px;opacity:.4;}
+.empty p{font-size:13px;}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--bg-0);}
+::-webkit-scrollbar-thumb{background:var(--border-0);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--text-3);}
+
+.tab-content{display:none;}
+.tab-content.show{display:block;}
+
+@media(max-width:768px){
+  .app{padding:12px;}
+  .stats{grid-template-columns:repeat(2,1fr);}
+  .param-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hdr">
+    <div class="hdr-icon">🔌</div>
+    <div>
+      <h1>PnP Triage Analyzer</h1>
+      <p>Parse WinDbg !pnptriage output — map queues, IRPs, devnodes, stacks &amp; call flows</p>
+    </div>
+  </div>
+
+  <div class="input-box">
+    <label>Paste !pnptriage Output (+ optional stack traces)</label>
+    <textarea id="inp" placeholder="Paste your full !pnptriage output here...
+
+Supports:
+  • !pnptriage full output (DeviceAction Queue, DeviceEvent Queue, DeviceCompletion Queue, devnodes with problems, PnP locks)
+  • Embedded stack traces (kn/knL/kv/kb)
+  • !irp output
+  • !devnode output
+  • !devstack output
+  • !locks output
+  • !analyze -v output with PnP context
+
+Example: paste everything from your WinDbg session related to PnP debugging."></textarea>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="analyze()">Analyze</button>
+      <button class="btn-ghost" onclick="loadExample()">Load Example</button>
+      <button class="btn-ghost" onclick="clearAll()">Clear</button>
+      <span class="info-tag" id="lc">0 lines</span>
+    </div>
+  </div>
+
+  <div id="results" style="display:none">
+    <div class="stats" id="statsArea"></div>
+    <div class="tabs">
+      <button class="tab on" onclick="switchTab('parsed')">Parsed View</button>
+      <button class="tab" onclick="switchTab('flow')">Call Flow</button>
+      <button class="tab" onclick="switchTab('analysis')">Analysis</button>
+      <button class="tab" onclick="switchTab('raw')">Highlighted Raw</button>
+    </div>
+    <div id="parsed" class="tab-content show"></div>
+    <div id="flow" class="tab-content"></div>
+    <div id="analysis" class="tab-content"></div>
+    <div id="raw" class="tab-content"></div>
+  </div>
+
+  <div id="empty" class="empty">
+    <div class="icon">🔌</div>
+    <p>Paste <strong>!pnptriage</strong> output above and click <strong>Analyze</strong></p>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// GLOBAL STATE
+// ============================================================
+let parsed = {
+  deviceActionQueue: { address: '', entries: [], workerActive: false },
+  deviceEventQueue: { address: '', empty: true, entries: [] },
+  deviceCompletionQueue: { address: '', pendingCount: 0, pendingIrps: [], completedIrps: [] },
+  devnodesWithProblems: [],
+  pnpLocks: [],
+  stacks: [],
+  irps: [],
+  devstacks: [],
+  rawSections: [],
+};
+
+const MOD_COLORS = [
+  {bg:'rgba(76,141,255,0.14)',text:'#4c8dff',bdr:'#4c8dff'},
+  {bg:'rgba(0,212,230,0.14)',text:'#00d4e6',bdr:'#00d4e6'},
+  {bg:'rgba(0,214,143,0.14)',text:'#00d68f',bdr:'#00d68f'},
+  {bg:'rgba(255,159,67,0.14)',text:'#ff9f43',bdr:'#ff9f43'},
+  {bg:'rgba(177,140,255,0.14)',text:'#b18cff',bdr:'#b18cff'},
+  {bg:'rgba(255,107,203,0.14)',text:'#ff6bcb',bdr:'#ff6bcb'},
+  {bg:'rgba(255,107,107,0.14)',text:'#ff6b6b',bdr:'#ff6b6b'},
+  {bg:'rgba(255,212,59,0.14)',text:'#ffd43b',bdr:'#ffd43b'},
+];
+let modColorMap = {};
+let modIdx = 0;
+function getModColor(mod) {
+  if (!mod) return MOD_COLORS[0];
+  if (!modColorMap[mod]) { modColorMap[mod] = MOD_COLORS[modIdx % MOD_COLORS.length]; modIdx++; }
+  return modColorMap[mod];
+}
+
+// ============================================================
+// PARSER
+// ============================================================
+function analyze() {
+  const text = document.getElementById('inp').value;
+  if (!text.trim()) return;
+
+  // Reset
+  modColorMap = {}; modIdx = 0;
+  parsed = {
+    deviceActionQueue: { address: '', entries: [], workerActive: false },
+    deviceEventQueue: { address: '', empty: true, entries: [] },
+    deviceCompletionQueue: { address: '', pendingCount: 0, pendingIrps: [], completedIrps: [] },
+    devnodesWithProblems: [],
+    pnpLocks: [],
+    stacks: [],
+    irps: [],
+    devstacks: [],
+    rawSections: [],
+  };
+
+  parseOutput(text);
+
+  document.getElementById('empty').style.display = 'none';
+  document.getElementById('results').style.display = 'block';
+
+  renderStats();
+  renderParsedView();
+  renderFlowView();
+  renderAnalysis();
+  renderRaw(text);
+  switchTab('parsed');
+}
+
+function parseOutput(text) {
+  const lines = text.split('\n');
+  let i = 0;
+
+  // Identify sections by *** headers
+  let currentSection = null;
+  let sectionLines = [];
+  let allSections = [];
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Detect section headers
+    if (/^\*{5,}/.test(line.trim())) {
+      // Look ahead for the section title
+      if (i + 1 < lines.length && !/^\*{5,}/.test(lines[i+1].trim())) {
+        if (currentSection) {
+          allSections.push({ name: currentSection, lines: [...sectionLines] });
+          sectionLines = [];
+        }
+        currentSection = lines[i+1].trim();
+        i += 2;
+        // skip closing *** line
+        if (i < lines.length && /^\*{5,}/.test(lines[i].trim())) i++;
+        continue;
+      } else {
+        // closing *** of a section
+        if (currentSection) {
+          allSections.push({ name: currentSection, lines: [...sectionLines] });
+          sectionLines = [];
+          currentSection = null;
+        }
+        i++;
+        continue;
+      }
+    }
+
+    if (currentSection) {
+      sectionLines.push(line);
+    }
+    i++;
+  }
+  if (currentSection) {
+    allSections.push({ name: currentSection, lines: [...sectionLines] });
+  }
+
+  parsed.rawSections = allSections;
+
+  // Parse each section
+  for (const sec of allSections) {
+    const name = sec.name.toLowerCase();
+    if (name.includes('deviceaction queue')) {
+      parseDeviceActionQueue(sec);
+    } else if (name.includes('deviceevent queue')) {
+      parseDeviceEventQueue(sec);
+    } else if (name.includes('devicecompletion queue') || name.includes('device completion queue')) {
+      parseDeviceCompletionQueue(sec);
+    } else if (name.includes('devnodes with problems')) {
+      parseDevnodesWithProblems(sec);
+    } else if (name.includes('pnp locks')) {
+      parsePnpLocks(sec);
+    }
+  }
+
+  // Parse stack traces from full text
+  parseStackTraces(text);
+  // Parse IRPs from full text
+  parseIrps(text);
+  // Parse devstacks
+  parseDevstacks(text);
+}
+
+function parseDeviceActionQueue(sec) {
+  const addrMatch = sec.name.match(/@\s*(0x[0-9a-fA-F`]+)/);
+  if (addrMatch) parsed.deviceActionQueue.address = addrMatch[1];
+
+  let entries = [];
+  let entry = null;
+  for (const line of sec.lines) {
+    const m = line.match(/Dumping\s+nt!_PNP_DEVICE_ACTION_ENTRY\s+@\s+(0x[0-9a-fA-F`]+)/i);
+    if (m) {
+      if (entry) entries.push(entry);
+      entry = { address: m[1], request: '', devstack: '', argument: '', completionEvent: '', raw: line };
+      continue;
+    }
+    if (entry) {
+      const reqM = line.match(/Request\s+to\s+(\w+)\s+(!devstack\s+[0-9a-fA-F`]+)/i);
+      if (reqM) { entry.request = reqM[1]; entry.devstack = reqM[2]; entry.raw += '\n' + line; continue; }
+      const argM = line.match(/Argument\s+-\s+([0-9a-fA-F]+)/i);
+      if (argM) { entry.argument = argM[1]; entry.raw += '\n' + line; continue; }
+      const ceM = line.match(/CompletionEvent\s+-\s+(0x[0-9a-fA-F]+)/i);
+      if (ceM) { entry.completionEvent = ceM[1]; entry.raw += '\n' + line; continue; }
+      if (line.trim()) entry.raw += '\n' + line;
+    }
+    if (/PnP DeviceActionWorker active/i.test(line)) parsed.deviceActionQueue.workerActive = true;
+    const dumpedM = line.match(/Dumped\s+(\d+)\s+entries/i);
+    if (dumpedM && entry) { entries.push(entry); entry = null; }
+  }
+  if (entry) entries.push(entry);
+  parsed.deviceActionQueue.entries = entries;
+}
+
+function parseDeviceEventQueue(sec) {
+  const addrMatch = sec.name.match(/@\s*(0x[0-9a-fA-F`]+)/);
+  if (addrMatch) parsed.deviceEventQueue.address = addrMatch[1];
+  parsed.deviceEventQueue.empty = sec.lines.some(l => /event list is empty/i.test(l));
+}
+
+function parseDeviceCompletionQueue(sec) {
+  const addrMatch = sec.name.match(/@\s*(0x[0-9a-fA-F`]+)/);
+  if (addrMatch) parsed.deviceCompletionQueue.address = addrMatch[1];
+
+  for (const line of sec.lines) {
+    const pendM = line.match(/(\d+)\s+Pnp\s+operation\(s\)\s+dispatched\s+\(IRP pending\)/i);
+    if (pendM) parsed.deviceCompletionQueue.pendingCount = parseInt(pendM[1]);
+
+    // Pending IRPs
+    const irpM = line.match(/Pending\s+!irp\s+([0-9a-fA-F`]+)/i);
+    if (irpM) parsed.deviceCompletionQueue.pendingIrps.push(irpM[1]);
+
+    // DevNode refs
+    const dnM = line.match(/!devnode\s+([0-9a-fA-F`]+)/i);
+    if (dnM) parsed.deviceCompletionQueue.pendingIrps.push({ devnode: dnM[1], raw: line });
+
+    // Completion states
+    const csM = line.match(/CompletionState\s*=\s*(\w+)\s*\((0x[0-9a-fA-F]+)\)/i);
+    if (csM) {
+      const last = parsed.deviceCompletionQueue.pendingIrps;
+      if (last.length > 0) {
+        const item = last[last.length - 1];
+        if (typeof item === 'object') {
+          item.completionState = csM[1];
+          item.stateCode = csM[2];
+        }
+      }
+    }
+  }
+}
+
+function parseDevnodesWithProblems(sec) {
+  let current = null;
+  for (const line of sec.lines) {
+    const dnM = line.match(/DevNode\s+(0x[0-9a-fA-F`]+)\s+for\s+PDO\s+(0x[0-9a-fA-F`]+)/i);
+    if (dnM) {
+      if (current) parsed.devnodesWithProblems.push(current);
+      current = { address: dnM[1], pdo: dnM[2], instancePath: '', state: '', prevState: '', problem: '', serviceName: '', flags: '', raw: '' };
+    }
+    if (current) {
+      current.raw += line + '\n';
+      const ipM = line.match(/InstancePath\s+is\s+"([^"]+)"/i);
+      if (ipM) current.instancePath = ipM[1];
+      const stM = line.match(/^\s*State\s+=\s+(\w+)\s*\((0x[0-9a-fA-F]+)\)/i);
+      if (stM) current.state = stM[1] + ' (' + stM[2] + ')';
+      const psM = line.match(/Previous\s+State\s+=\s+(\w+)\s*\((0x[0-9a-fA-F]+)\)/i);
+      if (psM) current.prevState = psM[1] + ' (' + psM[2] + ')';
+      const prM = line.match(/Problem\s+=\s+(CM_PROB_\w+)/i);
+      if (prM) current.problem = prM[1];
+      const snM = line.match(/ServiceName\s+is\s+"([^"]+)"/i);
+      if (snM) current.serviceName = snM[1];
+    }
+    // Also parse !devnode direct output
+    const dn2 = line.match(/DevNode\s+(0x[0-9a-fA-F`]+)\s+:/);
+    if (!dnM && dn2) {
+      if (current) parsed.devnodesWithProblems.push(current);
+      current = { address: dn2[1], pdo: '', instancePath: '', state: '', prevState: '', problem: '', serviceName: '', flags: '', raw: '' };
+    }
+  }
+  if (current) parsed.devnodesWithProblems.push(current);
+
+  // Also parse from raw text for !DevNode output outside sections
+  // (handled above)
+}
+
+function parsePnpLocks(sec) {
+  let entry = null;
+  for (const line of sec.lines) {
+    const lm = line.match(/Resource\s+@\s+(0x[0-9a-fA-F`]+)\s+(.*)/i);
+    if (lm) {
+      if (entry) parsed.pnpLocks.push(entry);
+      entry = { address: lm[1], ownership: lm[2] || '', contention: '', threads: [], raw: '' };
+    }
+    if (entry) {
+      entry.raw += line + '\n';
+      const cm = line.match(/Contention\s+Count\s*=\s*(\d+)/i);
+      if (cm) entry.contention = cm[1];
+      const tm = line.match(/Threads:\s+(.*)/i);
+      if (tm) {
+        const parts = tm[1].split(/\s+/);
+        entry.threads = parts.filter(p => /[0-9a-fA-F`]/.test(p));
+      }
+    }
+  }
+  if (entry) parsed.pnpLocks.push(entry);
+}
+
+function parseStackTraces(text) {
+  // Find stack traces: lines starting with frame numbers like "00 addr addr module!func"
+  const lines = text.split('\n');
+  let stack = [];
+  let inStack = false;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    const fm = line.match(/^([0-9a-fA-F]{1,4})\s+((?:[0-9a-fA-F`]+\s+)+?)([A-Za-z_][\w.]*(?:\+[\w.]*)?)\s*!\s*([A-Za-z_][\w:~<>,*&\s]*?)(?:\+\s*(0x[0-9a-fA-F]+))?\s*$/);
+    if (fm) {
+      inStack = true;
+      const addrs = fm[2].trim().split(/\s+/);
+      let childSP = null, retAddr = null, args = [];
+      if (addrs.length >= 2) { childSP = addrs[0]; retAddr = addrs[1]; args = addrs.slice(2); }
+      else if (addrs.length === 1) retAddr = addrs[0];
+
+      stack.push({
+        frameNum: parseInt(fm[1], 16),
+        module: fm[3],
+        func: fm[4].trim(),
+        offset: fm[5] || null,
+        childSP, retAddr,
+        args: args.map((v,j) => ({ name: 'Arg'+(j+1), value: v, type: guessType(v) })),
+        raw: line,
+        params: [],
+      });
+
+      // Check next line for Parameter lines
+      let pi = i + 1;
+      while (pi < lines.length) {
+        const pl = lines[pi].trim();
+        const pm = pl.match(/Parameter\[(\d+)\]\s*=\s*([0-9a-fA-F`]+)(?:\s+(.*))?/i);
+        if (pm) {
+          stack[stack.length-1].params.push({ index: pm[1], value: pm[2], note: pm[3] || '' });
+          pi++;
+        } else break;
+      }
+    } else if (inStack && line === '') {
+      if (stack.length > 0) {
+        parsed.stacks.push([...stack]);
+        stack = [];
+      }
+      inStack = false;
+    } else if (inStack && !fm) {
+      // non-stack line breaks the stack
+      if (stack.length > 0) {
+        parsed.stacks.push([...stack]);
+        stack = [];
+      }
+      inStack = false;
+    }
+  }
+  if (stack.length > 0) parsed.stacks.push([...stack]);
+}
+
+function parseIrps(text) {
+  const lines = text.split('\n');
+  let irp = null;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const irpM = line.match(/Irp\s+is\s+active\s+with\s+(\d+)\s+stacks?\s+(\d+)\s+is\s+current/i);
+    if (irpM) {
+      if (irp) parsed.irps.push(irp);
+      irp = { stackCount: parseInt(irpM[1]), current: parseInt(irpM[2]), thread: '', stacks: [], raw: line + '\n' };
+      const thM = line.match(/Thread\s+([0-9a-fA-F`]+)/i);
+      if (thM) irp.thread = thM[1];
+      continue;
+    }
+    if (irp) {
+      irp.raw += line + '\n';
+      // IRP stack entry: >[IRP_MJ_xxx(nn), IRP_MN_xxx(nn)]
+      const isM = line.match(/\[?(IRP_MJ_\w+)\(([0-9a-fA-F]+)\),?\s*(IRP_MN_\w+)?\(?([0-9a-fA-F]*)\)?\]?/i);
+      if (isM) {
+        const stackEntry = { major: isM[1], majorCode: isM[2], minor: isM[3] || '', minorCode: isM[4] || '', driver: '', completion: '', args: [], isCurrent: line.trim().startsWith('>') };
+        // Parse following lines for driver, completion, args
+        for (let j = i+1; j < Math.min(i+5, lines.length); j++) {
+          const drvM = lines[j].match(/\\Driver\\(\w+)\s+([\w!]+)/i);
+          if (drvM) { stackEntry.driver = drvM[1]; stackEntry.completion = drvM[2]; }
+          const argsM = lines[j].match(/Args:\s+(.*)/i);
+          if (argsM) stackEntry.args = argsM[1].trim().split(/\s+/);
+        }
+        irp.stacks.push(stackEntry);
+      }
+      if (line.trim() === '' && irp.stacks.length > 0) {
+        parsed.irps.push(irp);
+        irp = null;
+      }
+    }
+  }
+  if (irp) parsed.irps.push(irp);
+}
+
+function parseDevstacks(text) {
+  const lines = text.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/!DevObj\s+!DrvObj\s+!DevExt\s+ObjectName/i);
+    if (m) {
+      let entries = [];
+      for (let j = i+1; j < lines.length; j++) {
+        const el = lines[j].trim();
+        if (!el || /^!DevNode/i.test(el)) {
+          if (/^!DevNode/i.test(el)) {
+            const dnM = el.match(/!DevNode\s+([0-9a-fA-F`]+)/i);
+            if (dnM) entries.devnode = dnM[1];
+          }
+          break;
+        }
+        const em = el.match(/^(>?)\s*([0-9a-fA-F`]+)\s+\\Driver\\(\w+)\s+([0-9a-fA-F`]+)\s*(.*)/i);
+        if (em) {
+          entries.push({ isCurrent: em[1] === '>', devObj: em[2], driver: em[3], devExt: em[4], name: em[5] || '' });
+        }
+      }
+      if (entries.length > 0) parsed.devstacks.push(entries);
+    }
+  }
+}
+
+function guessType(val) {
+  if (!val) return '';
+  val = val.replace(/`/g, '');
+  if (/^0{8,16}$/.test(val) || val === '00000000') return 'NULL';
+  if (/^[0-9a-fA-F]{8,16}$/i.test(val)) {
+    const n = parseInt(val, 16);
+    if (n <= 0xFFFF) return 'flag/small';
+    return 'pointer';
+  }
+  return 'value';
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function renderStats() {
+  const daq = parsed.deviceActionQueue.entries.length;
+  const pendIrp = parsed.deviceCompletionQueue.pendingCount;
+  const probDevs = parsed.devnodesWithProblems.length;
+  const stackCount = parsed.stacks.length;
+  const lockCount = parsed.pnpLocks.length;
+  const irpCount = parsed.irps.length;
+
+  document.getElementById('statsArea').innerHTML = `
+    <div class="stat"><div class="stat-val" style="color:var(--blue)">${daq}</div><div class="stat-lbl">Action Queue Entries</div></div>
+    <div class="stat"><div class="stat-val" style="color:${pendIrp > 0 ? 'var(--orange)' : 'var(--green)'}">${pendIrp}</div><div class="stat-lbl">Pending IRPs</div></div>
+    <div class="stat"><div class="stat-val" style="color:${probDevs > 0 ? 'var(--red)' : 'var(--green)'}">${probDevs}</div><div class="stat-lbl">Problem DevNodes</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--cyan)">${stackCount}</div><div class="stat-lbl">Stack Traces</div></div>
+    <div class="stat"><div class="stat-val" style="color:${lockCount > 0 ? 'var(--yellow)' : 'var(--text-2)'}">${lockCount}</div><div class="stat-lbl">PnP Locks</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--purple)">${irpCount}</div><div class="stat-lbl">IRP Details</div></div>
+  `;
+}
+
+function renderParsedView() {
+  let html = '';
+
+  // Device Action Queue
+  html += renderSection('DeviceAction Queue', 'blue', parsed.deviceActionQueue.entries.length + ' entries' + (parsed.deviceActionQueue.workerActive ? ' • Worker ACTIVE' : ''), () => {
+    let c = '';
+    if (parsed.deviceActionQueue.address) c += `<div class="queue-entry"><div class="qlabel">Queue Address</div><div class="qval"><span class="hl-addr">${esc(parsed.deviceActionQueue.address)}</span></div></div>`;
+    if (parsed.deviceActionQueue.entries.length === 0) c += '<div style="color:var(--text-3);font-size:12px;padding:8px">No entries in queue</div>';
+    for (const e of parsed.deviceActionQueue.entries) {
+      c += `<div class="queue-entry">
+        <div class="qlabel">PNP_DEVICE_ACTION_ENTRY @ <span class="hl-addr">${esc(e.address)}</span></div>
+        <div class="qval">
+          ${e.request ? `Request: <span class="hl-kw">${esc(e.request)}</span>` : ''}
+          ${e.devstack ? `<span class="hl-cmd">${esc(e.devstack)}</span>` : ''}
+          ${e.argument ? `<br>Argument: <span class="hl-addr">${esc(e.argument)}</span>` : ''}
+          ${e.completionEvent ? `<br>CompletionEvent: <span class="hl-addr">${esc(e.completionEvent)}</span>` : ''}
+        </div>
+      </div>`;
+    }
+    if (parsed.deviceActionQueue.workerActive) c += `<div style="padding:6px 0;font-size:12px;color:var(--orange);font-weight:600">⚡ PnP DeviceActionWorker is ACTIVE</div>`;
+    return c;
+  });
+
+  // Device Event Queue
+  html += renderSection('DeviceEvent Queue', 'cyan', parsed.deviceEventQueue.empty ? 'Empty' : 'Has events', () => {
+    if (parsed.deviceEventQueue.empty) return '<div style="color:var(--text-3);font-size:12px;padding:8px">Event list is empty</div>';
+    return '<div style="color:var(--text-1);font-size:12px;padding:8px">Events present in queue</div>';
+  });
+
+  // Device Completion Queue
+  const cq = parsed.deviceCompletionQueue;
+  html += renderSection('DeviceCompletion Queue', cq.pendingCount > 0 ? 'orange' : 'green',
+    `${cq.pendingCount} pending IRP(s)`, () => {
+    let c = '';
+    if (cq.address) c += `<div class="queue-entry"><div class="qlabel">Queue Address</div><div class="qval"><span class="hl-addr">${esc(cq.address)}</span></div></div>`;
+    if (cq.pendingCount > 0) {
+      c += `<div style="padding:6px 0;font-size:12px;color:var(--orange);font-weight:600">⚠ ${cq.pendingCount} PnP operation(s) dispatched with IRP pending</div>`;
+    }
+    for (const p of cq.pendingIrps) {
+      if (typeof p === 'string') {
+        c += `<div class="queue-entry"><div class="qlabel">Pending IRP</div><div class="qval"><span class="hl-cmd">!irp</span> <span class="hl-addr">${esc(p)}</span></div></div>`;
+      } else if (p.devnode) {
+        c += `<div class="queue-entry"><div class="qlabel">DevNode</div><div class="qval"><span class="hl-cmd">!devnode</span> <span class="hl-addr">${esc(p.devnode)}</span>${p.completionState ? ` — <span class="hl-state">${esc(p.completionState)}</span> (${esc(p.stateCode || '')})` : ''}</div></div>`;
+      }
+    }
+    if (cq.pendingCount === 0) c += '<div style="color:var(--green);font-size:12px;padding:8px">No pending PnP operations</div>';
+    return c;
+  });
+
+  // DevNodes with Problems
+  html += renderSection('DevNodes with Problems', parsed.devnodesWithProblems.length > 0 ? 'red' : 'green',
+    `${parsed.devnodesWithProblems.length} problem(s)`, () => {
+    let c = '';
+    if (parsed.devnodesWithProblems.length === 0) return '<div style="color:var(--green);font-size:12px;padding:8px">No devnodes with problems detected</div>';
+    for (const dn of parsed.devnodesWithProblems) {
+      c += `<div class="devnode-card">
+        <h4>DevNode <span style="color:var(--purple)">${esc(dn.address)}</span>${dn.pdo ? ` — PDO <span style="color:var(--text-2)">${esc(dn.pdo)}</span>` : ''}</h4>
+        ${dn.instancePath ? `<div class="devnode-row"><span class="k">InstancePath</span><span class="v" style="color:var(--yellow)">${esc(dn.instancePath)}</span></div>` : ''}
+        ${dn.serviceName ? `<div class="devnode-row"><span class="k">ServiceName</span><span class="v" style="color:var(--orange)">${esc(dn.serviceName)}</span></div>` : ''}
+        ${dn.state ? `<div class="devnode-row"><span class="k">State</span><span class="v" style="color:var(--cyan)">${esc(dn.state)}</span></div>` : ''}
+        ${dn.prevState ? `<div class="devnode-row"><span class="k">Previous State</span><span class="v">${esc(dn.prevState)}</span></div>` : ''}
+        ${dn.problem ? `<div class="devnode-row"><span class="k">Problem</span><span class="v" style="color:var(--red);font-weight:600">${esc(dn.problem)}</span></div>` : ''}
+      </div>`;
+    }
+    return c;
+  });
+
+  // PnP Locks
+  html += renderSection('PnP Locks', parsed.pnpLocks.length > 0 ? 'yellow' : 'green',
+    `${parsed.pnpLocks.length} lock(s)`, () => {
+    let c = '';
+    if (parsed.pnpLocks.length === 0) return '<div style="color:var(--text-3);font-size:12px;padding:8px">No PnP locks captured</div>';
+    for (const lk of parsed.pnpLocks) {
+      c += `<div class="queue-entry">
+        <div class="qlabel">Resource @ <span class="hl-addr">${esc(lk.address)}</span> — ${esc(lk.ownership)}</div>
+        <div class="qval">
+          ${lk.contention ? `Contention Count: <span class="hl-err">${esc(lk.contention)}</span><br>` : ''}
+          ${lk.threads.length > 0 ? `Threads: ${lk.threads.map(t => `<span class="hl-addr">${esc(t)}</span>`).join(' ')}` : ''}
+        </div>
+      </div>`;
+    }
+    return c;
+  });
+
+  // IRP Details
+  if (parsed.irps.length > 0) {
+    html += renderSection('IRP Details', 'purple', `${parsed.irps.length} IRP(s)`, () => {
+      let c = '';
+      for (const irp of parsed.irps) {
+        c += `<div class="irp-card">
+          <h4>IRP — ${irp.stackCount} stack(s), Thread <span style="color:var(--purple)">${esc(irp.thread)}</span></h4>`;
+        for (const s of irp.stacks) {
+          const isPend = s.isCurrent;
+          c += `<div style="padding:8px;background:var(--bg-3);border-radius:6px;margin-bottom:6px;font-family:'JetBrains Mono',monospace;font-size:11px;">
+            ${isPend ? '<span style="color:var(--orange);font-weight:700">▸ CURRENT</span> ' : ''}
+            <span style="color:var(--cyan)">${esc(s.major)}</span>(${esc(s.majorCode)})${s.minor ? `, <span style="color:var(--green)">${esc(s.minor)}</span>(${esc(s.minorCode)})` : ''}
+            ${s.driver ? `<br>Driver: <span style="color:var(--yellow)">${esc(s.driver)}</span>` : ''}
+            ${s.completion ? ` → Completion: <span style="color:var(--text-1)">${esc(s.completion)}</span>` : ''}
+            ${s.args.length > 0 && s.args.some(a => a !== '00000000') ? `<br>Args: ${s.args.map(a => `<span style="color:var(--purple)">${esc(a)}</span>`).join(' ')}` : ''}
+          </div>`;
+        }
+        c += '</div>';
+      }
+      return c;
+    });
+  }
+
+  // Stack Traces
+  for (let si = 0; si < parsed.stacks.length; si++) {
+    const stack = parsed.stacks[si];
+    const topFrame = stack[0];
+    const title = `Stack Trace #${si+1}: ${topFrame.module}!${topFrame.func}`;
+    html += renderSection(title, 'cyan', `${stack.length} frames`, () => {
+      return renderStackFrames(stack);
+    });
+  }
+
+  document.getElementById('parsed').innerHTML = html;
+}
+
+function renderSection(title, color, badge, contentFn) {
+  const id = 'sec-' + Math.random().toString(36).substr(2, 8);
+  const badgeColor = {
+    blue: 'background:var(--blue-dim);color:var(--blue)',
+    cyan: 'background:var(--cyan-dim);color:var(--cyan)',
+    green: 'background:var(--green-dim);color:var(--green)',
+    orange: 'background:var(--orange-dim);color:var(--orange)',
+    red: 'background:var(--red-dim);color:var(--red)',
+    purple: 'background:var(--purple-dim);color:var(--purple)',
+    yellow: 'background:var(--yellow-dim);color:var(--yellow)',
+  }[color] || '';
+  const dotColor = `background:var(--${color})`;
+
+  return `<div class="section" id="${id}">
+    <div class="section-hdr" onclick="document.getElementById('${id}').classList.toggle('open')">
+      <div class="dot" style="${dotColor}"></div>
+      <h3>${esc(title)}</h3>
+      <span class="badge" style="${badgeColor}">${esc(badge)}</span>
+      <span class="arrow">▸</span>
+    </div>
+    <div class="section-body">${contentFn()}</div>
+  </div>`;
+}
+
+function renderStackFrames(stack) {
+  let html = '';
+  stack.forEach((f, i) => {
+    const c = getModColor(f.module);
+    const fid = 'frm-' + Math.random().toString(36).substr(2, 8);
+    const hasDetail = f.args.length > 0 || f.params.length > 0 || f.retAddr;
+
+    html += `<div class="stack-frame" id="${fid}" ${hasDetail ? `onclick="document.getElementById('${fid}').classList.toggle('open')"` : ''}>
+      <div class="frame-num" style="background:${c.bdr}">${String(f.frameNum).padStart(2,'0')}</div>
+      <div class="frame-top">
+        <span class="frame-mod" style="background:${c.bg};color:${c.text}">${esc(f.module)}</span>
+        <span class="frame-fn">${esc(f.func)}</span>
+        ${f.offset ? `<span class="frame-off">+${esc(f.offset)}</span>` : ''}
+        ${f.params.length > 0 ? `<span class="frame-params">(${f.params.length} params)</span>` : ''}
+        ${f.args.length > 0 ? `<span class="frame-params">(${f.args.length} args)</span>` : ''}
+      </div>
+      <div class="frame-detail">
+        ${f.params.length > 0 ? `<div style="margin-bottom:8px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-3);margin-bottom:6px;font-weight:600">Parameters</div>
+          <div class="param-grid">${f.params.map(p => `<div class="param-item"><span class="pn">Parameter[${esc(p.index)}]</span><span class="pe">=</span><span class="pv">${esc(p.value)}</span>${p.note ? `<span class="pt">${esc(p.note)}</span>` : ''}</div>`).join('')}</div>
+        </div>` : ''}
+        ${f.args.length > 0 ? `<div style="margin-bottom:8px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-3);margin-bottom:6px;font-weight:600">Arguments</div>
+          <div class="param-grid">${f.args.map(a => `<div class="param-item"><span class="pn">${esc(a.name)}</span><span class="pe">=</span><span class="pv">${esc(a.value)}</span><span class="pt">${esc(a.type)}</span></div>`).join('')}</div>
+        </div>` : ''}
+        ${f.retAddr ? `<div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-2)">
+          ${f.childSP ? `Child-SP: <span style="color:var(--purple)">${esc(f.childSP)}</span> · ` : ''}
+          RetAddr: <span style="color:var(--yellow)">${esc(f.retAddr)}</span>
+        </div>` : ''}
+      </div>
+    </div>`;
+    if (i < stack.length - 1) html += '<div class="frame-connector"></div>';
+  });
+  return html;
+}
+
+function renderFlowView() {
+  const container = document.getElementById('flow');
+  if (parsed.stacks.length === 0) {
+    container.innerHTML = '<div style="color:var(--text-3);text-align:center;padding:40px;font-size:13px">No stack traces found in the input. Include kn/knL stack output for call flow visualization.</div>';
+    return;
+  }
+
+  let html = '';
+  for (let si = 0; si < parsed.stacks.length; si++) {
+    const stack = parsed.stacks[si];
+    const frames = [...stack].reverse();
+    const boxW = 320, boxH = 50, gapY = 14, padX = 30, padY = 24;
+    const svgW = boxW + padX * 2 + 240;
+    const svgH = frames.length * (boxH + gapY) + padY * 2 + 20;
+
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.min(svgW, 960)}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">`;
+    svg += `<defs><marker id="ah${si}" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#4c8dff"/></marker></defs>`;
+    svg += `<rect width="${svgW}" height="${svgH}" fill="#0c1017" rx="12"/>`;
+
+    frames.forEach((f, i) => {
+      const c = getModColor(f.module);
+      const x = padX, y = padY + i * (boxH + gapY);
+      svg += `<rect x="${x}" y="${y}" width="${boxW}" height="${boxH}" rx="7" fill="${c.bg}" stroke="${c.bdr}" stroke-width="1.2"/>`;
+      svg += `<text x="${x+10}" y="${y+18}" fill="${c.text}" font-family="JetBrains Mono,monospace" font-size="9.5" font-weight="600">${svgEsc(f.module)}</text>`;
+      const fn = f.func.length > 30 ? f.func.slice(0,28)+'…' : f.func;
+      svg += `<text x="${x+10}" y="${y+36}" fill="#e6ecf5" font-family="JetBrains Mono,monospace" font-size="10.5">${svgEsc(fn)}</text>`;
+      if (f.offset) svg += `<text x="${x+boxW-8}" y="${y+18}" fill="#485a78" font-family="JetBrains Mono,monospace" font-size="8.5" text-anchor="end">+${svgEsc(f.offset)}</text>`;
+
+      // Params on right
+      const notes = [];
+      if (f.params.length > 0) notes.push(...f.params.map(p => `[${p.index}]=${p.value}`));
+      else if (f.args.length > 0) notes.push(...f.args.slice(0,3).map(a => a.value));
+      if (notes.length > 0) {
+        const noteStr = notes.join(', ');
+        const display = noteStr.length > 40 ? noteStr.slice(0,38)+'…' : noteStr;
+        svg += `<text x="${x+boxW+12}" y="${y+30}" fill="#6a7d9a" font-family="JetBrains Mono,monospace" font-size="9">${svgEsc(display)}</text>`;
+      }
+
+      if (i < frames.length - 1) {
+        const cx = x + boxW / 2;
+        svg += `<line x1="${cx}" y1="${y+boxH}" x2="${cx}" y2="${y+boxH+gapY}" stroke="#4c8dff" stroke-width="1.3" marker-end="url(#ah${si})" opacity=".5"/>`;
+        svg += `<text x="${cx+8}" y="${y+boxH+gapY/2+3}" fill="#485a78" font-family="IBM Plex Sans,sans-serif" font-size="8">calls</text>`;
+      }
+    });
+    svg += `<text x="${padX+boxW/2}" y="${svgH-6}" fill="#485a78" font-family="IBM Plex Sans,sans-serif" font-size="9" text-anchor="middle">▲ Entry → Current Frame ▲</text>`;
+    svg += '</svg>';
+
+    html += `<div class="diagram-wrap" style="margin-bottom:16px">
+      <div style="font-size:12px;font-weight:600;margin-bottom:12px;color:var(--text-1)">Stack #${si+1}: ${esc(stack[0].module)}!${esc(stack[0].func)}</div>
+      ${svg}
+    </div>`;
+  }
+  container.innerHTML = html;
+}
+
+function renderAnalysis() {
+  let html = '';
+
+  // Pending IRP analysis
+  if (parsed.deviceCompletionQueue.pendingCount > 0) {
+    html += `<div class="analysis-block warn">
+      <h4>Pending PnP Operations Detected</h4>
+      <p><strong>${parsed.deviceCompletionQueue.pendingCount}</strong> PnP operation(s) are currently dispatched with IRP pending. This means one or more drivers have received a PnP IRP but have not yet completed it. This is often the root cause of PnP watchdog timeouts (Stop 0x1D5) or power state failures (Stop 0x9F) when the PnP subsystem times out waiting for completion.</p>
+    </div>`;
+  }
+
+  // Worker active
+  if (parsed.deviceActionQueue.workerActive) {
+    html += `<div class="analysis-block">
+      <h4>PnP DeviceActionWorker Active</h4>
+      <p>The PnP device action worker thread is currently active, meaning the PnP manager is actively processing device enumeration or state change requests. If this coincides with a hang, the worker thread's stack trace should reveal what it's blocked on.</p>
+    </div>`;
+  }
+
+  // DevNodes with problems
+  if (parsed.devnodesWithProblems.length > 0) {
+    for (const dn of parsed.devnodesWithProblems) {
+      html += `<div class="analysis-block err">
+        <h4>Problem DevNode: ${esc(dn.instancePath || dn.address)}</h4>
+        <p>${dn.problem ? `Problem code: <code>${esc(dn.problem)}</code>. ` : ''}
+        ${dn.serviceName ? `Service: <code>${esc(dn.serviceName)}</code>. ` : ''}
+        ${dn.state ? `Current state: <code>${esc(dn.state)}</code>. ` : ''}
+        ${dn.prevState ? `Previous state: <code>${esc(dn.prevState)}</code>. ` : ''}
+        ${dn.problem === 'CM_PROB_FAILED_INSTALL' ? 'This device failed installation — the driver was either missing, incompatible, or encountered an error during setup.' : ''}
+        ${dn.state && dn.state.includes('EnumeratePending') ? 'The device is stuck in an enumeration-pending state, meaning it sent an enumeration request that hasn\'t completed.' : ''}
+        </p>
+      </div>`;
+    }
+  }
+
+  // Lock contention
+  if (parsed.pnpLocks.length > 0) {
+    for (const lk of parsed.pnpLocks) {
+      html += `<div class="analysis-block warn">
+        <h4>ERESOURCE Lock Contention</h4>
+        <p>Lock at <code>${esc(lk.address)}</code> is <strong>${esc(lk.ownership)}</strong>.
+        ${lk.contention ? ` Contention count: ${esc(lk.contention)}.` : ''}
+        ${lk.threads.length > 0 ? ` Involved threads: ${lk.threads.map(t => `<code>${esc(t)}</code>`).join(', ')}.` : ''}
+        An exclusively-held lock blocking shared waiters is a classic cause of PnP hangs — one thread holds the lock and doesn't release it in time, causing other threads' PnP operations to stall.</p>
+      </div>`;
+    }
+  }
+
+  // IRP analysis
+  for (const irp of parsed.irps) {
+    const current = irp.stacks.find(s => s.isCurrent);
+    if (current) {
+      html += `<div class="analysis-block">
+        <h4>Active IRP: ${esc(current.major)}${current.minor ? ' / ' + esc(current.minor) : ''}</h4>
+        <p>The current IRP stack location shows <code>${esc(current.major)}</code>${current.minor ? ` with minor function <code>${esc(current.minor)}</code>` : ''}.
+        ${current.driver ? ` It is being handled by <code>\\Driver\\${esc(current.driver)}</code>.` : ''}
+        ${current.completion ? ` Completion routine: <code>${esc(current.completion)}</code>.` : ''}
+        ${current.minor === 'IRP_MN_QUERY_DEVICE_RELATIONS' ? ' This is a device relations query (often bus enumeration) — the driver is expected to report its child devices.' : ''}
+        ${current.minor === 'IRP_MN_START_DEVICE' ? ' This is a start-device request — the driver is initializing hardware resources.' : ''}
+        ${current.minor === 'IRP_MN_REMOVE_DEVICE' ? ' This is a remove-device request — the driver should release all resources.' : ''}
+        ${current.minor === 'IRP_MN_QUERY_CAPABILITIES' ? ' This is a capabilities query — asking the device about its power and PnP capabilities.' : ''}
+        </p>
+      </div>`;
+    }
+  }
+
+  // Stack analysis
+  for (let si = 0; si < parsed.stacks.length; si++) {
+    const stack = parsed.stacks[si];
+    const modules = [...new Set(stack.map(f => f.module))];
+    const topFrame = stack[0];
+    const bottomFrame = stack[stack.length - 1];
+
+    // Detect common patterns
+    let insights = [];
+    const funcNames = stack.map(f => f.func.toLowerCase());
+    if (funcNames.some(f => f.includes('kewaitforsingleobject') || f.includes('kiswapthread') || f.includes('kicommitthreadwait'))) {
+      insights.push('The thread is in a <strong>wait state</strong> — it\'s blocked waiting for a kernel object (event, mutex, semaphore, or resource).');
+    }
+    if (funcNames.some(f => f.includes('expacquireresource') || f.includes('expwaitforresource'))) {
+      insights.push('The thread is waiting to <strong>acquire an ERESOURCE lock</strong>. Another thread holds this lock exclusively.');
+    }
+    if (funcNames.some(f => f.includes('pipenumeratedevice') || f.includes('pipprocessdevnodetree'))) {
+      insights.push('The PnP manager is <strong>enumerating devices</strong> in the device tree.');
+    }
+    if (funcNames.some(f => f.includes('pnpdeviceactionworker'))) {
+      insights.push('This is the <strong>PnP DeviceActionWorker</strong> thread — the main PnP work dispatcher.');
+    }
+    if (funcNames.some(f => f.includes('startdevice') || f.includes('startadapter'))) {
+      insights.push('A device <strong>start operation</strong> is in progress — the driver is initializing.');
+    }
+    if (funcNames.some(f => f.includes('querydevicerelations'))) {
+      insights.push('A <strong>QueryDeviceRelations</strong> (bus enumeration) IRP is being processed.');
+    }
+
+    html += `<div class="analysis-block">
+      <h4>Stack #${si+1} Analysis</h4>
+      <p>Call chain spans <strong>${stack.length} frames</strong> across ${modules.length} module(s): ${modules.map(m => `<code>${esc(m)}</code>`).join(', ')}.<br>
+      Entry point: <code>${esc(bottomFrame.module)}!${esc(bottomFrame.func)}</code><br>
+      Current frame: <code>${esc(topFrame.module)}!${esc(topFrame.func)}</code>
+      ${insights.length > 0 ? '<br><br><strong>Key observations:</strong><br>' + insights.join('<br>') : ''}
+      </p>
+    </div>`;
+  }
+
+  if (!html) html = '<div style="color:var(--text-3);text-align:center;padding:40px;font-size:13px">No significant findings to report. The output appears clean.</div>';
+
+  document.getElementById('analysis').innerHTML = html;
+}
+
+function renderRaw(text) {
+  // Syntax-highlight the raw output
+  let highlighted = esc(text);
+  // Addresses
+  highlighted = highlighted.replace(/(0x[0-9a-fA-F`]+|[0-9a-fA-F]{8,16}`[0-9a-fA-F]+)/g, '<span style="color:var(--purple)">$1</span>');
+  // Module!Function
+  highlighted = highlighted.replace(/(\b[A-Za-z_][\w.]*(?:\+[\w.]*)?)\s*!\s*([A-Za-z_][\w:~<>,*&]+)/g, '<span style="color:var(--yellow)">$1</span>!<span style="color:var(--cyan)">$2</span>');
+  // Section headers
+  highlighted = highlighted.replace(/(\*{5,})/g, '<span style="color:var(--text-3)">$1</span>');
+  // Keywords
+  highlighted = highlighted.replace(/(Dumping|Request to|Argument|CompletionEvent|IRP pending|Problem|State|InstancePath|ServiceName|DevNode|Exclusively owned|Contention Count|Threads:)/g, '<span style="color:var(--orange)">$1</span>');
+  // IRP types
+  highlighted = highlighted.replace(/(IRP_MJ_\w+|IRP_MN_\w+)/g, '<span style="color:var(--green)">$1</span>');
+  // CM_PROB_
+  highlighted = highlighted.replace(/(CM_PROB_\w+)/g, '<span style="color:var(--red);font-weight:600">$1</span>');
+  // DeviceNode states
+  highlighted = highlighted.replace(/(DeviceNode\w+)/g, '<span style="color:var(--cyan)">$1</span>');
+
+  document.getElementById('raw').innerHTML = `<div class="raw-block">${highlighted}</div>`;
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('show'));
+  document.getElementById(name).classList.add('show');
+  event.target.classList.add('on');
+}
+
+// ============================================================
+// UTILITIES
+// ============================================================
+function esc(s) { return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
+function svgEsc(s) { return esc(s).replace(/'/g,'&#39;'); }
+
+document.getElementById('inp').addEventListener('input', () => {
+  const t = document.getElementById('inp').value;
+  const c = t.trim() ? t.trim().split('\n').length : 0;
+  document.getElementById('lc').textContent = c + ' line' + (c !== 1 ? 's' : '');
+});
+
+function clearAll() {
+  document.getElementById('inp').value = '';
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('empty').style.display = 'block';
+  document.getElementById('lc').textContent = '0 lines';
+}
+
+function loadExample() {
+  document.getElementById('inp').value = `0: kd> !pnptriage
+
+********************************************************************************
+Dumping PnP DeviceAction Queue @ 0xfffff80184643400
+********************************************************************************
+
+Dumping nt!_PNP_DEVICE_ACTION_ENTRY @ 0xffffc88d43fcade0
+    Request to ReenumerateDeviceOnly !devstack ffffc88d3a526de0
+    Argument - 00000000
+    CompletionEvent - 0x00000000
+
+Dumped 1 entries
+PnP DeviceActionWorker active!
+
+********************************************************************************
+Dumping PnP DeviceEvent Queue @ 0xffffc88d3a49d190
+********************************************************************************
+
+List = 0xffffc88d3a49d208, 0xffffc88d3a49d208
+Event list is empty
+
+********************************************************************************
+Dumping PnP DeviceCompletion Queue @ 0xfffff80184644980
+********************************************************************************
+
+1 Pnp operation(s) dispatched (IRP pending) currently.
+
+Dumping pending asynchronous request list...
+Dumping pended asynchronous request...
+!devnode ffffc88d3c587c50
+CompletionState = DeviceNodeEnumerateCompletion (0x30d)
+        Pending !irp ffffc88d43613a40
+
+Dumping completed asynchronous request list...
+
+********************************************************************************
+Dumping devnodes with problems...
+********************************************************************************
+
+Dumping IopRootDeviceNode (= 0x86c05c08)
+
+DevNode 0x8a131e78 for PDO 0x8a1af6a8
+  InstancePath is "PCI\\VEN_8086&DEV_0162&SUBSYS_84CA1043&REV_09\\3&11583659&0&10"
+  State = DeviceNodeEnumeratePending (0x30c)
+  Previous State = DeviceNodeStarted (0x308)
+  ServiceName is "igfx"
+
+********************************************************************************
+Dumping PnP locks...
+********************************************************************************
+
+Resource @ 0xffffc88d4398ec90    Exclusively owned
+    Contention Count = 1
+    NumberOfSharedWaiters = 1
+     Threads: ffffc88d43cf3040-01<*> ffffc88d43595040-01    
+
+0: kd> !irp ffffc88d43613a40
+Irp is active with 3 stacks 3 is current (= 0xffffc88d43613ba0)
+ No Mdl: No System Buffer: Thread ffffc88d43595040:  Irp stack trace.
+     cmd  flg cl Device   File     Completion-Context
+ [N/A(0), N/A(0)]
+            0  0 00000000 00000000 00000000-00000000
+
+            Args: 00000000 00000000 00000000 00000000
+ [N/A(0), N/A(0)]
+            0  0 00000000 00000000 00000000-00000000
+
+            Args: 00000000 00000000 00000000 00000000
+>[IRP_MJ_PNP(1b), IRP_MN_QUERY_DEVICE_RELATIONS(7)]
+            0 e0 ffffc88d43e8c030 00000000 fffff80183d6d250-ffffc88d41165360 Success Error Cancel
+ \\Driver\\igfx    nt!PnpDeviceCompletionRoutine
+            Args: 00000000 00000000 00000000 00000000
+
+0: kd> knL
+  *** Stack trace for last set context - .thread/.cxr resets it
+ # Child-SP          RetAddr               Call Site
+00 ffffa187\`54941040 fffff801\`83c1c9c0     nt!KiSwapContext+0x76
+01 ffffa187\`54941180 fffff801\`83c1beef     nt!KiSwapThread+0x500
+02 ffffa187\`54941230 fffff801\`83c1b793     nt!KiCommitThreadWait+0x14f
+03 ffffa187\`549412d0 fffff801\`83c17fdd     nt!KeWaitForSingleObject+0x233
+04 ffffa187\`549413c0 fffff801\`83c2260a     nt!ExpWaitForResource+0x6d
+05 ffffa187\`54941440 fffff801\`83c22074     nt!ExpAcquireResourceSharedLite+0x4da
+    Parameter[0] = ffffc88d4398ec90
+    Parameter[1] = 0000000000000001
+06 ffffa187\`54941500 fffff801\`89cc4833     nt!ExAcquireResourceSharedLite+0x44
+07 ffffa187\`54941540 fffff801\`89ce9006     dxgkrnl!DpiFdoHandleQueryDeviceRelations+0xf3
+    Parameter[0] = ffffc88d43e8c030
+    Parameter[1] = ffffc88d43613a40
+08 ffffa187\`54941600 fffff801\`89cac0f9     dxgkrnl!DpiFdoDispatchPnp+0xd6
+09 ffffa187\`549416c0 fffff801\`83c11385     dxgkrnl!DpiDispatchPnp+0xe9
+0a ffffa187\`549417e0 fffff801\`84165b4e     nt!IofCallDriver+0x55
+0b ffffa187\`54941820 fffff801\`83c045ee     nt!PnpAsynchronousCall+0xea
+0c ffffa187\`54941860 fffff801\`84137d29     nt!PnpSendIrp+0x9e
+0d ffffa187\`549418d0 fffff801\`84137c90     nt!PnpQueryDeviceRelations+0x51
+0e ffffa187\`54941960 fffff801\`84135ce7     nt!PipEnumerateDevice+0xc8
+0f ffffa187\`54941990 fffff801\`8412fcc6     nt!PipProcessDevNodeTree+0x297
+10 ffffa187\`54941a60 fffff801\`83d6efba     nt!PiRestartDevice+0xba
+11 ffffa187\`54941ab0 fffff801\`83c8e5c5     nt!PnpDeviceActionWorker+0x46a
+12 ffffa187\`54941b70 fffff801\`83d265f5     nt!ExpWorkerThread+0x105
+13 ffffa187\`54941c10 fffff801\`83e048d8     nt!PspSystemThreadStartup+0x55
+14 ffffa187\`54941c60 00000000\`00000000     nt!KiStartSystemThread+0x28
+
+0: kd> knL
+ # Child-SP          RetAddr               Call Site
+00 ffffa187\`54622330 fffff801\`a82eef4c     igdkmd64+0x1119ad
+01 ffffa187\`54622360 fffff801\`a8264e83     igdkmd64+0xbef4c
+02 ffffa187\`546223e0 fffff801\`a825e59b     igdkmd64+0x34e83
+03 ffffa187\`54622460 fffff801\`a85e15a9     igdkmd64+0x2e59b
+04 ffffa187\`54622810 fffff801\`89cd3622     igdkmd64+0x3b15a9
+05 ffffa187\`54622850 fffff801\`89cd2d02     dxgkrnl!DpiDxgkDdiStartDevice+0x6a
+06 ffffa187\`546228b0 fffff801\`89cd3b38     dxgkrnl!DpiFdoStartAdapter+0x58e
+07 ffffa187\`54622a30 fffff801\`89ce8c40     dxgkrnl!DpiFdoStartAdapterThreadImpl+0x308
+08 ffffa187\`54622be0 fffff801\`83d265f5     dxgkrnl!DpiFdoStartAdapterThread+0x30
+09 ffffa187\`54622c10 fffff801\`83e048d8     nt!PspSystemThreadStartup+0x55
+0a ffffa187\`54622c60 00000000\`00000000     nt!KiStartSystemThread+0x28`;
+
+  document.getElementById('lc').textContent = document.getElementById('inp').value.trim().split('\n').length + ' lines';
+  analyze();
+}
+</script>
+</body>
+</html>
